@@ -25,6 +25,7 @@ function isPackageDeclared(pkgName: string): boolean {
       return false;
     }
     const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
+    core.info(`Parsed package.json: ${JSON.stringify(pkgJson, null, 2)}`);
     const deps = pkgJson.dependencies ?? {};
     const devDeps = pkgJson.devDependencies ?? {};
     return pkgName in deps || pkgName in devDeps;

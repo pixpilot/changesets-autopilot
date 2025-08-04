@@ -44529,6 +44529,7 @@ function isPackageDeclared(pkgName) {
             return false;
         }
         const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+        coreExports.info(`Parsed package.json: ${JSON.stringify(pkgJson, null, 2)}`);
         const deps = pkgJson.dependencies ?? {};
         const devDeps = pkgJson.devDependencies ?? {};
         return pkgName in deps || pkgName in devDeps;
