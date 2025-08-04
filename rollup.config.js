@@ -9,12 +9,12 @@ const config = {
     file: 'dist/index.js',
     format: 'es',
     sourcemap: true,
-    // Add this banner to define __dirname
+    // Modified banner to avoid conflicts
     banner: `
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { fileURLToPath as _fileURLToPath } from 'url';
+import { dirname as _dirname } from 'path';
+const __filename = typeof __filename !== 'undefined' ? __filename : _fileURLToPath(import.meta.url);
+const __dirname = typeof __dirname !== 'undefined' ? __dirname : _dirname(__filename);
     `.trim(),
   },
   plugins: [
@@ -24,12 +24,11 @@ const __dirname = dirname(__filename);
       declarationMap: false,
     }),
     commonjs({
-      // This helps with CommonJS compatibility
       transformMixedEsModules: true,
     }),
     nodeResolve({
       preferBuiltins: true,
-      exportConditions: ['node'], // Prefer Node.js versions of packages
+      exportConditions: ['node'],
     }),
   ],
 };

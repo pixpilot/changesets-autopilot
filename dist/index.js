@@ -1,7 +1,7 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { fileURLToPath as _fileURLToPath } from 'url';
+import { dirname as _dirname } from 'path';
+const __filename = typeof __filename !== 'undefined' ? __filename : _fileURLToPath(import.meta.url);
+const __dirname = typeof __dirname !== 'undefined' ? __dirname : _dirname(__filename);
 import require$$1$3, { fileURLToPath } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
