@@ -44516,6 +44516,21 @@ function configurePrereleaseMode(branchConfig) {
     }
 }
 
+function ensureChangesetsAvailable() {
+    try {
+        // Try to run changeset to see if it's available
+        execSync('npx changeset --version', {
+            stdio: 'pipe', // Don't show output
+            timeout: 10000,
+        });
+        coreExports.info('Changesets CLI is available');
+    }
+    catch (_error) {
+        coreExports.info('Changesets CLI not found, installing globally as fallback...');
+        execSync('npm install -g @changesets/cli', { stdio: 'inherit' });
+    }
+}
+
 const ALIAS = Symbol.for('yaml.alias');
 const DOC = Symbol.for('yaml.document');
 const MAP = Symbol.for('yaml.map');
@@ -51517,23 +51532,7 @@ async function gitVersionAndPush(git, githubToken) {
     }
 }
 
-function ensureChangesetsAvailable() {
-    try {
-        // Try to run changeset to see if it's available
-        execSync('npx changeset --version', {
-            stdio: 'pipe', // Don't show output
-            timeout: 10000,
-        });
-        coreExports.info('Changesets CLI is available');
-    }
-    catch (_error) {
-        coreExports.info('Changesets CLI not found, installing globally as fallback...');
-        execSync('npm install -g @changesets/cli', { stdio: 'inherit' });
-    }
-}
 function publishPackages(branchConfig, npmToken) {
-    // Ensure changesets is available
-    ensureChangesetsAvailable();
     const publishCommand = branchConfig.channel
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
@@ -51550,6 +51549,8 @@ function publishPackages(branchConfig, npmToken) {
  */
 async function run() {
     try {
+        // Ensure changesets is available
+        ensureChangesetsAvailable();
         // Initialize inputs and configuration
         const { githubToken, npmToken, botName, branches } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
