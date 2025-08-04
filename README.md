@@ -144,4 +144,3 @@ npx @github/local-action . src/index.ts .env
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-# Dummy commit for Husky test
