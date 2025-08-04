@@ -51555,8 +51555,13 @@ async function gitVersionAndPush(git, githubToken) {
     const refName = process.env.GITHUB_REF_NAME;
     if (repo && githubToken && refName) {
         try {
+            // Push the branch
             await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
             coreExports.info('Git push successful');
+            // Push tags to trigger GitHub releases
+            coreExports.info('Pushing tags to GitHub...');
+            await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
+            coreExports.info('Git push tags successful');
         }
         catch (e) {
             coreExports.info(`Git push failed: ${String(e)}`);

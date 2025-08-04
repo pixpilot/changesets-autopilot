@@ -18,7 +18,6 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
     core.info('Changeset version completed successfully');
   } catch (error) {
     core.info(`Error message: ${(error as Error).message}`);
-
     return;
   }
 
@@ -34,8 +33,14 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   const refName = process.env.GITHUB_REF_NAME;
   if (repo && githubToken && refName) {
     try {
+      // Push the branch
       await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
       core.info('Git push successful');
+
+      // Push tags to trigger GitHub releases
+      core.info('Pushing tags to GitHub...');
+      await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
+      core.info('Git push tags successful');
     } catch (e) {
       core.info(`Git push failed: ${String(e)}`);
     }
