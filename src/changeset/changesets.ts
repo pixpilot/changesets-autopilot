@@ -15,6 +15,7 @@ export function isChangesetFile(file: string): boolean {
  * @returns {boolean} True if there are changesets, false otherwise.
  */
 export function checkForChangesetFiles(): boolean {
+  if (!fs.existsSync(changesetDir)) return false;
   return fs.readdirSync(changesetDir).some(isChangesetFile);
 }
 
@@ -23,5 +24,6 @@ export function checkForChangesetFiles(): boolean {
  * @returns {string[]} Array of changeset file names.
  */
 export function getChangesetFiles(): string[] {
+  if (!fs.existsSync(changesetDir)) return [];
   return fs.readdirSync(changesetDir).filter(isChangesetFile);
 }

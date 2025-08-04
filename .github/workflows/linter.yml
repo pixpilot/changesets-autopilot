@@ -65,7 +65,7 @@ jobs:
         uses: super-linter/super-linter/slim@v7
         env:
           DEFAULT_BRANCH: main
-          FILTER_REGEX_EXCLUDE: (dist/**/*|package-lock\.json|node_modules/**|\.devcontainer/**|\.vscode/**)
+          FILTER_REGEX_EXCLUDE: (dist/**/*|package-lock\.json|node_modules/**|\.devcontainer/**|\.vscode/**|\.github/workflows/codeql-analysis.yml|\.markdownlint.json|\.automation/\.markdownlint.json)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LINTER_RULES_PATH: .automation
           VALIDATE_ALL_CODEBASE: false

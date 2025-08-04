@@ -1,9 +1,13 @@
+import fs from 'fs';
+import path from 'path';
+
 import { describe, test, expect } from 'vitest';
 
 import {
   checkForChangesetFiles,
   getChangesetFiles,
   isChangesetFile,
+  changesetDir,
 } from '../../src/changeset/changesets';
 
 describe('changesets', () => {
@@ -21,6 +25,38 @@ describe('changesets', () => {
   test('checkForChangesetFiles should return a boolean', () => {
     const result = checkForChangesetFiles();
     expect(typeof result).toBe('boolean');
+  });
+
+  test('getChangesetFiles returns empty array if .changeset directory does not exist', () => {
+    // Temporarily rename .changeset if it exists
+    const tempDir = changesetDir + '_bak';
+    if (fs.existsSync(changesetDir)) {
+      fs.renameSync(changesetDir, tempDir);
+    }
+    try {
+      expect(getChangesetFiles()).toEqual([]);
+    } finally {
+      // Restore .changeset directory
+      if (fs.existsSync(tempDir)) {
+        fs.renameSync(tempDir, changesetDir);
+      }
+    }
+  });
+
+  test('checkForChangesetFiles returns false if .changeset directory does not exist', () => {
+    // Temporarily rename .changeset if it exists
+    const tempDir = changesetDir + '_bak';
+    if (fs.existsSync(changesetDir)) {
+      fs.renameSync(changesetDir, tempDir);
+    }
+    try {
+      expect(checkForChangesetFiles()).toBe(false);
+    } finally {
+      // Restore .changeset directory
+      if (fs.existsSync(tempDir)) {
+        fs.renameSync(tempDir, changesetDir);
+      }
+    }
   });
 });
 
