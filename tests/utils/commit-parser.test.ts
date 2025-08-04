@@ -79,9 +79,7 @@ describe('getChangeTypeAndDescription', () => {
     });
 
     test('feat with complex scope', () => {
-      const result = getChangeTypeAndDescription(
-        'feat(auth:admin): add admin dashboard',
-      );
+      const result = getChangeTypeAndDescription('feat(auth:admin): add admin dashboard');
       expect(result).toStrictEqual({
         changeType: 'minor',
         scope: 'auth:admin',
@@ -134,9 +132,7 @@ describe('getChangeTypeAndDescription', () => {
     });
 
     test('none: BREAKING CHANGE in header is not detected as major', () => {
-      const result = getChangeTypeAndDescription(
-        'BREAKING CHANGE: API endpoint changed',
-      );
+      const result = getChangeTypeAndDescription('BREAKING CHANGE: API endpoint changed');
       expect(result).toStrictEqual({
         changeType: 'none',
         scope: null,
@@ -156,9 +152,7 @@ describe('getChangeTypeAndDescription', () => {
     });
 
     test('chore commit', () => {
-      const result = getChangeTypeAndDescription(
-        'chore(deps): update dependencies',
-      );
+      const result = getChangeTypeAndDescription('chore(deps): update dependencies');
       expect(result).toStrictEqual({
         changeType: 'none',
         scope: 'deps', // parser extracts scope
@@ -205,9 +199,7 @@ describe('getChangeTypeAndDescription', () => {
     });
 
     test('commit', () => {
-      const result = getChangeTypeAndDescription(
-        'test(unit): add user service tests',
-      );
+      const result = getChangeTypeAndDescription('test(unit): add user service tests');
       expect(result).toStrictEqual({
         changeType: 'none',
         scope: 'unit', // parser extracts scope
@@ -259,9 +251,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
     });
 
     test('commit with numbers in scope', () => {
-      const result = getChangeTypeAndDescription(
-        'fix(route53): resolve DNS issues',
-      );
+      const result = getChangeTypeAndDescription('fix(route53): resolve DNS issues');
       expect(result).toStrictEqual({
         changeType: 'patch',
         scope: 'route53',
@@ -281,9 +271,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
     });
 
     test('commit with exclamation in description but not breaking', () => {
-      const result = getChangeTypeAndDescription(
-        'feat(ui): add exciting new button!',
-      );
+      const result = getChangeTypeAndDescription('feat(ui): add exciting new button!');
       expect(result).toStrictEqual({
         changeType: 'minor', // parser treats '!' in description as breaking
         scope: 'ui',
@@ -311,9 +299,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
     });
 
     test('unusual whitespace and line breaks', () => {
-      const result = getChangeTypeAndDescription(
-        'feat (api) ! :   spaced description',
-      );
+      const result = getChangeTypeAndDescription('feat (api) ! :   spaced description');
       expect(result).toStrictEqual({
         changeType: 'none',
         description: 'feat (api) ! :   spaced description',
