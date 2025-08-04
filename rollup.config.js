@@ -9,12 +9,12 @@ const config = {
     file: 'dist/index.js',
     format: 'es',
     sourcemap: true,
-    // Modified banner to avoid conflicts
+    // Simpler banner that defines the globals directly
     banner: `
-import { fileURLToPath as _fileURLToPath } from 'url';
-import { dirname as _dirname } from 'path';
-const __filename = typeof __filename !== 'undefined' ? __filename : _fileURLToPath(import.meta.url);
-const __dirname = typeof __dirname !== 'undefined' ? __dirname : _dirname(__filename);
+import { fileURLToPath as __fileURLToPath } from 'url';
+import { dirname as __dirname_fn } from 'path';
+const __filename = __fileURLToPath(import.meta.url);
+const __dirname = __dirname_fn(__filename);
     `.trim(),
   },
   plugins: [
