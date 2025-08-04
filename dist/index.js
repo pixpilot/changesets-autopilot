@@ -52026,42 +52026,41 @@ async function configureGit(botName) {
     return git;
 }
 
-/**
- * Runs `npx changeset version` in the current working directory with the provided GitHub token.
- * Throws if the command fails.
- * @param githubToken - The GitHub token to pass in the environment (optional)
- * @returns The stdout from the command
- */
-function runChangesetCommand(command, githubToken) {
-    const env = { ...process.env };
-    if (githubToken) {
-        env.GITHUB_TOKEN = githubToken;
-    }
-    return execSync(`npx changeset ${command}`, {
-        encoding: 'utf8',
-        cwd: process.cwd(),
-        env,
-    });
-}
-
-/**
- * Versions packages, commits, and pushes changes to the repository.
- * @param {string} githubToken - GitHub token for authentication
- */
 async function gitVersionAndPush(git, githubToken) {
-    coreExports.info('Running changeset version...');
-    runChangesetCommand('version', githubToken);
+    try {
+        const versionOutput = execSync('npx changeset version', {
+            encoding: 'utf8',
+            cwd: process.cwd(),
+            env: {
+                ...process.env,
+                GITHUB_TOKEN: githubToken,
+            },
+        });
+        coreExports.info(`Version output: ${versionOutput}`);
+        coreExports.info('Changeset version completed successfully');
+    }
+    catch (error) {
+        coreExports.info(`Error message: ${error.message}`);
+        return;
+    }
     await git.add('.');
     try {
         await git.commit('chore(release): version packages [skip ci]');
+        coreExports.info('Git commit successful');
     }
     catch (e) {
-        coreExports.info(`No changes to commit or commit failed: ${String(e)}`);
+        coreExports.info(`Git commit failed: ${String(e)}`);
     }
     const repo = process.env.GITHUB_REPOSITORY;
     const refName = process.env.GITHUB_REF_NAME;
     if (repo && githubToken && refName) {
-        await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
+        try {
+            await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
+            coreExports.info('Git push successful');
+        }
+        catch (e) {
+            coreExports.info(`Git push failed: ${String(e)}`);
+        }
     }
     else {
         coreExports.info('Missing repo, token, or refName for push.');
