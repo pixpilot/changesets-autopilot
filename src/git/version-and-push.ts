@@ -21,7 +21,7 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
 
   core.info('Reading changesets config...');
   // The config is needed to know how to generate changelogs
-  const config = await read(cwd, packages as never);
+  const config = await read(cwd, packages);
 
   core.info('Reading changeset files...');
   const changesets = await readChangesets(cwd);
@@ -34,7 +34,7 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   core.info('Assembling release plan...');
   const releasePlan = assembleReleasePlan(
     changesets,
-    packages as never,
+    packages,
     config,
     undefined, // previous versions data - not needed for basic versioning
     undefined, // options
@@ -43,7 +43,7 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   core.info('Applying release plan...');
   await applyReleasePlan(
     releasePlan,
-    packages as never,
+    packages,
     config,
     undefined, // snapshot info
   );

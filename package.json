@@ -54,7 +54,6 @@
     "@conventional-commits/parser": "^0.4.1",
     "@manypkg/get-packages": "^3.1.0",
     "add": "^2.0.6",
-    "prettier-eslint": "^16.4.2",
     "simple-git": "^3.28.0",
     "yaml": "^2.8.0"
   },
@@ -82,6 +81,7 @@
     "husky": "^9.1.7",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.5.3",
+    "prettier-eslint": "^16.4.2",
     "rollup": "^4.43.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
@@ -89,5 +89,8 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "*"
+  },
+  "overrides": {
+    "@manypkg/get-packages": "^3.1.0"
   }
 }
