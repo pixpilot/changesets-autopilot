@@ -13,7 +13,7 @@ const config = {
     format: 'es',
     sourcemap: true,
   },
-  external: [...builtinModules, '@commitlint/parse', 'conventional-changelog-angular'],
+  external: [...builtinModules, '@commitlint/parse'],
   plugins: [
     typescript({
       outDir: 'dist',
