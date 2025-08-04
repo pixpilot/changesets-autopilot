@@ -17,6 +17,7 @@ export function publishPackages(
   core.info(`Publishing packages: ${publishCommand}`);
   execSync(publishCommand, {
     stdio: 'inherit',
+    cwd: process.cwd(),
     env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
   });
 }

@@ -11,7 +11,6 @@ import { createChangesetFile } from './create-changeset-file';
  */
 export async function processChanges(): Promise<void> {
   const changes = await getChangesSinceLastCommit();
-  core.info(`Changes detected: ${JSON.stringify(changes, null, 2)}`);
   for (const [packageName, info] of Object.entries(changes)) {
     if (info.commits.length > 0) {
       for (const commit of info.commits) {

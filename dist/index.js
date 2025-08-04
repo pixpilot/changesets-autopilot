@@ -44458,7 +44458,6 @@ function getChangeTypeAndDescription(message) {
  */
 async function processChanges() {
     const changes = await getChangesSinceLastCommit();
-    coreExports.info(`Changes detected: ${JSON.stringify(changes, null, 2)}`);
     for (const [packageName, info] of Object.entries(changes)) {
         if (info.commits.length > 0) {
             for (const commit of info.commits) {
@@ -51528,6 +51527,7 @@ function publishPackages(branchConfig, npmToken) {
     coreExports.info(`Publishing packages: ${publishCommand}`);
     execSync(publishCommand, {
         stdio: 'inherit',
+        cwd: process.cwd(),
         env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
     });
 }
