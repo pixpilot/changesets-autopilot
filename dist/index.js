@@ -1,41 +1,62 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import require$$1$3, { fileURLToPath as fileURLToPath$1 } from 'url';
-import require$$0 from 'os';
-import require$$0$1 from 'crypto';
-import fs from 'fs';
-import path, { posix } from 'path';
-import require$$2 from 'http';
-import require$$3 from 'https';
-import require$$0$5 from 'net';
-import require$$1 from 'tls';
-import require$$0$4 from 'assert';
-import require$$0$2 from 'util';
-import require$$0$6 from 'stream';
-import require$$0$3 from 'buffer';
-import require$$8 from 'querystring';
-import require$$14 from 'stream/web';
-import require$$0$8 from 'node:stream';
-import require$$1$1 from 'node:util';
-import require$$0$7, { EventEmitter } from 'node:events';
-import require$$0$9 from 'worker_threads';
-import require$$2$1 from 'perf_hooks';
-import require$$5 from 'util/types';
-import require$$4 from 'async_hooks';
-import require$$1$2 from 'console';
-import require$$3$1 from 'zlib';
-import require$$0$a from 'diagnostics_channel';
-import require$$2$2, { spawn, execSync } from 'child_process';
-import require$$6 from 'timers';
-import * as path__default from 'node:path';
-import path__default__default from 'node:path';
-import * as fs__default from 'node:fs';
-import fs__default__default from 'node:fs';
-import * as fsp__default from 'node:fs/promises';
-import fsp__default__default from 'node:fs/promises';
-import { F_OK } from 'node:constants';
-import { Buffer as Buffer$1 } from 'node:buffer';
-import require$$1$4 from 'tty';
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var require$$1$3 = require('url');
+var require$$0 = require('os');
+var require$$0$1 = require('crypto');
+var fs = require('fs');
+var path = require('path');
+var require$$2 = require('http');
+var require$$3 = require('https');
+var require$$0$5 = require('net');
+var require$$1 = require('tls');
+var require$$0$4 = require('assert');
+var require$$0$2 = require('util');
+var require$$0$6 = require('stream');
+var require$$0$3 = require('buffer');
+var require$$8 = require('querystring');
+var require$$14 = require('stream/web');
+var require$$0$8 = require('node:stream');
+var require$$1$1 = require('node:util');
+var require$$0$7 = require('node:events');
+var require$$0$9 = require('worker_threads');
+var require$$2$1 = require('perf_hooks');
+var require$$5 = require('util/types');
+var require$$4 = require('async_hooks');
+var require$$1$2 = require('console');
+var require$$3$1 = require('zlib');
+var require$$0$a = require('diagnostics_channel');
+var require$$2$2 = require('child_process');
+var require$$6 = require('timers');
+var path__default = require('node:path');
+var fs__default = require('node:fs');
+var fsp__default = require('node:fs/promises');
+var node_constants = require('node:constants');
+var node_buffer = require('node:buffer');
+var require$$1$4 = require('tty');
+
+var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
+function _interopNamespaceDefault(e) {
+	var n = Object.create(null);
+	if (e) {
+		Object.keys(e).forEach(function (k) {
+			if (k !== 'default') {
+				var d = Object.getOwnPropertyDescriptor(e, k);
+				Object.defineProperty(n, k, d.get ? d : {
+					enumerable: true,
+					get: function () { return e[k]; }
+				});
+			}
+		});
+	}
+	n.default = e;
+	return Object.freeze(n);
+}
+
+var path__default__namespace = /*#__PURE__*/_interopNamespaceDefault(path__default);
+var fs__default__namespace = /*#__PURE__*/_interopNamespaceDefault(fs__default);
+var fsp__default__namespace = /*#__PURE__*/_interopNamespaceDefault(fsp__default);
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -31255,8 +31276,8 @@ function normalizePattern(pattern, expandDirectories, cwd, props, isIgnore) {
 	if (pattern.endsWith("/")) result = pattern.slice(0, -1);
 	if (!result.endsWith("*") && expandDirectories) result += "/**";
 	const escapedCwd = escapePath(cwd);
-	if (path.isAbsolute(result.replace(ESCAPING_BACKSLASHES, ""))) result = posix.relative(escapedCwd, result);
-	else result = posix.normalize(result);
+	if (path.isAbsolute(result.replace(ESCAPING_BACKSLASHES, ""))) result = path.posix.relative(escapedCwd, result);
+	else result = path.posix.normalize(result);
 	const parentDirectoryMatch = PARENT_DIRECTORY.exec(result);
 	const parts = splitPattern(result);
 	if (parentDirectoryMatch === null || parentDirectoryMatch === void 0 ? void 0 : parentDirectoryMatch[0]) {
@@ -31267,7 +31288,7 @@ function normalizePattern(pattern, expandDirectories, cwd, props, isIgnore) {
 			result = result.slice(0, (n - i - 1) * 3) + result.slice((n - i) * 3 + parts[i + n].length + 1) || ".";
 			i++;
 		}
-		const potentialRoot = posix.join(cwd, parentDirectoryMatch[0].slice(i * 3));
+		const potentialRoot = path.posix.join(cwd, parentDirectoryMatch[0].slice(i * 3));
 		if (!potentialRoot.startsWith(".") && props.root.length > potentialRoot.length) {
 			props.root = potentialRoot;
 			props.depthOffset = -n + i;
@@ -31314,7 +31335,7 @@ function processPatterns({ patterns, ignore = [], expandDirectories = true }, cw
 	};
 }
 function getRelativePath(path$1, cwd, root) {
-	return posix.relative(cwd, `${root}/${path$1}`) || ".";
+	return path.posix.relative(cwd, `${root}/${path$1}`) || ".";
 }
 function processPath(path$1, cwd, root, isDirectory, absolute) {
 	const relativePath = absolute ? path$1.slice(root === "/" ? 1 : root.length + 1) || "." : path$1;
@@ -37216,8 +37237,8 @@ class InvalidMonorepoError extends Error {}
  * a valid instance of this type of monorepo, how to retrieve the packages, etc.
  */
 
-const readJson = async (directory, file) => JSON.parse(await fsp__default__default.readFile(path__default__default.join(directory, file), "utf-8"));
-const readJsonSync = (directory, file) => JSON.parse(fs__default__default.readFileSync(path__default__default.join(directory, file), "utf-8"));
+const readJson = async (directory, file) => JSON.parse(await fsp__default.readFile(path__default.join(directory, file), "utf-8"));
+const readJsonSync = (directory, file) => JSON.parse(fs__default.readFileSync(path__default.join(directory, file), "utf-8"));
 
 /**
  * This internal method takes a list of one or more directory globs and the absolute path
@@ -37231,8 +37252,8 @@ async function expandPackageGlobs(packageGlobs, directory) {
     ignore: ["**/node_modules"],
     expandDirectories: false
   });
-  const directories = relativeDirectories.map(p => path__default__default.resolve(directory, p)).sort();
-  const discoveredPackages = await Promise.all(directories.map(dir => fsp__default__default.readFile(path__default__default.join(dir, "package.json"), "utf-8").catch(err => {
+  const directories = relativeDirectories.map(p => path__default.resolve(directory, p)).sort();
+  const discoveredPackages = await Promise.all(directories.map(dir => fsp__default.readFile(path__default.join(dir, "package.json"), "utf-8").catch(err => {
     if (err && err.code === "ENOENT") {
       return undefined;
     }
@@ -37240,8 +37261,8 @@ async function expandPackageGlobs(packageGlobs, directory) {
   }).then(result => {
     if (result) {
       return {
-        dir: path__default__default.resolve(dir),
-        relativeDir: path__default__default.relative(directory, dir),
+        dir: path__default.resolve(dir),
+        relativeDir: path__default.relative(directory, dir),
         packageJson: JSON.parse(result)
       };
     }
@@ -37259,13 +37280,13 @@ function expandPackageGlobsSync(packageGlobs, directory) {
     ignore: ["**/node_modules"],
     expandDirectories: false
   });
-  const directories = relativeDirectories.map(p => path__default__default.resolve(directory, p)).sort();
+  const directories = relativeDirectories.map(p => path__default.resolve(directory, p)).sort();
   const discoveredPackages = directories.map(dir => {
     try {
       const packageJson = readJsonSync(dir, "package.json");
       return {
-        dir: path__default__default.resolve(dir),
-        relativeDir: path__default__default.relative(directory, dir),
+        dir: path__default.resolve(dir),
+        relativeDir: path__default.relative(directory, dir),
         packageJson
       };
     } catch (err) {
@@ -37280,7 +37301,7 @@ function expandPackageGlobsSync(packageGlobs, directory) {
 
 async function hasBunLockFile(directory) {
   try {
-    await Promise.any([fsp__default.access(path__default.join(directory, "bun.lockb"), F_OK), fsp__default.access(path__default.join(directory, "bun.lock"), F_OK)]);
+    await Promise.any([fsp__default__namespace.access(path__default__namespace.join(directory, "bun.lockb"), node_constants.F_OK), fsp__default__namespace.access(path__default__namespace.join(directory, "bun.lock"), node_constants.F_OK)]);
     return true;
   } catch (err) {
     return false;
@@ -37288,11 +37309,11 @@ async function hasBunLockFile(directory) {
 }
 function hasBunLockFileSync(directory) {
   try {
-    fs__default.accessSync(path__default.join(directory, "bun.lockb"), F_OK);
+    fs__default__namespace.accessSync(path__default__namespace.join(directory, "bun.lockb"), node_constants.F_OK);
     return true;
   } catch (err) {
     try {
-      fs__default.accessSync(path__default.join(directory, "bun.lock"), F_OK);
+      fs__default__namespace.accessSync(path__default__namespace.join(directory, "bun.lock"), node_constants.F_OK);
       return true;
     } catch (err) {
       return false;
@@ -37338,7 +37359,7 @@ const BunTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default.resolve(directory);
+    const rootDir = path__default__namespace.resolve(directory);
     try {
       const pkgJson = await readJson(rootDir, "package.json");
       const packageGlobs = pkgJson.workspaces || [];
@@ -37360,7 +37381,7 @@ const BunTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default.resolve(directory);
+    const rootDir = path__default__namespace.resolve(directory);
     try {
       const pkgJson = readJsonSync(rootDir, "package.json");
       const packageGlobs = pkgJson.workspaces || [];
@@ -37414,7 +37435,7 @@ const LernaTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const lernaJson = await readJson(rootDir, "lerna.json");
       const pkgJson = await readJson(rootDir, "package.json");
@@ -37437,7 +37458,7 @@ const LernaTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const lernaJson = readJsonSync(rootDir, "lerna.json");
       const pkgJson = readJsonSync(rootDir, "package.json");
@@ -37465,7 +37486,7 @@ const NpmTool = {
   type: "npm",
   async isMonorepoRoot(directory) {
     try {
-      const [pkgJson] = await Promise.all([readJson(directory, "package.json"), fsp__default__default.access(path__default__default.join(directory, "package-lock.json"), F_OK)]);
+      const [pkgJson] = await Promise.all([readJson(directory, "package.json"), fsp__default.access(path__default.join(directory, "package-lock.json"), node_constants.F_OK)]);
       if (pkgJson.workspaces) {
         if (Array.isArray(pkgJson.workspaces)) {
           return true;
@@ -37481,7 +37502,7 @@ const NpmTool = {
   },
   isMonorepoRootSync(directory) {
     try {
-      fs__default__default.accessSync(path__default__default.join(directory, "package-lock.json"), F_OK);
+      fs__default.accessSync(path__default.join(directory, "package-lock.json"), node_constants.F_OK);
       const pkgJson = readJsonSync(directory, "package.json");
       if (pkgJson.workspaces) {
         if (Array.isArray(pkgJson.workspaces)) {
@@ -37497,7 +37518,7 @@ const NpmTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = await readJson(rootDir, "package.json");
       const packageGlobs = pkgJson.workspaces;
@@ -37519,7 +37540,7 @@ const NpmTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = readJsonSync(rootDir, "package.json");
       const packageGlobs = pkgJson.workspaces;
@@ -37543,16 +37564,16 @@ const NpmTool = {
 };
 
 async function readYamlFile(path) {
-  return fsp__default__default.readFile(path, "utf8").then(data => jsYaml.load(data));
+  return fsp__default.readFile(path, "utf8").then(data => jsYaml.load(data));
 }
 function readYamlFileSync(path) {
-  return jsYaml.load(fs__default__default.readFileSync(path, "utf8"));
+  return jsYaml.load(fs__default.readFileSync(path, "utf8"));
 }
 const PnpmTool = {
   type: "pnpm",
   async isMonorepoRoot(directory) {
     try {
-      const manifest = await readYamlFile(path__default__default.join(directory, "pnpm-workspace.yaml"));
+      const manifest = await readYamlFile(path__default.join(directory, "pnpm-workspace.yaml"));
       if (manifest.packages) {
         return true;
       }
@@ -37566,7 +37587,7 @@ const PnpmTool = {
   },
   isMonorepoRootSync(directory) {
     try {
-      const manifest = readYamlFileSync(path__default__default.join(directory, "pnpm-workspace.yaml"));
+      const manifest = readYamlFileSync(path__default.join(directory, "pnpm-workspace.yaml"));
       if (manifest.packages) {
         return true;
       }
@@ -37579,9 +37600,9 @@ const PnpmTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
-      const manifest = await readYamlFile(path__default__default.join(rootDir, "pnpm-workspace.yaml"));
+      const manifest = await readYamlFile(path__default.join(rootDir, "pnpm-workspace.yaml"));
       const pkgJson = await readJson(rootDir, "package.json");
       const packageGlobs = manifest.packages;
       return {
@@ -37602,9 +37623,9 @@ const PnpmTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
-      const manifest = readYamlFileSync(path__default__default.join(rootDir, "pnpm-workspace.yaml"));
+      const manifest = readYamlFileSync(path__default.join(rootDir, "pnpm-workspace.yaml"));
       const pkgJson = readJsonSync(rootDir, "package.json");
       const packageGlobs = manifest.packages;
       return {
@@ -37637,7 +37658,7 @@ const RootTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = await readJson(rootDir, "package.json");
       const pkg = {
@@ -37659,7 +37680,7 @@ const RootTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = readJsonSync(rootDir, "package.json");
       const pkg = {
@@ -37686,7 +37707,7 @@ const RushTool = {
   type: "rush",
   async isMonorepoRoot(directory) {
     try {
-      await fsp__default__default.access(path__default__default.join(directory, "rush.json"), F_OK);
+      await fsp__default.access(path__default.join(directory, "rush.json"), node_constants.F_OK);
       return true;
     } catch (err) {
       if (err && err.code === "ENOENT") {
@@ -37697,7 +37718,7 @@ const RushTool = {
   },
   isMonorepoRootSync(directory) {
     try {
-      fs__default__default.accessSync(path__default__default.join(directory, "rush.json"), F_OK);
+      fs__default.accessSync(path__default.join(directory, "rush.json"), node_constants.F_OK);
       return true;
     } catch (err) {
       if (err && err.code === "ENOENT") {
@@ -37707,18 +37728,18 @@ const RushTool = {
     }
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
-      const rushText = await fsp__default__default.readFile(path__default__default.join(rootDir, "rush.json"), "utf8");
+      const rushText = await fsp__default.readFile(path__default.join(rootDir, "rush.json"), "utf8");
 
       // Rush configuration files are full of inline and block-scope comment blocks (JSONC),
       // so we use a parser that can handle that.
       const rushJson = jju.parse(rushText);
-      const directories = rushJson.projects.map(project => path__default__default.resolve(rootDir, project.projectFolder));
+      const directories = rushJson.projects.map(project => path__default.resolve(rootDir, project.projectFolder));
       const packages = await Promise.all(directories.map(async dir => {
         return {
           dir,
-          relativeDir: path__default__default.relative(directory, dir),
+          relativeDir: path__default.relative(directory, dir),
           packageJson: await readJson(dir, "package.json")
         };
       }));
@@ -37737,19 +37758,19 @@ const RushTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
-      const rushText = fs__default__default.readFileSync(path__default__default.join(rootDir, "rush.json"), "utf8");
+      const rushText = fs__default.readFileSync(path__default.join(rootDir, "rush.json"), "utf8");
 
       // Rush configuration files are full of inline and block-scope comment blocks (JSONC),
       // so we use a parser that can handle that.
       const rushJson = jju.parse(rushText);
-      const directories = rushJson.projects.map(project => path__default__default.resolve(rootDir, project.projectFolder));
+      const directories = rushJson.projects.map(project => path__default.resolve(rootDir, project.projectFolder));
       const packages = directories.map(dir => {
         const packageJson = readJsonSync(dir, "package.json");
         return {
           dir,
-          relativeDir: path__default__default.relative(directory, dir),
+          relativeDir: path__default.relative(directory, dir),
           packageJson
         };
       });
@@ -37773,7 +37794,7 @@ const YarnTool = {
   type: "yarn",
   async isMonorepoRoot(directory) {
     try {
-      const [pkgJson] = await Promise.all([readJson(directory, "package.json"), fsp__default__default.access(path__default__default.join(directory, "yarn.lock"), F_OK)]);
+      const [pkgJson] = await Promise.all([readJson(directory, "package.json"), fsp__default.access(path__default.join(directory, "yarn.lock"), node_constants.F_OK)]);
       if (pkgJson.workspaces) {
         if (Array.isArray(pkgJson.workspaces) || Array.isArray(pkgJson.workspaces.packages)) {
           return true;
@@ -37789,7 +37810,7 @@ const YarnTool = {
   },
   isMonorepoRootSync(directory) {
     try {
-      fs__default__default.accessSync(path__default__default.join(directory, "yarn.lock"), F_OK);
+      fs__default.accessSync(path__default.join(directory, "yarn.lock"), node_constants.F_OK);
       const pkgJson = readJsonSync(directory, "package.json");
       if (pkgJson.workspaces) {
         if (Array.isArray(pkgJson.workspaces) || Array.isArray(pkgJson.workspaces.packages)) {
@@ -37805,7 +37826,7 @@ const YarnTool = {
     return false;
   },
   async getPackages(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = await readJson(rootDir, "package.json");
       const packageGlobs = Array.isArray(pkgJson.workspaces) ? pkgJson.workspaces : pkgJson.workspaces.packages;
@@ -37827,7 +37848,7 @@ const YarnTool = {
     }
   },
   getPackagesSync(directory) {
-    const rootDir = path__default__default.resolve(directory);
+    const rootDir = path__default.resolve(directory);
     try {
       const pkgJson = readJsonSync(rootDir, "package.json");
       const packageGlobs = Array.isArray(pkgJson.workspaces) ? pkgJson.workspaces : pkgJson.workspaces.packages;
@@ -37915,7 +37936,7 @@ async function findRoot(cwd, options = {}) {
   // with no monorepo implementation (i.e.: a normal package folder).
   let rootDir = await findUp(async directory => {
     try {
-      await fsp__default__default.access(path__default__default.join(directory, "package.json"));
+      await fsp__default.access(path__default.join(directory, "package.json"));
       return directory;
     } catch (err) {
       if (!isNoEntryError(err)) {
@@ -37932,16 +37953,16 @@ async function findRoot(cwd, options = {}) {
   };
 }
 async function findUp(matcher, cwd) {
-  let directory = path__default__default.resolve(cwd);
+  let directory = path__default.resolve(cwd);
   const {
     root
-  } = path__default__default.parse(directory);
+  } = path__default.parse(directory);
   while (directory && directory !== root) {
     const filePath = await matcher(directory);
     if (filePath) {
-      return path__default__default.resolve(directory, filePath);
+      return path__default.resolve(directory, filePath);
     }
-    directory = path__default__default.dirname(directory);
+    directory = path__default.dirname(directory);
   }
 }
 
@@ -37978,7 +37999,7 @@ function validatePackages(packages) {
   const pkgJsonsMissingNameField = [];
   for (const pkg of packages.packages) {
     if (!pkg.packageJson.name) {
-      pkgJsonsMissingNameField.push(path__default__default.join(pkg.relativeDir, "package.json"));
+      pkgJsonsMissingNameField.push(path__default.join(pkg.relativeDir, "package.json"));
     }
   }
   if (pkgJsonsMissingNameField.length > 0) {
@@ -39533,7 +39554,7 @@ function prefixedArray(input, prefix) {
   return output;
 }
 function bufferToString(input) {
-  return (Array.isArray(input) ? Buffer$1.concat(input) : input).toString("utf-8");
+  return (Array.isArray(input) ? node_buffer.Buffer.concat(input) : input).toString("utf-8");
 }
 function pick(source, properties) {
   return Object.assign(
@@ -40727,7 +40748,7 @@ var init_git_executor_chain = __esm({
               rejection = reason || rejection;
             }
           });
-          const spawned = spawn(command, args, spawnOptions);
+          const spawned = require$$2$2.spawn(command, args, spawnOptions);
           spawned.stdout.on(
             "data",
             onDataReceived(stdOut, "stdOut", logger, outputLogger.step("stdOut"))
@@ -43714,7 +43735,7 @@ init_utils();
 var PluginStore = class {
   constructor() {
     this.plugins = /* @__PURE__ */ new Set();
-    this.events = new EventEmitter();
+    this.events = new require$$0$7.EventEmitter();
   }
   on(type, listener) {
     this.events.on(type, listener);
@@ -44717,10 +44738,10 @@ function requireWriterOpts () {
 
 	async function createWriterOpts () {
 	  const [template, header, commit, footer] = await Promise.all([
-	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/template.hbs'), 'utf-8'),
-	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/header.hbs'), 'utf-8'),
-	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/commit.hbs'), 'utf-8'),
-	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/footer.hbs'), 'utf-8')
+	    readFile(resolve(__dirname, './templates/template.hbs'), 'utf-8'),
+	    readFile(resolve(__dirname, './templates/header.hbs'), 'utf-8'),
+	    readFile(resolve(__dirname, './templates/commit.hbs'), 'utf-8'),
+	    readFile(resolve(__dirname, './templates/footer.hbs'), 'utf-8')
 	  ]);
 	  const writerOpts = getWriterOpts();
 
@@ -45052,7 +45073,7 @@ function configurePrereleaseMode(branchConfig) {
         if (!isInPrereleaseMode) {
             const prereleaseCommand = `npx changeset pre enter ${branchConfig.prerelease}`;
             coreExports.info(`Entering pre-release mode: ${prereleaseCommand}`);
-            execSync(prereleaseCommand, { stdio: 'inherit' });
+            require$$2$2.execSync(prereleaseCommand, { stdio: 'inherit' });
         }
         else {
             coreExports.info('Already in pre-release mode, skipping enter.');
@@ -45061,7 +45082,7 @@ function configurePrereleaseMode(branchConfig) {
     else {
         if (isInPrereleaseMode) {
             coreExports.info('Exiting pre-release mode');
-            execSync('npx changeset pre exit', { stdio: 'inherit' });
+            require$$2$2.execSync('npx changeset pre exit', { stdio: 'inherit' });
         }
         else {
             coreExports.info('Not in pre-release mode, skipping exit.');
@@ -52030,7 +52051,7 @@ async function configureGit(botName) {
 
 async function gitVersionAndPush(git, githubToken) {
     try {
-        const versionOutput = execSync('npx changeset version', {
+        const versionOutput = require$$2$2.execSync('npx changeset version', {
             encoding: 'utf8',
             cwd: process.cwd(),
             env: {
@@ -52077,7 +52098,7 @@ function publishPackages(branchConfig, npmToken) {
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
     coreExports.info(`Publishing packages: ${publishCommand}`);
-    execSync(publishCommand, {
+    require$$2$2.execSync(publishCommand, {
         stdio: 'inherit',
         env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
     });
@@ -52125,7 +52146,7 @@ async function run() {
     }
 }
 // Execute if this file is run directly
-if (process$1.argv[1] === fileURLToPath$1(import.meta.url)) {
+if (process$1.argv[1] === require$$1$3.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)))) {
     void run();
 }
 
@@ -52136,5 +52157,5 @@ if (process$1.argv[1] === fileURLToPath$1(import.meta.url)) {
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();
 
-export { run };
+exports.run = run;
 //# sourceMappingURL=index.js.map
