@@ -5,6 +5,7 @@ import type { SimpleGit } from 'simple-git';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   try {
+    core.info('Running changeset version command...');
     const versionOutput = execSync('npx changeset version', {
       encoding: 'utf8',
       cwd: process.cwd(),

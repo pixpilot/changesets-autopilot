@@ -51492,6 +51492,7 @@ async function configureGit(botName) {
 
 async function gitVersionAndPush(git, githubToken) {
     try {
+        coreExports.info('Running changeset version command...');
         const versionOutput = execSync('npx changeset version', {
             encoding: 'utf8',
             cwd: process.cwd(),
