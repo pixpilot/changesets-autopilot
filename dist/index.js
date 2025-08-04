@@ -52079,6 +52079,10 @@ async function gitVersionAndPush(git, githubToken) {
         const versionOutput = execSync('npx changeset version', {
             encoding: 'utf8',
             cwd: process.cwd(),
+            env: {
+                ...process.env,
+                GITHUB_TOKEN: githubToken, // Pass the GitHub token
+            },
         });
         coreExports.info(`Version output: ${versionOutput}`);
         coreExports.info('Changeset version completed successfully');
