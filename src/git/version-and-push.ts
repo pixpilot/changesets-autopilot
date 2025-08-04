@@ -78,6 +78,10 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
     const versionOutput = execSync('npx changeset version', {
       encoding: 'utf8',
       cwd: process.cwd(),
+      env: {
+        ...process.env,
+        GITHUB_TOKEN: githubToken, // Pass the GitHub token
+      },
     });
     core.info(`Version output: ${versionOutput}`);
     core.info('Changeset version completed successfully');
