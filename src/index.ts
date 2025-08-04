@@ -4,8 +4,6 @@
  */
 import { run } from './main.js';
 
-// Export the run function for local-action tool
-export { run };
-
+/* istanbul ignore next */
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

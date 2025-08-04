@@ -1,6 +1,3 @@
-import process from 'process';
-import { fileURLToPath } from 'url';
-
 import * as core from '@actions/core';
 
 import { configurePrereleaseMode, ensureChangesets } from './changeset';
@@ -52,9 +49,4 @@ export async function run(): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
     core.setFailed(`Action failed: ${errorMessage}`);
   }
-}
-
-// Execute if this file is run directly
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  void run();
 }

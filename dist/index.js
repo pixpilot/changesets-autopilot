@@ -1,4 +1,3 @@
-import require$$1$3, { fileURLToPath } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import fs from 'fs';
@@ -21,6 +20,7 @@ import require$$2$1 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4 from 'async_hooks';
 import require$$1$2 from 'console';
+import require$$1$3 from 'url';
 import require$$3$1 from 'zlib';
 import require$$0$a from 'diagnostics_channel';
 import require$$2$2, { spawn, execSync } from 'child_process';
@@ -40,20 +40,6 @@ var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof win
 function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
-
-var process$2;
-var hasRequiredProcess;
-
-function requireProcess () {
-	if (hasRequiredProcess) return process$2;
-	hasRequiredProcess = 1;
-	// for now just expose the builtin process global from node.js
-	process$2 = commonjsGlobal.process;
-	return process$2;
-}
-
-var processExports = requireProcess();
-var process$1 = /*@__PURE__*/getDefaultExportFromCjs(processExports);
 
 var core$1 = {};
 
@@ -51587,17 +51573,12 @@ async function run() {
         coreExports.setFailed(`Action failed: ${errorMessage}`);
     }
 }
-// Execute if this file is run directly
-if (process$1.argv[1] === fileURLToPath(import.meta.url)) {
-    void run();
-}
 
 /**
  * The entrypoint for the action. This file simply imports and runs the action's
  * main logic.
  */
+/* istanbul ignore next */
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();
-
-export { run };
 //# sourceMappingURL=index.js.map
