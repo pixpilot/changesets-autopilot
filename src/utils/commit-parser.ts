@@ -30,14 +30,20 @@ const parserOptions = {
 export async function getChangeTypeAndDescription(
   message: string,
 ): Promise<ChangeTypeResult> {
+  console.warn('[getChangeTypeAndDescription] Received message:', message);
   try {
+    console.warn('[getChangeTypeAndDescription] Parsing message...');
     const parsed = (await parse(message, undefined, parserOptions)) as ParsedCommit;
+    console.warn('[getChangeTypeAndDescription] Parsed result:', parsed);
     const notes: CommitNote[] = Array.isArray(parsed.notes) ? parsed.notes : [];
+    console.warn('[getChangeTypeAndDescription] Commit notes:', notes);
     const isBreaking = notes.some((note: CommitNote) => note.title === 'BREAKING CHANGE');
+    console.warn('[getChangeTypeAndDescription] isBreaking:', isBreaking);
     if (isBreaking) {
       const breakingNote = notes.find(
         (note: CommitNote) => note.title === 'BREAKING CHANGE',
       );
+      console.warn('[getChangeTypeAndDescription] Breaking note:', breakingNote);
       return {
         changeType: 'major',
         scope: parsed.scope ?? null,
@@ -46,6 +52,7 @@ export async function getChangeTypeAndDescription(
     }
     switch (parsed.type) {
       case 'feat':
+        console.warn('[getChangeTypeAndDescription] Type is feat');
         return {
           changeType: 'minor',
           scope: parsed.scope ?? null,
@@ -54,6 +61,7 @@ export async function getChangeTypeAndDescription(
       case 'fix':
       case 'perf':
       case 'revert':
+        console.warn('[getChangeTypeAndDescription] Type is patch:', parsed.type);
         return {
           changeType: 'patch',
           scope: parsed.scope ?? null,
@@ -66,12 +74,14 @@ export async function getChangeTypeAndDescription(
       case 'refactor':
       case 'style':
       case 'test':
+        console.warn('[getChangeTypeAndDescription] Type is none:', parsed.type);
         return {
           changeType: 'none',
           scope: parsed.scope ?? null,
           description: parsed.subject ?? '',
         };
       default:
+        console.warn('[getChangeTypeAndDescription] Type is unknown:', parsed.type);
         return {
           changeType: 'none',
           scope: null,
@@ -79,6 +89,7 @@ export async function getChangeTypeAndDescription(
         };
     }
   } catch (_error) {
+    console.warn('[getChangeTypeAndDescription] Error occurred:', _error);
     return {
       changeType: 'none',
       scope: null,
