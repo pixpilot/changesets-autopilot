@@ -1,4 +1,3 @@
-import process$1 from 'process';
 import require$$1$3, { fileURLToPath } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
@@ -6,28 +5,26 @@ import fs from 'fs';
 import path, { posix } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
-import require$$0$4 from 'net';
+import require$$0$5 from 'net';
 import require$$1 from 'tls';
-import require$$4 from 'events';
-import require$$0$3 from 'assert';
+import require$$0$4 from 'assert';
 import require$$0$2 from 'util';
-import require$$0$5 from 'stream';
-import require$$7 from 'buffer';
+import require$$0$6 from 'stream';
+import require$$0$3 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
-import require$$0$7 from 'node:stream';
+import require$$0$8 from 'node:stream';
 import require$$1$1 from 'node:util';
-import require$$0$6, { EventEmitter } from 'node:events';
-import require$$0$8 from 'worker_threads';
+import require$$0$7, { EventEmitter } from 'node:events';
+import require$$0$9 from 'worker_threads';
 import require$$2$1 from 'perf_hooks';
 import require$$5 from 'util/types';
-import require$$4$1 from 'async_hooks';
+import require$$4 from 'async_hooks';
 import require$$1$2 from 'console';
 import require$$3$1 from 'zlib';
-import require$$6 from 'string_decoder';
-import require$$0$9 from 'diagnostics_channel';
+import require$$0$a from 'diagnostics_channel';
 import require$$2$2, { spawn, execSync } from 'child_process';
-import require$$6$1 from 'timers';
+import require$$6 from 'timers';
 import * as path__default from 'node:path';
 import path__default__default from 'node:path';
 import * as fs__default from 'node:fs';
@@ -37,13 +34,26 @@ import fsp__default__default from 'node:fs/promises';
 import { F_OK } from 'node:constants';
 import { Buffer as Buffer$1 } from 'node:buffer';
 import require$$1$4 from 'tty';
-import defaultChangelogOpts from 'conventional-changelog-angular';
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
+
+var process$2;
+var hasRequiredProcess;
+
+function requireProcess () {
+	if (hasRequiredProcess) return process$2;
+	hasRequiredProcess = 1;
+	// for now just expose the builtin process global from node.js
+	process$2 = commonjsGlobal.process;
+	return process$2;
+}
+
+var processExports = requireProcess();
+var process$1 = /*@__PURE__*/getDefaultExportFromCjs(processExports);
 
 var core$1 = {};
 
@@ -382,6 +392,490 @@ function requireProxy () {
 
 var tunnel$1 = {};
 
+var events$1 = {exports: {}};
+
+var hasRequiredEvents$1;
+
+function requireEvents$1 () {
+	if (hasRequiredEvents$1) return events$1.exports;
+	hasRequiredEvents$1 = 1;
+
+	var R = typeof Reflect === 'object' ? Reflect : null;
+	var ReflectApply = R && typeof R.apply === 'function'
+	  ? R.apply
+	  : function ReflectApply(target, receiver, args) {
+	    return Function.prototype.apply.call(target, receiver, args);
+	  };
+
+	var ReflectOwnKeys;
+	if (R && typeof R.ownKeys === 'function') {
+	  ReflectOwnKeys = R.ownKeys;
+	} else if (Object.getOwnPropertySymbols) {
+	  ReflectOwnKeys = function ReflectOwnKeys(target) {
+	    return Object.getOwnPropertyNames(target)
+	      .concat(Object.getOwnPropertySymbols(target));
+	  };
+	} else {
+	  ReflectOwnKeys = function ReflectOwnKeys(target) {
+	    return Object.getOwnPropertyNames(target);
+	  };
+	}
+
+	function ProcessEmitWarning(warning) {
+	  if (console && console.warn) console.warn(warning);
+	}
+
+	var NumberIsNaN = Number.isNaN || function NumberIsNaN(value) {
+	  return value !== value;
+	};
+
+	function EventEmitter() {
+	  EventEmitter.init.call(this);
+	}
+	events$1.exports = EventEmitter;
+	events$1.exports.once = once;
+
+	// Backwards-compat with node 0.10.x
+	EventEmitter.EventEmitter = EventEmitter;
+
+	EventEmitter.prototype._events = undefined;
+	EventEmitter.prototype._eventsCount = 0;
+	EventEmitter.prototype._maxListeners = undefined;
+
+	// By default EventEmitters will print a warning if more than 10 listeners are
+	// added to it. This is a useful default which helps finding memory leaks.
+	var defaultMaxListeners = 10;
+
+	function checkListener(listener) {
+	  if (typeof listener !== 'function') {
+	    throw new TypeError('The "listener" argument must be of type Function. Received type ' + typeof listener);
+	  }
+	}
+
+	Object.defineProperty(EventEmitter, 'defaultMaxListeners', {
+	  enumerable: true,
+	  get: function() {
+	    return defaultMaxListeners;
+	  },
+	  set: function(arg) {
+	    if (typeof arg !== 'number' || arg < 0 || NumberIsNaN(arg)) {
+	      throw new RangeError('The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' + arg + '.');
+	    }
+	    defaultMaxListeners = arg;
+	  }
+	});
+
+	EventEmitter.init = function() {
+
+	  if (this._events === undefined ||
+	      this._events === Object.getPrototypeOf(this)._events) {
+	    this._events = Object.create(null);
+	    this._eventsCount = 0;
+	  }
+
+	  this._maxListeners = this._maxListeners || undefined;
+	};
+
+	// Obviously not all Emitters should be limited to 10. This function allows
+	// that to be increased. Set to zero for unlimited.
+	EventEmitter.prototype.setMaxListeners = function setMaxListeners(n) {
+	  if (typeof n !== 'number' || n < 0 || NumberIsNaN(n)) {
+	    throw new RangeError('The value of "n" is out of range. It must be a non-negative number. Received ' + n + '.');
+	  }
+	  this._maxListeners = n;
+	  return this;
+	};
+
+	function _getMaxListeners(that) {
+	  if (that._maxListeners === undefined)
+	    return EventEmitter.defaultMaxListeners;
+	  return that._maxListeners;
+	}
+
+	EventEmitter.prototype.getMaxListeners = function getMaxListeners() {
+	  return _getMaxListeners(this);
+	};
+
+	EventEmitter.prototype.emit = function emit(type) {
+	  var args = [];
+	  for (var i = 1; i < arguments.length; i++) args.push(arguments[i]);
+	  var doError = (type === 'error');
+
+	  var events = this._events;
+	  if (events !== undefined)
+	    doError = (doError && events.error === undefined);
+	  else if (!doError)
+	    return false;
+
+	  // If there is no 'error' event listener then throw.
+	  if (doError) {
+	    var er;
+	    if (args.length > 0)
+	      er = args[0];
+	    if (er instanceof Error) {
+	      // Note: The comments on the `throw` lines are intentional, they show
+	      // up in Node's output if this results in an unhandled exception.
+	      throw er; // Unhandled 'error' event
+	    }
+	    // At least give some kind of context to the user
+	    var err = new Error('Unhandled error.' + (er ? ' (' + er.message + ')' : ''));
+	    err.context = er;
+	    throw err; // Unhandled 'error' event
+	  }
+
+	  var handler = events[type];
+
+	  if (handler === undefined)
+	    return false;
+
+	  if (typeof handler === 'function') {
+	    ReflectApply(handler, this, args);
+	  } else {
+	    var len = handler.length;
+	    var listeners = arrayClone(handler, len);
+	    for (var i = 0; i < len; ++i)
+	      ReflectApply(listeners[i], this, args);
+	  }
+
+	  return true;
+	};
+
+	function _addListener(target, type, listener, prepend) {
+	  var m;
+	  var events;
+	  var existing;
+
+	  checkListener(listener);
+
+	  events = target._events;
+	  if (events === undefined) {
+	    events = target._events = Object.create(null);
+	    target._eventsCount = 0;
+	  } else {
+	    // To avoid recursion in the case that type === "newListener"! Before
+	    // adding it to the listeners, first emit "newListener".
+	    if (events.newListener !== undefined) {
+	      target.emit('newListener', type,
+	                  listener.listener ? listener.listener : listener);
+
+	      // Re-assign `events` because a newListener handler could have caused the
+	      // this._events to be assigned to a new object
+	      events = target._events;
+	    }
+	    existing = events[type];
+	  }
+
+	  if (existing === undefined) {
+	    // Optimize the case of one listener. Don't need the extra array object.
+	    existing = events[type] = listener;
+	    ++target._eventsCount;
+	  } else {
+	    if (typeof existing === 'function') {
+	      // Adding the second element, need to change to array.
+	      existing = events[type] =
+	        prepend ? [listener, existing] : [existing, listener];
+	      // If we've already got an array, just append.
+	    } else if (prepend) {
+	      existing.unshift(listener);
+	    } else {
+	      existing.push(listener);
+	    }
+
+	    // Check for listener leak
+	    m = _getMaxListeners(target);
+	    if (m > 0 && existing.length > m && !existing.warned) {
+	      existing.warned = true;
+	      // No error code for this since it is a Warning
+	      // eslint-disable-next-line no-restricted-syntax
+	      var w = new Error('Possible EventEmitter memory leak detected. ' +
+	                          existing.length + ' ' + String(type) + ' listeners ' +
+	                          'added. Use emitter.setMaxListeners() to ' +
+	                          'increase limit');
+	      w.name = 'MaxListenersExceededWarning';
+	      w.emitter = target;
+	      w.type = type;
+	      w.count = existing.length;
+	      ProcessEmitWarning(w);
+	    }
+	  }
+
+	  return target;
+	}
+
+	EventEmitter.prototype.addListener = function addListener(type, listener) {
+	  return _addListener(this, type, listener, false);
+	};
+
+	EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+	EventEmitter.prototype.prependListener =
+	    function prependListener(type, listener) {
+	      return _addListener(this, type, listener, true);
+	    };
+
+	function onceWrapper() {
+	  if (!this.fired) {
+	    this.target.removeListener(this.type, this.wrapFn);
+	    this.fired = true;
+	    if (arguments.length === 0)
+	      return this.listener.call(this.target);
+	    return this.listener.apply(this.target, arguments);
+	  }
+	}
+
+	function _onceWrap(target, type, listener) {
+	  var state = { fired: false, wrapFn: undefined, target: target, type: type, listener: listener };
+	  var wrapped = onceWrapper.bind(state);
+	  wrapped.listener = listener;
+	  state.wrapFn = wrapped;
+	  return wrapped;
+	}
+
+	EventEmitter.prototype.once = function once(type, listener) {
+	  checkListener(listener);
+	  this.on(type, _onceWrap(this, type, listener));
+	  return this;
+	};
+
+	EventEmitter.prototype.prependOnceListener =
+	    function prependOnceListener(type, listener) {
+	      checkListener(listener);
+	      this.prependListener(type, _onceWrap(this, type, listener));
+	      return this;
+	    };
+
+	// Emits a 'removeListener' event if and only if the listener was removed.
+	EventEmitter.prototype.removeListener =
+	    function removeListener(type, listener) {
+	      var list, events, position, i, originalListener;
+
+	      checkListener(listener);
+
+	      events = this._events;
+	      if (events === undefined)
+	        return this;
+
+	      list = events[type];
+	      if (list === undefined)
+	        return this;
+
+	      if (list === listener || list.listener === listener) {
+	        if (--this._eventsCount === 0)
+	          this._events = Object.create(null);
+	        else {
+	          delete events[type];
+	          if (events.removeListener)
+	            this.emit('removeListener', type, list.listener || listener);
+	        }
+	      } else if (typeof list !== 'function') {
+	        position = -1;
+
+	        for (i = list.length - 1; i >= 0; i--) {
+	          if (list[i] === listener || list[i].listener === listener) {
+	            originalListener = list[i].listener;
+	            position = i;
+	            break;
+	          }
+	        }
+
+	        if (position < 0)
+	          return this;
+
+	        if (position === 0)
+	          list.shift();
+	        else {
+	          spliceOne(list, position);
+	        }
+
+	        if (list.length === 1)
+	          events[type] = list[0];
+
+	        if (events.removeListener !== undefined)
+	          this.emit('removeListener', type, originalListener || listener);
+	      }
+
+	      return this;
+	    };
+
+	EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
+	EventEmitter.prototype.removeAllListeners =
+	    function removeAllListeners(type) {
+	      var listeners, events, i;
+
+	      events = this._events;
+	      if (events === undefined)
+	        return this;
+
+	      // not listening for removeListener, no need to emit
+	      if (events.removeListener === undefined) {
+	        if (arguments.length === 0) {
+	          this._events = Object.create(null);
+	          this._eventsCount = 0;
+	        } else if (events[type] !== undefined) {
+	          if (--this._eventsCount === 0)
+	            this._events = Object.create(null);
+	          else
+	            delete events[type];
+	        }
+	        return this;
+	      }
+
+	      // emit removeListener for all listeners on all events
+	      if (arguments.length === 0) {
+	        var keys = Object.keys(events);
+	        var key;
+	        for (i = 0; i < keys.length; ++i) {
+	          key = keys[i];
+	          if (key === 'removeListener') continue;
+	          this.removeAllListeners(key);
+	        }
+	        this.removeAllListeners('removeListener');
+	        this._events = Object.create(null);
+	        this._eventsCount = 0;
+	        return this;
+	      }
+
+	      listeners = events[type];
+
+	      if (typeof listeners === 'function') {
+	        this.removeListener(type, listeners);
+	      } else if (listeners !== undefined) {
+	        // LIFO order
+	        for (i = listeners.length - 1; i >= 0; i--) {
+	          this.removeListener(type, listeners[i]);
+	        }
+	      }
+
+	      return this;
+	    };
+
+	function _listeners(target, type, unwrap) {
+	  var events = target._events;
+
+	  if (events === undefined)
+	    return [];
+
+	  var evlistener = events[type];
+	  if (evlistener === undefined)
+	    return [];
+
+	  if (typeof evlistener === 'function')
+	    return unwrap ? [evlistener.listener || evlistener] : [evlistener];
+
+	  return unwrap ?
+	    unwrapListeners(evlistener) : arrayClone(evlistener, evlistener.length);
+	}
+
+	EventEmitter.prototype.listeners = function listeners(type) {
+	  return _listeners(this, type, true);
+	};
+
+	EventEmitter.prototype.rawListeners = function rawListeners(type) {
+	  return _listeners(this, type, false);
+	};
+
+	EventEmitter.listenerCount = function(emitter, type) {
+	  if (typeof emitter.listenerCount === 'function') {
+	    return emitter.listenerCount(type);
+	  } else {
+	    return listenerCount.call(emitter, type);
+	  }
+	};
+
+	EventEmitter.prototype.listenerCount = listenerCount;
+	function listenerCount(type) {
+	  var events = this._events;
+
+	  if (events !== undefined) {
+	    var evlistener = events[type];
+
+	    if (typeof evlistener === 'function') {
+	      return 1;
+	    } else if (evlistener !== undefined) {
+	      return evlistener.length;
+	    }
+	  }
+
+	  return 0;
+	}
+
+	EventEmitter.prototype.eventNames = function eventNames() {
+	  return this._eventsCount > 0 ? ReflectOwnKeys(this._events) : [];
+	};
+
+	function arrayClone(arr, n) {
+	  var copy = new Array(n);
+	  for (var i = 0; i < n; ++i)
+	    copy[i] = arr[i];
+	  return copy;
+	}
+
+	function spliceOne(list, index) {
+	  for (; index + 1 < list.length; index++)
+	    list[index] = list[index + 1];
+	  list.pop();
+	}
+
+	function unwrapListeners(arr) {
+	  var ret = new Array(arr.length);
+	  for (var i = 0; i < ret.length; ++i) {
+	    ret[i] = arr[i].listener || arr[i];
+	  }
+	  return ret;
+	}
+
+	function once(emitter, name) {
+	  return new Promise(function (resolve, reject) {
+	    function errorListener(err) {
+	      emitter.removeListener(name, resolver);
+	      reject(err);
+	    }
+
+	    function resolver() {
+	      if (typeof emitter.removeListener === 'function') {
+	        emitter.removeListener('error', errorListener);
+	      }
+	      resolve([].slice.call(arguments));
+	    }
+	    eventTargetAgnosticAddListener(emitter, name, resolver, { once: true });
+	    if (name !== 'error') {
+	      addErrorHandlerIfEventEmitter(emitter, errorListener, { once: true });
+	    }
+	  });
+	}
+
+	function addErrorHandlerIfEventEmitter(emitter, handler, flags) {
+	  if (typeof emitter.on === 'function') {
+	    eventTargetAgnosticAddListener(emitter, 'error', handler, flags);
+	  }
+	}
+
+	function eventTargetAgnosticAddListener(emitter, name, listener, flags) {
+	  if (typeof emitter.on === 'function') {
+	    if (flags.once) {
+	      emitter.once(name, listener);
+	    } else {
+	      emitter.on(name, listener);
+	    }
+	  } else if (typeof emitter.addEventListener === 'function') {
+	    // EventTarget does not have `error` event semantics like Node
+	    // EventEmitters, we do not listen for `error` events here.
+	    emitter.addEventListener(name, function wrapListener(arg) {
+	      // IE does not have builtin `{ once: true }` support so we
+	      // have to do it manually.
+	      if (flags.once) {
+	        emitter.removeEventListener(name, wrapListener);
+	      }
+	      listener(arg);
+	    });
+	  } else {
+	    throw new TypeError('The "emitter" argument must be of type EventEmitter. Received type ' + typeof emitter);
+	  }
+	}
+	return events$1.exports;
+}
+
 var hasRequiredTunnel$1;
 
 function requireTunnel$1 () {
@@ -390,7 +884,7 @@ function requireTunnel$1 () {
 	var tls = require$$1;
 	var http = require$$2;
 	var https = require$$3;
-	var events = require$$4;
+	var events = requireEvents$1();
 	var util = require$$0$2;
 
 
@@ -1105,13 +1599,13 @@ function requireUtil$6 () {
 	if (hasRequiredUtil$6) return util$6;
 	hasRequiredUtil$6 = 1;
 
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { kDestroyed, kBodyUsed } = requireSymbols$4();
 	const { IncomingMessage } = require$$2;
-	const stream = require$$0$5;
-	const net = require$$0$4;
+	const stream = require$$0$6;
+	const net = require$$0$5;
 	const { InvalidArgumentError } = requireErrors();
-	const { Blob } = require$$7;
+	const { Blob } = require$$0$3;
 	const nodeUtil = require$$0$2;
 	const { stringify } = require$$8;
 	const { headerNameLowerCasedRecord } = requireConstants$5();
@@ -1768,7 +2262,7 @@ function requireSbmh () {
 	 * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
-	const EventEmitter = require$$0$6.EventEmitter;
+	const EventEmitter = require$$0$7.EventEmitter;
 	const inherits = require$$1$1.inherits;
 
 	function SBMH (needle) {
@@ -1979,7 +2473,7 @@ function requirePartStream () {
 	hasRequiredPartStream = 1;
 
 	const inherits = require$$1$1.inherits;
-	const ReadableStream = require$$0$7.Readable;
+	const ReadableStream = require$$0$8.Readable;
 
 	function PartStream (opts) {
 	  ReadableStream.call(this, opts);
@@ -2023,7 +2517,7 @@ function requireHeaderParser () {
 	if (hasRequiredHeaderParser) return HeaderParser_1;
 	hasRequiredHeaderParser = 1;
 
-	const EventEmitter = require$$0$6.EventEmitter;
+	const EventEmitter = require$$0$7.EventEmitter;
 	const inherits = require$$1$1.inherits;
 	const getLimit = requireGetLimit();
 
@@ -2131,7 +2625,7 @@ function requireDicer () {
 	if (hasRequiredDicer) return Dicer_1;
 	hasRequiredDicer = 1;
 
-	const WritableStream = require$$0$7.Writable;
+	const WritableStream = require$$0$8.Writable;
 	const inherits = require$$1$1.inherits;
 
 	const StreamSearch = requireSbmh();
@@ -2708,7 +3202,7 @@ function requireMultipart () {
 	//  * support limits.fieldNameSize
 	//     -- this will require modifications to utils.parseParams
 
-	const { Readable } = require$$0$7;
+	const { Readable } = require$$0$8;
 	const { inherits } = require$$1$1;
 
 	const Dicer = requireDicer();
@@ -3274,7 +3768,7 @@ function requireMain () {
 	if (hasRequiredMain) return main.exports;
 	hasRequiredMain = 1;
 
-	const WritableStream = require$$0$7.Writable;
+	const WritableStream = require$$0$8.Writable;
 	const { inherits } = require$$1$1;
 	const Dicer = requireDicer();
 
@@ -3367,7 +3861,7 @@ function requireConstants$4 () {
 	if (hasRequiredConstants$4) return constants$4;
 	hasRequiredConstants$4 = 1;
 
-	const { MessageChannel, receiveMessageOnPort } = require$$0$8;
+	const { MessageChannel, receiveMessageOnPort } = require$$0$9;
 
 	const corsSafeListedMethods = ['GET', 'HEAD', 'POST'];
 	const corsSafeListedMethodsSet = new Set(corsSafeListedMethods);
@@ -3578,7 +4072,7 @@ function requireUtil$5 () {
 	const { getGlobalOrigin } = requireGlobal$1();
 	const { performance } = require$$2$1;
 	const { isBlobLike, toUSVString, ReadableStreamFrom } = requireUtil$6();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { isUint8Array } = require$$5;
 
 	let supportedHashes = [];
@@ -5396,8 +5890,8 @@ var hasRequiredDataURL;
 function requireDataURL () {
 	if (hasRequiredDataURL) return dataURL;
 	hasRequiredDataURL = 1;
-	const assert = require$$0$3;
-	const { atob } = require$$7;
+	const assert = require$$0$4;
+	const { atob } = require$$0$3;
 	const { isomorphicDecode } = requireUtil$5();
 
 	const encoder = new TextEncoder();
@@ -6033,7 +6527,7 @@ function requireFile () {
 	if (hasRequiredFile) return file;
 	hasRequiredFile = 1;
 
-	const { Blob, File: NativeFile } = require$$7;
+	const { Blob, File: NativeFile } = require$$0$3;
 	const { types } = require$$0$2;
 	const { kState } = requireSymbols$3();
 	const { isBlobLike } = requireUtil$5();
@@ -6389,7 +6883,7 @@ function requireFormdata () {
 	const { kState } = requireSymbols$3();
 	const { File: UndiciFile, FileLike, isFileLike } = requireFile();
 	const { webidl } = requireWebidl();
-	const { Blob, File: NativeFile } = require$$7;
+	const { Blob, File: NativeFile } = require$$0$3;
 
 	/** @type {globalThis['File']} */
 	const File = NativeFile ?? UndiciFile;
@@ -6672,9 +7166,9 @@ function requireBody () {
 	const { kState } = requireSymbols$3();
 	const { webidl } = requireWebidl();
 	const { DOMException, structuredClone } = requireConstants$4();
-	const { Blob, File: NativeFile } = require$$7;
+	const { Blob, File: NativeFile } = require$$0$3;
 	const { kBodyUsed } = requireSymbols$4();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { isErrored } = requireUtil$6();
 	const { isUint8Array, isArrayBuffer } = require$$5;
 	const { File: UndiciFile } = requireFile();
@@ -7283,7 +7777,7 @@ function requireRequest$1 () {
 	  InvalidArgumentError,
 	  NotSupportedError
 	} = requireErrors();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { kHTTP2BuildRequest, kHTTP2CopyHeaders, kHTTP1BuildRequest } = requireSymbols$4();
 	const util = requireUtil$6();
 
@@ -7786,7 +8280,7 @@ function requireDispatcher () {
 	if (hasRequiredDispatcher) return dispatcher;
 	hasRequiredDispatcher = 1;
 
-	const EventEmitter = require$$4;
+	const EventEmitter = requireEvents$1();
 
 	class Dispatcher extends EventEmitter {
 	  dispatch () {
@@ -8013,8 +8507,8 @@ function requireConnect () {
 	if (hasRequiredConnect) return connect;
 	hasRequiredConnect = 1;
 
-	const net = require$$0$4;
-	const assert = require$$0$3;
+	const net = require$$0$5;
+	const assert = require$$0$4;
 	const util = requireUtil$6();
 	const { InvalidArgumentError, ConnectTimeoutError } = requireErrors();
 
@@ -8519,9 +9013,9 @@ function requireRedirectHandler () {
 
 	const util = requireUtil$6();
 	const { kBodyUsed } = requireSymbols$4();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { InvalidArgumentError } = requireErrors();
-	const EE = require$$4;
+	const EE = requireEvents$1();
 
 	const redirectableStatusCodes = [300, 301, 302, 303, 307, 308];
 
@@ -8779,10 +9273,10 @@ function requireClient () {
 
 	/* global WebAssembly */
 
-	const assert = require$$0$3;
-	const net = require$$0$4;
+	const assert = require$$0$4;
+	const net = require$$0$5;
 	const http = require$$2;
-	const { pipeline } = require$$0$5;
+	const { pipeline } = require$$0$6;
 	const util = requireUtil$6();
 	const timers = requireTimers();
 	const Request = requireRequest$1();
@@ -11964,8 +12458,8 @@ function requireReadable () {
 	if (hasRequiredReadable) return readable;
 	hasRequiredReadable = 1;
 
-	const assert = require$$0$3;
-	const { Readable } = require$$0$5;
+	const assert = require$$0$4;
+	const { Readable } = require$$0$6;
 	const { RequestAbortedError, NotSupportedError, InvalidArgumentError } = requireErrors();
 	const util = requireUtil$6();
 	const { ReadableStreamFrom, toUSVString } = requireUtil$6();
@@ -12291,7 +12785,7 @@ var hasRequiredUtil$4;
 function requireUtil$4 () {
 	if (hasRequiredUtil$4) return util$4;
 	hasRequiredUtil$4 = 1;
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const {
 	  ResponseStatusCodeError
 	} = requireErrors();
@@ -12416,7 +12910,7 @@ function requireApiRequest () {
 	} = requireErrors();
 	const util = requireUtil$6();
 	const { getResolveErrorBodyCallback } = requireUtil$4();
-	const { AsyncResource } = require$$4$1;
+	const { AsyncResource } = require$$4;
 	const { addSignal, removeSignal } = requireAbortSignal();
 
 	class RequestHandler extends AsyncResource {
@@ -12597,7 +13091,7 @@ function requireApiStream () {
 	if (hasRequiredApiStream) return apiStream;
 	hasRequiredApiStream = 1;
 
-	const { finished, PassThrough } = require$$0$5;
+	const { finished, PassThrough } = require$$0$6;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -12605,7 +13099,7 @@ function requireApiStream () {
 	} = requireErrors();
 	const util = requireUtil$6();
 	const { getResolveErrorBodyCallback } = requireUtil$4();
-	const { AsyncResource } = require$$4$1;
+	const { AsyncResource } = require$$4;
 	const { addSignal, removeSignal } = requireAbortSignal();
 
 	class StreamHandler extends AsyncResource {
@@ -12829,16 +13323,16 @@ function requireApiPipeline () {
 	  Readable,
 	  Duplex,
 	  PassThrough
-	} = require$$0$5;
+	} = require$$0$6;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
 	  RequestAbortedError
 	} = requireErrors();
 	const util = requireUtil$6();
-	const { AsyncResource } = require$$4$1;
+	const { AsyncResource } = require$$4;
 	const { addSignal, removeSignal } = requireAbortSignal();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 
 	const kResume = Symbol('resume');
 
@@ -13083,10 +13577,10 @@ function requireApiUpgrade () {
 	hasRequiredApiUpgrade = 1;
 
 	const { InvalidArgumentError, RequestAbortedError, SocketError } = requireErrors();
-	const { AsyncResource } = require$$4$1;
+	const { AsyncResource } = require$$4;
 	const util = requireUtil$6();
 	const { addSignal, removeSignal } = requireAbortSignal();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 
 	class UpgradeHandler extends AsyncResource {
 	  constructor (opts, callback) {
@@ -13195,7 +13689,7 @@ function requireApiConnect () {
 	if (hasRequiredApiConnect) return apiConnect;
 	hasRequiredApiConnect = 1;
 
-	const { AsyncResource } = require$$4$1;
+	const { AsyncResource } = require$$4;
 	const { InvalidArgumentError, RequestAbortedError, SocketError } = requireErrors();
 	const util = requireUtil$6();
 	const { addSignal, removeSignal } = requireAbortSignal();
@@ -14122,7 +14616,7 @@ function requirePendingInterceptorsFormatter () {
 	if (hasRequiredPendingInterceptorsFormatter) return pendingInterceptorsFormatter;
 	hasRequiredPendingInterceptorsFormatter = 1;
 
-	const { Transform } = require$$0$5;
+	const { Transform } = require$$0$6;
 	const { Console } = require$$1$2;
 
 	/**
@@ -14545,7 +15039,7 @@ var hasRequiredRetryHandler;
 function requireRetryHandler () {
 	if (hasRequiredRetryHandler) return RetryHandler_1;
 	hasRequiredRetryHandler = 1;
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 
 	const { kRetryHandlerDefaultRetry } = requireSymbols$4();
 	const { RequestRetryError } = requireErrors();
@@ -14984,7 +15478,7 @@ function requireHeaders () {
 	} = requireUtil$5();
 	const util = require$$0$2;
 	const { webidl } = requireWebidl();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 
 	const kHeadersMap = Symbol('headers map');
 	const kHeadersSortedMap = Symbol('headers map sorted');
@@ -15590,7 +16084,7 @@ function requireResponse () {
 	const { getGlobalOrigin } = requireGlobal$1();
 	const { URLSerializer } = requireDataURL();
 	const { kHeadersList, kConstruct } = requireSymbols$4();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { types } = require$$0$2;
 
 	const ReadableStream = globalThis.ReadableStream || require$$14.ReadableStream;
@@ -16174,8 +16668,8 @@ function requireRequest () {
 	const { getGlobalOrigin } = requireGlobal$1();
 	const { URLSerializer } = requireDataURL();
 	const { kHeadersList, kConstruct } = requireSymbols$4();
-	const assert = require$$0$3;
-	const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = require$$4;
+	const assert = require$$0$4;
+	const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = requireEvents$1();
 
 	let TransformStream = globalThis.TransformStream;
 
@@ -17140,7 +17634,7 @@ function requireFetch () {
 	  urlHasHttpsScheme
 	} = requireUtil$5();
 	const { kState, kHeaders, kGuard, kRealm } = requireSymbols$3();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { safelyExtractBody } = requireBody();
 	const {
 	  redirectStatusSet,
@@ -17151,8 +17645,8 @@ function requireFetch () {
 	  DOMException
 	} = requireConstants$4();
 	const { kHeadersList } = requireSymbols$4();
-	const EE = require$$4;
-	const { Readable, pipeline } = require$$0$5;
+	const EE = requireEvents$1();
+	const { Readable, pipeline } = require$$0$6;
 	const { addAbortListener, isErrored, isReadable, nodeMajor, nodeMinor } = requireUtil$6();
 	const { dataURLProcessor, serializeAMimeType } = requireDataURL();
 	const { TransformStream } = require$$14;
@@ -17885,7 +18379,7 @@ function requireFetch () {
 	    }
 	    case 'blob:': {
 	      if (!resolveObjectURL) {
-	        resolveObjectURL = require$$7.resolveObjectURL;
+	        resolveObjectURL = require$$0$3.resolveObjectURL;
 	      }
 
 	      // 1. Let blobURLEntry be request’s current URL’s blob URL entry.
@@ -19574,6 +20068,367 @@ function requireEncoding () {
 	return encoding;
 }
 
+var string_decoder = {};
+
+var safeBuffer = {exports: {}};
+
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+var hasRequiredSafeBuffer;
+
+function requireSafeBuffer () {
+	if (hasRequiredSafeBuffer) return safeBuffer.exports;
+	hasRequiredSafeBuffer = 1;
+	(function (module, exports) {
+		/* eslint-disable node/no-deprecated-api */
+		var buffer = require$$0$3;
+		var Buffer = buffer.Buffer;
+
+		// alternative to using Object.keys for old browsers
+		function copyProps (src, dst) {
+		  for (var key in src) {
+		    dst[key] = src[key];
+		  }
+		}
+		if (Buffer.from && Buffer.alloc && Buffer.allocUnsafe && Buffer.allocUnsafeSlow) {
+		  module.exports = buffer;
+		} else {
+		  // Copy properties from require('buffer')
+		  copyProps(buffer, exports);
+		  exports.Buffer = SafeBuffer;
+		}
+
+		function SafeBuffer (arg, encodingOrOffset, length) {
+		  return Buffer(arg, encodingOrOffset, length)
+		}
+
+		SafeBuffer.prototype = Object.create(Buffer.prototype);
+
+		// Copy static methods from Buffer
+		copyProps(Buffer, SafeBuffer);
+
+		SafeBuffer.from = function (arg, encodingOrOffset, length) {
+		  if (typeof arg === 'number') {
+		    throw new TypeError('Argument must not be a number')
+		  }
+		  return Buffer(arg, encodingOrOffset, length)
+		};
+
+		SafeBuffer.alloc = function (size, fill, encoding) {
+		  if (typeof size !== 'number') {
+		    throw new TypeError('Argument must be a number')
+		  }
+		  var buf = Buffer(size);
+		  if (fill !== undefined) {
+		    if (typeof encoding === 'string') {
+		      buf.fill(fill, encoding);
+		    } else {
+		      buf.fill(fill);
+		    }
+		  } else {
+		    buf.fill(0);
+		  }
+		  return buf
+		};
+
+		SafeBuffer.allocUnsafe = function (size) {
+		  if (typeof size !== 'number') {
+		    throw new TypeError('Argument must be a number')
+		  }
+		  return Buffer(size)
+		};
+
+		SafeBuffer.allocUnsafeSlow = function (size) {
+		  if (typeof size !== 'number') {
+		    throw new TypeError('Argument must be a number')
+		  }
+		  return buffer.SlowBuffer(size)
+		}; 
+	} (safeBuffer, safeBuffer.exports));
+	return safeBuffer.exports;
+}
+
+var hasRequiredString_decoder;
+
+function requireString_decoder () {
+	if (hasRequiredString_decoder) return string_decoder;
+	hasRequiredString_decoder = 1;
+
+	/*<replacement>*/
+
+	var Buffer = requireSafeBuffer().Buffer;
+	/*</replacement>*/
+
+	var isEncoding = Buffer.isEncoding || function (encoding) {
+	  encoding = '' + encoding;
+	  switch (encoding && encoding.toLowerCase()) {
+	    case 'hex':case 'utf8':case 'utf-8':case 'ascii':case 'binary':case 'base64':case 'ucs2':case 'ucs-2':case 'utf16le':case 'utf-16le':case 'raw':
+	      return true;
+	    default:
+	      return false;
+	  }
+	};
+
+	function _normalizeEncoding(enc) {
+	  if (!enc) return 'utf8';
+	  var retried;
+	  while (true) {
+	    switch (enc) {
+	      case 'utf8':
+	      case 'utf-8':
+	        return 'utf8';
+	      case 'ucs2':
+	      case 'ucs-2':
+	      case 'utf16le':
+	      case 'utf-16le':
+	        return 'utf16le';
+	      case 'latin1':
+	      case 'binary':
+	        return 'latin1';
+	      case 'base64':
+	      case 'ascii':
+	      case 'hex':
+	        return enc;
+	      default:
+	        if (retried) return; // undefined
+	        enc = ('' + enc).toLowerCase();
+	        retried = true;
+	    }
+	  }
+	}
+	// Do not cache `Buffer.isEncoding` when checking encoding names as some
+	// modules monkey-patch it to support additional encodings
+	function normalizeEncoding(enc) {
+	  var nenc = _normalizeEncoding(enc);
+	  if (typeof nenc !== 'string' && (Buffer.isEncoding === isEncoding || !isEncoding(enc))) throw new Error('Unknown encoding: ' + enc);
+	  return nenc || enc;
+	}
+
+	// StringDecoder provides an interface for efficiently splitting a series of
+	// buffers into a series of JS strings without breaking apart multi-byte
+	// characters.
+	string_decoder.StringDecoder = StringDecoder;
+	function StringDecoder(encoding) {
+	  this.encoding = normalizeEncoding(encoding);
+	  var nb;
+	  switch (this.encoding) {
+	    case 'utf16le':
+	      this.text = utf16Text;
+	      this.end = utf16End;
+	      nb = 4;
+	      break;
+	    case 'utf8':
+	      this.fillLast = utf8FillLast;
+	      nb = 4;
+	      break;
+	    case 'base64':
+	      this.text = base64Text;
+	      this.end = base64End;
+	      nb = 3;
+	      break;
+	    default:
+	      this.write = simpleWrite;
+	      this.end = simpleEnd;
+	      return;
+	  }
+	  this.lastNeed = 0;
+	  this.lastTotal = 0;
+	  this.lastChar = Buffer.allocUnsafe(nb);
+	}
+
+	StringDecoder.prototype.write = function (buf) {
+	  if (buf.length === 0) return '';
+	  var r;
+	  var i;
+	  if (this.lastNeed) {
+	    r = this.fillLast(buf);
+	    if (r === undefined) return '';
+	    i = this.lastNeed;
+	    this.lastNeed = 0;
+	  } else {
+	    i = 0;
+	  }
+	  if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
+	  return r || '';
+	};
+
+	StringDecoder.prototype.end = utf8End;
+
+	// Returns only complete characters in a Buffer
+	StringDecoder.prototype.text = utf8Text;
+
+	// Attempts to complete a partial non-UTF-8 character using bytes from a Buffer
+	StringDecoder.prototype.fillLast = function (buf) {
+	  if (this.lastNeed <= buf.length) {
+	    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
+	    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+	  }
+	  buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
+	  this.lastNeed -= buf.length;
+	};
+
+	// Checks the type of a UTF-8 byte, whether it's ASCII, a leading byte, or a
+	// continuation byte. If an invalid byte is detected, -2 is returned.
+	function utf8CheckByte(byte) {
+	  if (byte <= 0x7F) return 0;else if (byte >> 5 === 0x06) return 2;else if (byte >> 4 === 0x0E) return 3;else if (byte >> 3 === 0x1E) return 4;
+	  return byte >> 6 === 0x02 ? -1 : -2;
+	}
+
+	// Checks at most 3 bytes at the end of a Buffer in order to detect an
+	// incomplete multi-byte UTF-8 character. The total number of bytes (2, 3, or 4)
+	// needed to complete the UTF-8 character (if applicable) are returned.
+	function utf8CheckIncomplete(self, buf, i) {
+	  var j = buf.length - 1;
+	  if (j < i) return 0;
+	  var nb = utf8CheckByte(buf[j]);
+	  if (nb >= 0) {
+	    if (nb > 0) self.lastNeed = nb - 1;
+	    return nb;
+	  }
+	  if (--j < i || nb === -2) return 0;
+	  nb = utf8CheckByte(buf[j]);
+	  if (nb >= 0) {
+	    if (nb > 0) self.lastNeed = nb - 2;
+	    return nb;
+	  }
+	  if (--j < i || nb === -2) return 0;
+	  nb = utf8CheckByte(buf[j]);
+	  if (nb >= 0) {
+	    if (nb > 0) {
+	      if (nb === 2) nb = 0;else self.lastNeed = nb - 3;
+	    }
+	    return nb;
+	  }
+	  return 0;
+	}
+
+	// Validates as many continuation bytes for a multi-byte UTF-8 character as
+	// needed or are available. If we see a non-continuation byte where we expect
+	// one, we "replace" the validated continuation bytes we've seen so far with
+	// a single UTF-8 replacement character ('\ufffd'), to match v8's UTF-8 decoding
+	// behavior. The continuation byte check is included three times in the case
+	// where all of the continuation bytes for a character exist in the same buffer.
+	// It is also done this way as a slight performance increase instead of using a
+	// loop.
+	function utf8CheckExtraBytes(self, buf, p) {
+	  if ((buf[0] & 0xC0) !== 0x80) {
+	    self.lastNeed = 0;
+	    return '\ufffd';
+	  }
+	  if (self.lastNeed > 1 && buf.length > 1) {
+	    if ((buf[1] & 0xC0) !== 0x80) {
+	      self.lastNeed = 1;
+	      return '\ufffd';
+	    }
+	    if (self.lastNeed > 2 && buf.length > 2) {
+	      if ((buf[2] & 0xC0) !== 0x80) {
+	        self.lastNeed = 2;
+	        return '\ufffd';
+	      }
+	    }
+	  }
+	}
+
+	// Attempts to complete a multi-byte UTF-8 character using bytes from a Buffer.
+	function utf8FillLast(buf) {
+	  var p = this.lastTotal - this.lastNeed;
+	  var r = utf8CheckExtraBytes(this, buf);
+	  if (r !== undefined) return r;
+	  if (this.lastNeed <= buf.length) {
+	    buf.copy(this.lastChar, p, 0, this.lastNeed);
+	    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+	  }
+	  buf.copy(this.lastChar, p, 0, buf.length);
+	  this.lastNeed -= buf.length;
+	}
+
+	// Returns all complete UTF-8 characters in a Buffer. If the Buffer ended on a
+	// partial character, the character's bytes are buffered until the required
+	// number of bytes are available.
+	function utf8Text(buf, i) {
+	  var total = utf8CheckIncomplete(this, buf, i);
+	  if (!this.lastNeed) return buf.toString('utf8', i);
+	  this.lastTotal = total;
+	  var end = buf.length - (total - this.lastNeed);
+	  buf.copy(this.lastChar, 0, end);
+	  return buf.toString('utf8', i, end);
+	}
+
+	// For UTF-8, a replacement character is added when ending on a partial
+	// character.
+	function utf8End(buf) {
+	  var r = buf && buf.length ? this.write(buf) : '';
+	  if (this.lastNeed) return r + '\ufffd';
+	  return r;
+	}
+
+	// UTF-16LE typically needs two bytes per character, but even if we have an even
+	// number of bytes available, we need to check if we end on a leading/high
+	// surrogate. In that case, we need to wait for the next two bytes in order to
+	// decode the last character properly.
+	function utf16Text(buf, i) {
+	  if ((buf.length - i) % 2 === 0) {
+	    var r = buf.toString('utf16le', i);
+	    if (r) {
+	      var c = r.charCodeAt(r.length - 1);
+	      if (c >= 0xD800 && c <= 0xDBFF) {
+	        this.lastNeed = 2;
+	        this.lastTotal = 4;
+	        this.lastChar[0] = buf[buf.length - 2];
+	        this.lastChar[1] = buf[buf.length - 1];
+	        return r.slice(0, -1);
+	      }
+	    }
+	    return r;
+	  }
+	  this.lastNeed = 1;
+	  this.lastTotal = 2;
+	  this.lastChar[0] = buf[buf.length - 1];
+	  return buf.toString('utf16le', i, buf.length - 1);
+	}
+
+	// For UTF-16LE we do not explicitly append special replacement characters if we
+	// end on a partial character, we simply let v8 handle that.
+	function utf16End(buf) {
+	  var r = buf && buf.length ? this.write(buf) : '';
+	  if (this.lastNeed) {
+	    var end = this.lastTotal - this.lastNeed;
+	    return r + this.lastChar.toString('utf16le', 0, end);
+	  }
+	  return r;
+	}
+
+	function base64Text(buf, i) {
+	  var n = (buf.length - i) % 3;
+	  if (n === 0) return buf.toString('base64', i);
+	  this.lastNeed = 3 - n;
+	  this.lastTotal = 3;
+	  if (n === 1) {
+	    this.lastChar[0] = buf[buf.length - 1];
+	  } else {
+	    this.lastChar[0] = buf[buf.length - 2];
+	    this.lastChar[1] = buf[buf.length - 1];
+	  }
+	  return buf.toString('base64', i, buf.length - n);
+	}
+
+	function base64End(buf) {
+	  var r = buf && buf.length ? this.write(buf) : '';
+	  if (this.lastNeed) return r + this.lastChar.toString('base64', 0, 3 - this.lastNeed);
+	  return r;
+	}
+
+	// Pass bytes on through for single-byte encodings (e.g. ascii, latin1, hex)
+	function simpleWrite(buf) {
+	  return buf.toString(this.encoding);
+	}
+
+	function simpleEnd(buf) {
+	  return buf && buf.length ? this.write(buf) : '';
+	}
+	return string_decoder;
+}
+
 var util$3;
 var hasRequiredUtil$3;
 
@@ -19593,8 +20448,8 @@ function requireUtil$3 () {
 	const { DOMException } = requireConstants$4();
 	const { serializeAMimeType, parseMIMEType } = requireDataURL();
 	const { types } = require$$0$2;
-	const { StringDecoder } = require$$6;
-	const { btoa } = require$$7;
+	const { StringDecoder } = requireString_decoder();
+	const { btoa } = require$$0$3;
 
 	/** @type {PropertyDescriptor} */
 	const staticPropertyDescriptors = {
@@ -20346,7 +21201,7 @@ function requireUtil$2 () {
 	if (hasRequiredUtil$2) return util$2;
 	hasRequiredUtil$2 = 1;
 
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { URLSerializer } = requireDataURL();
 	const { isValidHeaderName } = requireUtil$5();
 
@@ -20413,7 +21268,7 @@ function requireCache () {
 	const { kState, kHeaders, kGuard, kRealm } = requireSymbols$3();
 	const { fetching } = requireFetch();
 	const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = requireUtil$5();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 	const { getGlobalDispatcher } = requireGlobal();
 
 	/**
@@ -21696,17 +22551,17 @@ function requireUtil$1 () {
 	return util$1;
 }
 
-var parse$3;
+var parse$2;
 var hasRequiredParse$2;
 
 function requireParse$2 () {
-	if (hasRequiredParse$2) return parse$3;
+	if (hasRequiredParse$2) return parse$2;
 	hasRequiredParse$2 = 1;
 
 	const { maxNameValuePairSize, maxAttributeValueSize } = requireConstants$2();
 	const { isCTLExcludingHtab } = requireUtil$1();
 	const { collectASequenceOfCodePointsFast } = requireDataURL();
-	const assert = require$$0$3;
+	const assert = require$$0$4;
 
 	/**
 	 * @description Parses the field-value attributes of a set-cookie header string.
@@ -22014,11 +22869,11 @@ function requireParse$2 () {
 	  return parseUnparsedAttributes(unparsedAttributes, cookieAttributeList)
 	}
 
-	parse$3 = {
+	parse$2 = {
 	  parseSetCookie,
 	  parseUnparsedAttributes
 	};
-	return parse$3;
+	return parse$2;
 }
 
 var cookies;
@@ -22300,7 +23155,7 @@ function requireEvents () {
 
 	const { webidl } = requireWebidl();
 	const { kEnumerableProperty } = requireUtil$6();
-	const { MessagePort } = require$$0$8;
+	const { MessagePort } = require$$0$9;
 
 	/**
 	 * @see https://html.spec.whatwg.org/multipage/comms.html#messageevent
@@ -22817,7 +23672,7 @@ function requireConnection () {
 	if (hasRequiredConnection) return connection;
 	hasRequiredConnection = 1;
 
-	const diagnosticsChannel = require$$0$9;
+	const diagnosticsChannel = require$$0$a;
 	const { uid, states } = requireConstants$1();
 	const {
 	  kReadyState,
@@ -23197,8 +24052,8 @@ function requireReceiver () {
 	if (hasRequiredReceiver) return receiver;
 	hasRequiredReceiver = 1;
 
-	const { Writable } = require$$0$5;
-	const diagnosticsChannel = require$$0$9;
+	const { Writable } = require$$0$6;
+	const diagnosticsChannel = require$$0$a;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants$1();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
 	const { isValidStatusCode, failWebsocketConnection, websocketMessageReceived } = requireUtil();
@@ -25797,7 +26652,7 @@ function requireIo () {
 	};
 	Object.defineProperty(io, "__esModule", { value: true });
 	io.findInPath = io.which = io.mkdirP = io.rmRF = io.mv = io.cp = void 0;
-	const assert_1 = require$$0$3;
+	const assert_1 = require$$0$4;
 	const path$1 = __importStar(path);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
@@ -26104,12 +26959,12 @@ function requireToolrunner () {
 	Object.defineProperty(toolrunner, "__esModule", { value: true });
 	toolrunner.argStringToArray = toolrunner.ToolRunner = void 0;
 	const os = __importStar(require$$0);
-	const events = __importStar(require$$4);
+	const events = __importStar(requireEvents$1());
 	const child = __importStar(require$$2$2);
 	const path$1 = __importStar(path);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
-	const timers_1 = require$$6$1;
+	const timers_1 = require$$6;
 	/* eslint-disable @typescript-eslint/unbound-method */
 	const IS_WINDOWS = process.platform === 'win32';
 	/*
@@ -26728,7 +27583,7 @@ function requireExec () {
 	};
 	Object.defineProperty(exec, "__esModule", { value: true });
 	exec.getExecOutput = exec.exec = void 0;
-	const string_decoder_1 = require$$6;
+	const string_decoder_1 = requireString_decoder();
 	const tr = __importStar(requireToolrunner());
 	/**
 	 * Exec a command.
@@ -34407,7 +35262,7 @@ var jsYaml = {
 
 var jju$1 = {exports: {}};
 
-var parse$2 = {exports: {}};
+var parse$1 = {exports: {}};
 
 var unicode = {exports: {}};
 
@@ -34493,7 +35348,7 @@ function requireUnicode () {
 var hasRequiredParse;
 
 function requireParse () {
-	if (hasRequiredParse) return parse$2.exports;
+	if (hasRequiredParse) return parse$1.exports;
 	hasRequiredParse = 1;
 	(function (module) {
 		// RTFM: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf
@@ -35244,8 +36099,8 @@ function requireParse () {
 		  tokens.data = module.exports.parse(input, options);
 		  return tokens
 		}; 
-	} (parse$2));
-	return parse$2.exports;
+	} (parse$1));
+	return parse$1.exports;
 }
 
 var stringify$1 = {};
@@ -35734,7 +36589,7 @@ var hasRequiredDocument;
 function requireDocument () {
 	if (hasRequiredDocument) return document$1;
 	hasRequiredDocument = 1;
-	var assert = require$$0$3;
+	var assert = require$$0$4;
 	var tokenize = requireParse().tokenize;
 	var stringify = requireStringify().stringify;
 	var analyze = requireAnalyze().analyze;
@@ -38833,17 +39688,17 @@ var init_line_parser = __esm({
 function createInstanceConfig(...options) {
   const baseDir = process.cwd();
   const config = Object.assign(
-    { baseDir, ...defaultOptions },
+    { baseDir, ...defaultOptions$1 },
     ...options.filter((o) => typeof o === "object" && o)
   );
   config.baseDir = config.baseDir || baseDir;
   config.trimmed = config.trimmed === true;
   return config;
 }
-var defaultOptions;
+var defaultOptions$1;
 var init_simple_git_options = __esm({
   "src/lib/utils/simple-git-options.ts"() {
-    defaultOptions = {
+    defaultOptions$1 = {
       binary: "git",
       maxConcurrentProcesses: 5,
       config: [],
@@ -43085,556 +43940,490 @@ async function getChangesSinceLastCommit() {
     }
 }
 
-var conventionalCommitsParser = {exports: {}};
-
-var parser_1;
-var hasRequiredParser;
-
-function requireParser () {
-	if (hasRequiredParser) return parser_1;
-	hasRequiredParser = 1;
-
-	const CATCH_ALL = /()(.+)/gi;
-	const SCISSOR = '# ------------------------ >8 ------------------------';
-
-	function trimOffNewlines (input) {
-	  const result = input.match(/[^\r\n]/);
-	  if (!result) {
-	    return ''
-	  }
-	  const firstIndex = result.index;
-	  let lastIndex = input.length - 1;
-	  while (input[lastIndex] === '\r' || input[lastIndex] === '\n') {
-	    lastIndex--;
-	  }
-	  return input.substring(firstIndex, lastIndex + 1)
-	}
-
-	function append (src, line) {
-	  if (src) {
-	    src += '\n' + line;
-	  } else {
-	    src = line;
-	  }
-
-	  return src
-	}
-
-	function getCommentFilter (char) {
-	  return function (line) {
-	    return line.charAt(0) !== char
-	  }
-	}
-
-	function truncateToScissor (lines) {
-	  const scissorIndex = lines.indexOf(SCISSOR);
-
-	  if (scissorIndex === -1) {
-	    return lines
-	  }
-
-	  return lines.slice(0, scissorIndex)
-	}
-
-	function getReferences (input, regex) {
-	  const references = [];
-	  let referenceSentences;
-	  let referenceMatch;
-
-	  const reApplicable = input.match(regex.references) !== null
-	    ? regex.references
-	    : CATCH_ALL;
-
-	  while ((referenceSentences = reApplicable.exec(input))) {
-	    const action = referenceSentences[1] || null;
-	    const sentence = referenceSentences[2];
-
-	    while ((referenceMatch = regex.referenceParts.exec(sentence))) {
-	      let owner = null;
-	      let repository = referenceMatch[1] || '';
-	      const ownerRepo = repository.split('/');
-
-	      if (ownerRepo.length > 1) {
-	        owner = ownerRepo.shift();
-	        repository = ownerRepo.join('/');
-	      }
-
-	      const reference = {
-	        action,
-	        owner,
-	        repository: repository || null,
-	        issue: referenceMatch[3],
-	        raw: referenceMatch[0],
-	        prefix: referenceMatch[2]
-	      };
-
-	      references.push(reference);
-	    }
-	  }
-
-	  return references
-	}
-
-	function passTrough () {
-	  return true
-	}
-
-	function parser (raw, options, regex) {
-	  if (!raw || !raw.trim()) {
-	    throw new TypeError('Expected a raw commit')
-	  }
-
-	  if (!options || (typeof options === 'object' && !Object.keys(options).length)) {
-	    throw new TypeError('Expected options')
-	  }
-
-	  if (!regex) {
-	    throw new TypeError('Expected regex')
-	  }
-
-	  let currentProcessedField;
-	  let mentionsMatch;
-	  const otherFields = {};
-	  const commentFilter = typeof options.commentChar === 'string'
-	    ? getCommentFilter(options.commentChar)
-	    : passTrough;
-	  const gpgFilter = line => !line.match(/^\s*gpg:/);
-
-	  const rawLines = trimOffNewlines(raw).split(/\r?\n/);
-	  const lines = truncateToScissor(rawLines).filter(commentFilter).filter(gpgFilter);
-
-	  let continueNote = false;
-	  let isBody = true;
-	  const headerCorrespondence = options.headerCorrespondence?.map(function (part) {
-	    return part.trim()
-	  }) || [];
-	  const revertCorrespondence = options.revertCorrespondence?.map(function (field) {
-	    return field.trim()
-	  }) || [];
-	  const mergeCorrespondence = options.mergeCorrespondence?.map(function (field) {
-	    return field.trim()
-	  }) || [];
-
-	  let body = null;
-	  let footer = null;
-	  let header = null;
-	  const mentions = [];
-	  let merge = null;
-	  const notes = [];
-	  const references = [];
-	  let revert = null;
-
-	  if (lines.length === 0) {
-	    return {
-	      body,
-	      footer,
-	      header,
-	      mentions,
-	      merge,
-	      notes,
-	      references,
-	      revert,
-	      scope: null,
-	      subject: null,
-	      type: null
-	    }
-	  }
-
-	  // msg parts
-	  merge = lines.shift();
-	  const mergeParts = {};
-	  const headerParts = {};
-	  body = '';
-	  footer = '';
-
-	  const mergeMatch = merge.match(options.mergePattern);
-	  if (mergeMatch && options.mergePattern) {
-	    merge = mergeMatch[0];
-
-	    header = lines.shift();
-	    while (header !== undefined && !header.trim()) {
-	      header = lines.shift();
-	    }
-	    if (!header) {
-	      header = '';
-	    }
-
-	    mergeCorrespondence.forEach(function (partName, index) {
-	      const partValue = mergeMatch[index + 1] || null;
-	      mergeParts[partName] = partValue;
-	    });
-	  } else {
-	    header = merge;
-	    merge = null;
-
-	    mergeCorrespondence.forEach(function (partName) {
-	      mergeParts[partName] = null;
-	    });
-	  }
-
-	  const headerMatch = header.match(options.headerPattern);
-	  if (headerMatch) {
-	    headerCorrespondence.forEach(function (partName, index) {
-	      const partValue = headerMatch[index + 1] || null;
-	      headerParts[partName] = partValue;
-	    });
-	  } else {
-	    headerCorrespondence.forEach(function (partName) {
-	      headerParts[partName] = null;
-	    });
-	  }
-
-	  references.push(...getReferences(header, {
-	    references: regex.references,
-	    referenceParts: regex.referenceParts
-	  }));
-
-	  // body or footer
-	  lines.forEach(function (line) {
-	    if (options.fieldPattern) {
-	      const fieldMatch = options.fieldPattern.exec(line);
-
-	      if (fieldMatch) {
-	        currentProcessedField = fieldMatch[1];
-
-	        return
-	      }
-
-	      if (currentProcessedField) {
-	        otherFields[currentProcessedField] = append(otherFields[currentProcessedField], line);
-
-	        return
-	      }
-	    }
-
-	    let referenceMatched;
-
-	    // this is a new important note
-	    const notesMatch = line.match(regex.notes);
-	    if (notesMatch) {
-	      continueNote = true;
-	      isBody = false;
-	      footer = append(footer, line);
-
-	      const note = {
-	        title: notesMatch[1],
-	        text: notesMatch[2]
-	      };
-
-	      notes.push(note);
-
-	      return
-	    }
-
-	    const lineReferences = getReferences(line, {
-	      references: regex.references,
-	      referenceParts: regex.referenceParts
-	    });
-
-	    if (lineReferences.length > 0) {
-	      isBody = false;
-	      referenceMatched = true;
-	      continueNote = false;
-	    }
-
-	    Array.prototype.push.apply(references, lineReferences);
-
-	    if (referenceMatched) {
-	      footer = append(footer, line);
-
-	      return
-	    }
-
-	    if (continueNote) {
-	      notes[notes.length - 1].text = append(notes[notes.length - 1].text, line);
-	      footer = append(footer, line);
-
-	      return
-	    }
-
-	    if (isBody) {
-	      body = append(body, line);
-	    } else {
-	      footer = append(footer, line);
-	    }
-	  });
-
-	  if (options.breakingHeaderPattern && notes.length === 0) {
-	    const breakingHeader = header.match(options.breakingHeaderPattern);
-	    if (breakingHeader) {
-	      const noteText = breakingHeader[3]; // the description of the change.
-	      notes.push({
-	        title: 'BREAKING CHANGE',
-	        text: noteText
-	      });
-	    }
-	  }
-
-	  while ((mentionsMatch = regex.mentions.exec(raw))) {
-	    mentions.push(mentionsMatch[1]);
-	  }
-
-	  // does this commit revert any other commit?
-	  const revertMatch = raw.match(options.revertPattern);
-	  if (revertMatch) {
-	    revert = {};
-	    revertCorrespondence.forEach(function (partName, index) {
-	      const partValue = revertMatch[index + 1] || null;
-	      revert[partName] = partValue;
-	    });
-	  } else {
-	    revert = null;
-	  }
-
-	  notes.forEach(function (note) {
-	    note.text = trimOffNewlines(note.text);
-	  });
-
-	  const msg = {
-	    ...headerParts,
-	    ...mergeParts,
-	    merge,
-	    header,
-	    body: body ? trimOffNewlines(body) : null,
-	    footer: footer ? trimOffNewlines(footer) : null,
-	    notes,
-	    references,
-	    mentions,
-	    revert,
-	    ...otherFields
-	  };
-
-	  return msg
-	}
-
-	parser_1 = parser;
-	return parser_1;
+const nomatchRegex = /(?!.*)/;
+function join(parts, joiner) {
+    return parts
+        .map(val => val.trim())
+        .filter(Boolean)
+        .join(joiner);
 }
-
-var regex;
-var hasRequiredRegex;
-
-function requireRegex () {
-	if (hasRequiredRegex) return regex;
-	hasRequiredRegex = 1;
-
-	const reNomatch = /(?!.*)/;
-
-	function join (array, joiner) {
-	  return array
-	    .map(function (val) {
-	      return val.trim()
-	    })
-	    .filter(function (val) {
-	      return val.length
-	    })
-	    .join(joiner)
-	}
-
-	function getNotesRegex (noteKeywords, notesPattern) {
-	  if (!noteKeywords) {
-	    return reNomatch
-	  }
-
-	  const noteKeywordsSelection = join(noteKeywords, '|');
-
-	  if (!notesPattern) {
-	    return new RegExp('^[\\s|*]*(' + noteKeywordsSelection + ')[:\\s]+(.*)', 'i')
-	  }
-
-	  return notesPattern(noteKeywordsSelection)
-	}
-
-	function getReferencePartsRegex (issuePrefixes, issuePrefixesCaseSensitive) {
-	  if (!issuePrefixes) {
-	    return reNomatch
-	  }
-
-	  const flags = issuePrefixesCaseSensitive ? 'g' : 'gi';
-	  return new RegExp('(?:.*?)??\\s*([\\w-\\.\\/]*?)??(' + join(issuePrefixes, '|') + ')([\\w-]*\\d+)', flags)
-	}
-
-	function getReferencesRegex (referenceActions) {
-	  if (!referenceActions) {
-	    // matches everything
-	    return /()(.+)/gi
-	  }
-
-	  const joinedKeywords = join(referenceActions, '|');
-	  return new RegExp('(' + joinedKeywords + ')(?:\\s+(.*?))(?=(?:' + joinedKeywords + ')|$)', 'gi')
-	}
-
-	regex = function (options) {
-	  options = options || {};
-	  const reNotes = getNotesRegex(options.noteKeywords, options.notesPattern);
-	  const reReferenceParts = getReferencePartsRegex(options.issuePrefixes, options.issuePrefixesCaseSensitive);
-	  const reReferences = getReferencesRegex(options.referenceActions);
-
-	  return {
-	    notes: reNotes,
-	    referenceParts: reReferenceParts,
-	    references: reReferences,
-	    mentions: /@([\w-]+)/g
-	  }
-	};
-	return regex;
+function getNotesRegex(noteKeywords, notesPattern) {
+    if (!noteKeywords) {
+        return nomatchRegex;
+    }
+    const noteKeywordsSelection = join(noteKeywords, '|');
+    if (!notesPattern) {
+        return new RegExp(`^[\\s|*]*(${noteKeywordsSelection})[:\\s]+(.*)`, 'i');
+    }
+    return notesPattern(noteKeywordsSelection);
 }
-
-var hasRequiredConventionalCommitsParser;
-
-function requireConventionalCommitsParser () {
-	if (hasRequiredConventionalCommitsParser) return conventionalCommitsParser.exports;
-	hasRequiredConventionalCommitsParser = 1;
-
-	const { Transform } = require$$0$5;
-	const parser = requireParser();
-	const regex = requireRegex();
-
-	function assignOpts (options) {
-	  options = {
-	    headerPattern: /^(\w*)(?:\(([\w$.\-*/ ]*)\))?: (.*)$/,
-	    headerCorrespondence: ['type', 'scope', 'subject'],
-	    referenceActions: [
-	      'close',
-	      'closes',
-	      'closed',
-	      'fix',
-	      'fixes',
-	      'fixed',
-	      'resolve',
-	      'resolves',
-	      'resolved'
-	    ],
-	    issuePrefixes: ['#'],
-	    noteKeywords: ['BREAKING CHANGE', 'BREAKING-CHANGE'],
-	    fieldPattern: /^-(.*?)-$/,
-	    revertPattern: /^Revert\s"([\s\S]*)"\s*This reverts commit (\w*)\./,
-	    revertCorrespondence: ['header', 'hash'],
-	    warn: function () {},
-	    mergePattern: null,
-	    mergeCorrespondence: null,
-	    ...options
-	  };
-
-	  if (typeof options.headerPattern === 'string') {
-	    options.headerPattern = new RegExp(options.headerPattern);
-	  }
-
-	  if (typeof options.headerCorrespondence === 'string') {
-	    options.headerCorrespondence = options.headerCorrespondence.split(',');
-	  }
-
-	  if (typeof options.referenceActions === 'string') {
-	    options.referenceActions = options.referenceActions.split(',');
-	  }
-
-	  if (typeof options.issuePrefixes === 'string') {
-	    options.issuePrefixes = options.issuePrefixes.split(',');
-	  }
-
-	  if (typeof options.noteKeywords === 'string') {
-	    options.noteKeywords = options.noteKeywords.split(',');
-	  }
-
-	  if (typeof options.fieldPattern === 'string') {
-	    options.fieldPattern = new RegExp(options.fieldPattern);
-	  }
-
-	  if (typeof options.revertPattern === 'string') {
-	    options.revertPattern = new RegExp(options.revertPattern);
-	  }
-
-	  if (typeof options.revertCorrespondence === 'string') {
-	    options.revertCorrespondence = options.revertCorrespondence.split(',');
-	  }
-
-	  if (typeof options.mergePattern === 'string') {
-	    options.mergePattern = new RegExp(options.mergePattern);
-	  }
-
-	  return options
-	}
-
-	function conventionalCommitsParser$1 (options) {
-	  options = assignOpts(options);
-	  const reg = regex(options);
-
-	  return new Transform({
-	    objectMode: true,
-	    highWaterMark: 16,
-	    transform (data, enc, cb) {
-	      let commit;
-
-	      try {
-	        commit = parser(data.toString(), options, reg);
-	        cb(null, commit);
-	      } catch (err) {
-	        if (options.warn === true) {
-	          cb(err);
-	        } else {
-	          options.warn(err.toString());
-	          cb(null, '');
-	        }
-	      }
-	    }
-	  })
-	}
-
-	function sync (commit, options) {
-	  options = assignOpts(options);
-	  const reg = regex(options);
-
-	  return parser(commit, options, reg)
-	}
-
-	conventionalCommitsParser.exports = conventionalCommitsParser$1;
-	conventionalCommitsParser.exports.sync = sync;
-	return conventionalCommitsParser.exports;
+function getReferencePartsRegex(issuePrefixes, issuePrefixesCaseSensitive) {
+    if (!issuePrefixes) {
+        return nomatchRegex;
+    }
+    const flags = issuePrefixesCaseSensitive ? 'g' : 'gi';
+    return new RegExp(`(?:.*?)??\\s*([\\w-\\.\\/]*?)??(${join(issuePrefixes, '|')})([\\w-]*\\d+)`, flags);
 }
-
-var conventionalCommitsParserExports = requireConventionalCommitsParser();
-
-async function parse$1(message, parser = conventionalCommitsParserExports.sync, parserOpts) {
-    const preset = await defaultChangelogOpts();
-    const defaultOpts = preset.parserOpts;
-    const opts = {
-        ...defaultOpts,
-        fieldPattern: null,
-        ...(parserOpts || {}),
+function getReferencesRegex(referenceActions) {
+    if (!referenceActions) {
+        // matches everything
+        return /()(.+)/gi;
+    }
+    const joinedKeywords = join(referenceActions, '|');
+    return new RegExp(`(${joinedKeywords})(?:\\s+(.*?))(?=(?:${joinedKeywords})|$)`, 'gi');
+}
+/**
+ * Make the regexes used to parse a commit.
+ * @param options
+ * @returns Regexes.
+ */
+function getParserRegexes(options = {}) {
+    const notes = getNotesRegex(options.noteKeywords, options.notesPattern);
+    const referenceParts = getReferencePartsRegex(options.issuePrefixes, options.issuePrefixesCaseSensitive);
+    const references = getReferencesRegex(options.referenceActions);
+    return {
+        notes,
+        referenceParts,
+        references,
+        mentions: /@([\w-]+)/g,
+        url: /\b(?:https?):\/\/(?:www\.)?([-a-zA-Z0-9@:%_+.~#?&//=])+\b/
     };
-    const parsed = parser(message, opts);
-    parsed.raw = message;
-    return parsed;
+}
+
+const SCISSOR = '------------------------ >8 ------------------------';
+/**
+ * Remove leading and trailing newlines.
+ * @param input
+ * @returns String without leading and trailing newlines.
+ */
+function trimNewLines(input) {
+    // To escape ReDos we should escape String#replace with regex.
+    const matches = input.match(/[^\r\n]/);
+    if (typeof matches?.index !== 'number') {
+        return '';
+    }
+    const firstIndex = matches.index;
+    let lastIndex = input.length - 1;
+    while (input[lastIndex] === '\r' || input[lastIndex] === '\n') {
+        lastIndex--;
+    }
+    return input.substring(firstIndex, lastIndex + 1);
+}
+/**
+ * Append a newline to a string.
+ * @param src
+ * @param line
+ * @returns String with appended newline.
+ */
+function appendLine(src, line) {
+    return src ? `${src}\n${line || ''}` : line || '';
+}
+/**
+ * Creates a function that filters out comments lines.
+ * @param char
+ * @returns Comment filter function.
+ */
+function getCommentFilter(char) {
+    return char
+        ? (line) => !line.startsWith(char)
+        : () => true;
+}
+/**
+ * Select lines before the scissor.
+ * @param lines
+ * @param commentChar
+ * @returns Lines before the scissor.
+ */
+function truncateToScissor(lines, commentChar) {
+    const scissorIndex = lines.indexOf(`${commentChar} ${SCISSOR}`);
+    if (scissorIndex === -1) {
+        return lines;
+    }
+    return lines.slice(0, scissorIndex);
+}
+/**
+ * Filter out GPG sign lines.
+ * @param line
+ * @returns True if the line is not a GPG sign line.
+ */
+function gpgFilter(line) {
+    return !line.match(/^\s*gpg:/);
+}
+/**
+ * Assign matched correspondence to the target object.
+ * @param target - The target object to assign values to.
+ * @param matches - The RegExp match array containing the matched groups.
+ * @param correspondence - An array of keys that correspond to the matched groups.
+ * @returns The target object with assigned values.
+ */
+function assignMatchedCorrespondence(target, matches, correspondence) {
+    const { groups } = matches;
+    for (let i = 0, len = correspondence.length, key; i < len; i++) {
+        key = correspondence[i];
+        target[key] = (groups ? groups[key] : matches[i + 1]) || null;
+    }
+    return target;
+}
+
+const defaultOptions = {
+    noteKeywords: ['BREAKING CHANGE', 'BREAKING-CHANGE'],
+    issuePrefixes: ['#'],
+    referenceActions: [
+        'close',
+        'closes',
+        'closed',
+        'fix',
+        'fixes',
+        'fixed',
+        'resolve',
+        'resolves',
+        'resolved'
+    ],
+    headerPattern: /^(\w*)(?:\(([\w$@.\-*/ ]*)\))?: (.*)$/,
+    headerCorrespondence: [
+        'type',
+        'scope',
+        'subject'
+    ],
+    revertPattern: /^Revert\s"([\s\S]*)"\s*This reverts commit (\w*)\./,
+    revertCorrespondence: ['header', 'hash'],
+    fieldPattern: /^-(.*?)-$/
+};
+
+/**
+ * Helper to create commit object.
+ * @param initialData - Initial commit data.
+ * @returns Commit object with empty data.
+ */
+function createCommitObject(initialData = {}) {
+    // @ts-expect-error: You can read properties from `Commit` without problems, but you can't assign object to this type. So here is helper for that.
+    return {
+        merge: null,
+        revert: null,
+        header: null,
+        body: null,
+        footer: null,
+        notes: [],
+        mentions: [],
+        references: [],
+        ...initialData
+    };
+}
+/**
+ * Commit message parser.
+ */
+class CommitParser {
+    options;
+    regexes;
+    lines = [];
+    lineIndex = 0;
+    commit = createCommitObject();
+    constructor(options = {}) {
+        this.options = {
+            ...defaultOptions,
+            ...options
+        };
+        this.regexes = getParserRegexes(this.options);
+    }
+    currentLine() {
+        return this.lines[this.lineIndex];
+    }
+    nextLine() {
+        return this.lines[this.lineIndex++];
+    }
+    isLineAvailable() {
+        return this.lineIndex < this.lines.length;
+    }
+    parseReference(input, action) {
+        const { regexes } = this;
+        if (regexes.url.test(input)) {
+            return null;
+        }
+        const matches = regexes.referenceParts.exec(input);
+        if (!matches) {
+            return null;
+        }
+        let [raw, repository = null, prefix, issue] = matches;
+        let owner = null;
+        if (repository) {
+            const slashIndex = repository.indexOf('/');
+            if (slashIndex !== -1) {
+                owner = repository.slice(0, slashIndex);
+                repository = repository.slice(slashIndex + 1);
+            }
+        }
+        return {
+            raw,
+            action,
+            owner,
+            repository,
+            prefix,
+            issue
+        };
+    }
+    parseReferences(input) {
+        const { regexes } = this;
+        const regex = input.match(regexes.references)
+            ? regexes.references
+            : /()(.+)/gi;
+        const references = [];
+        let matches;
+        let action;
+        let sentence;
+        let reference;
+        while (true) {
+            matches = regex.exec(input);
+            if (!matches) {
+                break;
+            }
+            action = matches[1] || null;
+            sentence = matches[2] || '';
+            while (true) {
+                reference = this.parseReference(sentence, action);
+                if (!reference) {
+                    break;
+                }
+                references.push(reference);
+            }
+        }
+        return references;
+    }
+    skipEmptyLines() {
+        let line = this.currentLine();
+        while (line !== undefined && !line.trim()) {
+            this.nextLine();
+            line = this.currentLine();
+        }
+    }
+    parseMerge() {
+        const { commit, options } = this;
+        const correspondence = options.mergeCorrespondence || [];
+        const merge = this.currentLine();
+        const matches = merge && options.mergePattern
+            ? merge.match(options.mergePattern)
+            : null;
+        if (matches) {
+            this.nextLine();
+            commit.merge = matches[0] || null;
+            assignMatchedCorrespondence(commit, matches, correspondence);
+            return true;
+        }
+        return false;
+    }
+    parseHeader(isMergeCommit) {
+        if (isMergeCommit) {
+            this.skipEmptyLines();
+        }
+        const { commit, options } = this;
+        const correspondence = options.headerCorrespondence || [];
+        const header = commit.header ?? this.nextLine();
+        let matches = null;
+        if (header) {
+            if (options.breakingHeaderPattern) {
+                matches = header.match(options.breakingHeaderPattern);
+            }
+            if (!matches && options.headerPattern) {
+                matches = header.match(options.headerPattern);
+            }
+        }
+        if (header) {
+            commit.header = header;
+        }
+        if (matches) {
+            assignMatchedCorrespondence(commit, matches, correspondence);
+        }
+    }
+    parseMeta() {
+        const { options, commit } = this;
+        if (!options.fieldPattern || !this.isLineAvailable()) {
+            return false;
+        }
+        let matches;
+        let field = null;
+        let parsed = false;
+        while (this.isLineAvailable()) {
+            matches = this.currentLine().match(options.fieldPattern);
+            if (matches) {
+                field = matches[1] || null;
+                this.nextLine();
+                continue;
+            }
+            if (field) {
+                parsed = true;
+                commit[field] = appendLine(commit[field], this.currentLine());
+                this.nextLine();
+            }
+            else {
+                break;
+            }
+        }
+        return parsed;
+    }
+    parseNotes() {
+        const { regexes, commit } = this;
+        if (!this.isLineAvailable()) {
+            return false;
+        }
+        const matches = this.currentLine().match(regexes.notes);
+        let references = [];
+        if (matches) {
+            const note = {
+                title: matches[1],
+                text: matches[2]
+            };
+            commit.notes.push(note);
+            commit.footer = appendLine(commit.footer, this.currentLine());
+            this.nextLine();
+            while (this.isLineAvailable()) {
+                if (this.parseMeta()) {
+                    return true;
+                }
+                if (this.parseNotes()) {
+                    return true;
+                }
+                references = this.parseReferences(this.currentLine());
+                if (references.length) {
+                    commit.references.push(...references);
+                }
+                else {
+                    note.text = appendLine(note.text, this.currentLine());
+                }
+                commit.footer = appendLine(commit.footer, this.currentLine());
+                this.nextLine();
+                if (references.length) {
+                    break;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    parseBodyAndFooter(isBody) {
+        const { commit } = this;
+        if (!this.isLineAvailable()) {
+            return isBody;
+        }
+        const references = this.parseReferences(this.currentLine());
+        const isStillBody = !references.length && isBody;
+        if (isStillBody) {
+            commit.body = appendLine(commit.body, this.currentLine());
+        }
+        else {
+            commit.references.push(...references);
+            commit.footer = appendLine(commit.footer, this.currentLine());
+        }
+        this.nextLine();
+        return isStillBody;
+    }
+    parseBreakingHeader() {
+        const { commit, options } = this;
+        if (!options.breakingHeaderPattern || commit.notes.length || !commit.header) {
+            return;
+        }
+        const matches = commit.header.match(options.breakingHeaderPattern);
+        if (matches) {
+            commit.notes.push({
+                title: 'BREAKING CHANGE',
+                text: matches[3]
+            });
+        }
+    }
+    parseMentions(input) {
+        const { commit, regexes } = this;
+        let matches;
+        for (;;) {
+            matches = regexes.mentions.exec(input);
+            if (!matches) {
+                break;
+            }
+            commit.mentions.push(matches[1]);
+        }
+    }
+    parseRevert(input) {
+        const { commit, options } = this;
+        const correspondence = options.revertCorrespondence || [];
+        const matches = options.revertPattern
+            ? input.match(options.revertPattern)
+            : null;
+        if (matches) {
+            commit.revert = assignMatchedCorrespondence({}, matches, correspondence);
+        }
+    }
+    cleanupCommit() {
+        const { commit } = this;
+        if (commit.body) {
+            commit.body = trimNewLines(commit.body);
+        }
+        if (commit.footer) {
+            commit.footer = trimNewLines(commit.footer);
+        }
+        commit.notes.forEach((note) => {
+            note.text = trimNewLines(note.text);
+        });
+    }
+    /**
+     * Parse commit message string into an object.
+     * @param input - Commit message string.
+     * @returns Commit object.
+     */
+    parse(input) {
+        if (!input.trim()) {
+            throw new TypeError('Expected a raw commit');
+        }
+        const { commentChar } = this.options;
+        const commentFilter = getCommentFilter(commentChar);
+        const rawLines = trimNewLines(input).split(/\r?\n/);
+        const lines = commentChar
+            ? truncateToScissor(rawLines, commentChar).filter(line => commentFilter(line) && gpgFilter(line))
+            : rawLines.filter(line => gpgFilter(line));
+        const commit = createCommitObject();
+        this.lines = lines;
+        this.lineIndex = 0;
+        this.commit = commit;
+        const isMergeCommit = this.parseMerge();
+        this.parseHeader(isMergeCommit);
+        if (commit.header) {
+            commit.references = this.parseReferences(commit.header);
+        }
+        let isBody = true;
+        while (this.isLineAvailable()) {
+            this.parseMeta();
+            if (this.parseNotes()) {
+                isBody = false;
+            }
+            if (!this.parseBodyAndFooter(isBody)) {
+                isBody = false;
+            }
+        }
+        this.parseBreakingHeader();
+        this.parseMentions(input);
+        this.parseRevert(input);
+        this.cleanupCommit();
+        return commit;
+    }
 }
 
 const parserOptions = {
-    // Require space after colon: \s+ instead of \s*
-    headerPattern: /^(\w+)(?:\(([^)]*)\))?\s*:\s+(.+)$/,
-    // Breaking change pattern also requires space after colon
-    breakingHeaderPattern: /^(\w+)(?:\(([^)]*)\))?!\s*:\s+(.+)$/,
+    headerPattern: /^(\w+)(?:\(([^)]+)\))?(!)?\s*:\s+(.+)$/,
+    headerCorrespondence: ['type', 'scope', 'breaking', 'subject'],
 };
-async function getChangeTypeAndDescription(message) {
-    console.warn('[getChangeTypeAndDescription] Received message:', message);
+function getChangeTypeAndDescription(message) {
     try {
-        console.warn('[getChangeTypeAndDescription] Parsing message...');
-        const parsed = (await parse$1(message, undefined, parserOptions));
-        console.warn('[getChangeTypeAndDescription] Parsed result:', parsed);
+        const parser = new CommitParser(parserOptions);
+        const parsed = parser.parse(message);
         const notes = Array.isArray(parsed.notes) ? parsed.notes : [];
-        console.warn('[getChangeTypeAndDescription] Commit notes:', notes);
-        const isBreaking = notes.some((note) => note.title === 'BREAKING CHANGE');
-        console.warn('[getChangeTypeAndDescription] isBreaking:', isBreaking);
+        const isBreaking = notes.some((note) => note.title === 'BREAKING CHANGE') ||
+            parsed.breaking === '!';
         if (isBreaking) {
             const breakingNote = notes.find((note) => note.title === 'BREAKING CHANGE');
-            console.warn('[getChangeTypeAndDescription] Breaking note:', breakingNote);
             return {
                 changeType: 'major',
-                scope: parsed.scope ?? null,
+                scope: parsed.breaking === '!' ? null : (parsed.scope ?? null),
                 description: breakingNote?.text ?? parsed.subject ?? '',
             };
         }
         switch (parsed.type) {
             case 'feat':
-                console.warn('[getChangeTypeAndDescription] Type is feat');
                 return {
                     changeType: 'minor',
                     scope: parsed.scope ?? null,
@@ -43643,7 +44432,6 @@ async function getChangeTypeAndDescription(message) {
             case 'fix':
             case 'perf':
             case 'revert':
-                console.warn('[getChangeTypeAndDescription] Type is patch:', parsed.type);
                 return {
                     changeType: 'patch',
                     scope: parsed.scope ?? null,
@@ -43656,14 +44444,12 @@ async function getChangeTypeAndDescription(message) {
             case 'refactor':
             case 'style':
             case 'test':
-                console.warn('[getChangeTypeAndDescription] Type is none:', parsed.type);
                 return {
                     changeType: 'none',
                     scope: parsed.scope ?? null,
                     description: parsed.subject ?? '',
                 };
             default:
-                console.warn('[getChangeTypeAndDescription] Type is unknown:', parsed.type);
                 return {
                     changeType: 'none',
                     scope: null,
@@ -43672,7 +44458,6 @@ async function getChangeTypeAndDescription(message) {
         }
     }
     catch (_error) {
-        console.warn('[getChangeTypeAndDescription] Error occurred:', _error);
         return {
             changeType: 'none',
             scope: null,
@@ -43690,7 +44475,7 @@ async function processChanges() {
     for (const [packageName, info] of Object.entries(changes)) {
         if (info.commits.length > 0) {
             for (const commit of info.commits) {
-                const { changeType, description } = await getChangeTypeAndDescription(commit.message);
+                const { changeType, description } = getChangeTypeAndDescription(commit.message);
                 coreExports.info(`Processing commit:${JSON.stringify(commit, null, 2)}`);
                 createChangesetFile(packageName, changeType, description);
                 coreExports.info(`Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`);

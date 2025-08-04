@@ -3,7 +3,6 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
-import { builtinModules } from 'module';
 
 const config = {
   input: 'src/index.ts',
@@ -13,7 +12,6 @@ const config = {
     format: 'es',
     sourcemap: true,
   },
-  external: [...builtinModules, 'conventional-changelog-angular'],
   plugins: [
     typescript({
       outDir: 'dist',
