@@ -36,11 +36,6 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
       // Push the branch
       await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
       core.info('Git push successful');
-
-      // Push tags to trigger GitHub releases
-      core.info('Pushing tags to GitHub...');
-      await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-      core.info('Git push tags successful');
     } catch (e) {
       core.info(`Git push failed: ${String(e)}`);
     }

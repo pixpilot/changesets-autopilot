@@ -51542,10 +51542,6 @@ async function gitVersionAndPush(git, githubToken) {
             // Push the branch
             await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
             coreExports.info('Git push successful');
-            // Push tags to trigger GitHub releases
-            coreExports.info('Pushing tags to GitHub...');
-            await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-            coreExports.info('Git push tags successful');
         }
         catch (e) {
             coreExports.info(`Git push failed: ${String(e)}`);
@@ -51596,6 +51592,18 @@ async function run() {
             if (npmToken) {
                 publishPackages(branchConfig, npmToken);
                 coreExports.info('Packages published successfully!');
+                // NOW push the tags that were created by changeset publish
+                const repo = process.env.GITHUB_REPOSITORY;
+                if (repo && githubToken) {
+                    try {
+                        coreExports.info('Pushing tags created by changeset publish to GitHub...');
+                        await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
+                        coreExports.info('Tags pushed successfully - GitHub releases should be created');
+                    }
+                    catch (error) {
+                        coreExports.warning(`Failed to push tags: ${String(error)}`);
+                    }
+                }
             }
             else {
                 coreExports.info('No npm token provided, skipping publish step.');

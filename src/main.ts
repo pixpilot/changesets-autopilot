@@ -41,6 +41,17 @@ export async function run(): Promise<void> {
       if (npmToken) {
         publishPackages(branchConfig, npmToken);
         core.info('Packages published successfully!');
+        // NOW push the tags that were created by changeset publish
+        const repo = process.env.GITHUB_REPOSITORY;
+        if (repo && githubToken) {
+          try {
+            core.info('Pushing tags created by changeset publish to GitHub...');
+            await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
+            core.info('Tags pushed successfully - GitHub releases should be created');
+          } catch (error) {
+            core.warning(`Failed to push tags: ${String(error)}`);
+          }
+        }
       } else {
         core.info('No npm token provided, skipping publish step.');
       }
