@@ -2,12 +2,16 @@ import { execSync } from 'child_process';
 
 import * as core from '@actions/core';
 
+import { ensureChangesetsAvailable } from '../changeset/ensure-changesets-available';
 import type { ResolvedBranchConfig } from '../config/get-branch-config';
 
 export function publishPackages(
   branchConfig: ResolvedBranchConfig,
   npmToken: string,
 ): void {
+  // Ensure changesets is available
+  ensureChangesetsAvailable();
+
   const publishCommand = branchConfig.channel
     ? `npx changeset publish --tag ${branchConfig.channel}`
     : 'npx changeset publish';

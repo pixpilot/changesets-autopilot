@@ -1,7 +1,6 @@
 import * as core from '@actions/core';
 
 import { configurePrereleaseMode, ensureChangesets } from './changeset';
-import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
 import { configureGit, gitVersionAndPush } from './git';
 import { publishPackages } from './publisher';
@@ -11,9 +10,6 @@ import { publishPackages } from './publisher';
  */
 export async function run(): Promise<void> {
   try {
-    // Ensure changesets is available
-    ensureChangesetsAvailable();
-
     // Initialize inputs and configuration
     const { githubToken, npmToken, botName, branches } = getActionInputs();
     const branchConfig = getBranchConfig(branches);

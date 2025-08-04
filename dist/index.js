@@ -44516,56 +44516,6 @@ function configurePrereleaseMode(branchConfig) {
     }
 }
 
-const requiredPackages = ['@changesets/changelog-github', '@changesets/cli'];
-/**
- * Checks if a package is installed locally by attempting require.resolve
- */
-function isPackageInstalledLocally(pkgName) {
-    try {
-        require.resolve(pkgName, { paths: [process.cwd()] });
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-/**
- * Checks if a package is installed globally by parsing `npm list -g --json`
- */
-function isPackageInstalledGlobally(pkgName) {
-    try {
-        const npmListOutput = execSync('npm list -g --json', { encoding: 'utf8' });
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const parsed = JSON.parse(npmListOutput);
-        // npm global packages are under dependencies
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-        return parsed.dependencies && pkgName in parsed.dependencies;
-    }
-    catch (error) {
-        coreExports.warning(`Failed to check global npm packages: ${error.message}`);
-        return false;
-    }
-}
-/**
- * Ensures that required packages are installed locally or globally, installs globally if missing
- */
-function ensurePackagesAvailable(packages) {
-    for (const pkg of packages) {
-        const localInstalled = isPackageInstalledLocally(pkg);
-        const globalInstalled = !localInstalled && isPackageInstalledGlobally(pkg);
-        if (!localInstalled && !globalInstalled) {
-            coreExports.info(`${pkg} is not installed locally or globally. Installing globally as fallback...`);
-            execSync(`npm install -g ${pkg}`, { stdio: 'inherit' });
-        }
-        else {
-            coreExports.info(`${pkg} is installed ${localInstalled ? 'locally' : 'globally'}.`);
-        }
-    }
-}
-function ensureChangesetsAvailable() {
-    ensurePackagesAvailable(requiredPackages);
-}
-
 const ALIAS = Symbol.for('yaml.alias');
 const DOC = Symbol.for('yaml.document');
 const MAP = Symbol.for('yaml.map');
@@ -51567,7 +51517,59 @@ async function gitVersionAndPush(git, githubToken) {
     }
 }
 
+const requiredPackages = ['@changesets/changelog-github', '@changesets/cli'];
+/**
+ * Checks if a package is installed locally by attempting require.resolve
+ */
+function isPackageInstalledLocally(pkgName) {
+    try {
+        require.resolve(pkgName, { paths: [process.cwd()] });
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+/**
+ * Checks if a package is installed globally by parsing `npm list -g --json`
+ */
+function isPackageInstalledGlobally(pkgName) {
+    try {
+        const npmListOutput = execSync('npm list -g --json', { encoding: 'utf8' });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(npmListOutput);
+        // npm global packages are under dependencies
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+        return parsed.dependencies && pkgName in parsed.dependencies;
+    }
+    catch (error) {
+        coreExports.warning(`Failed to check global npm packages: ${error.message}`);
+        return false;
+    }
+}
+/**
+ * Ensures that required packages are installed locally or globally, installs globally if missing
+ */
+function ensurePackagesAvailable(packages) {
+    for (const pkg of packages) {
+        const localInstalled = isPackageInstalledLocally(pkg);
+        const globalInstalled = !localInstalled && isPackageInstalledGlobally(pkg);
+        if (!localInstalled && !globalInstalled) {
+            coreExports.info(`${pkg} is not installed locally or globally. Installing globally as fallback...`);
+            execSync(`npm install -g ${pkg}`, { stdio: 'inherit' });
+        }
+        else {
+            coreExports.info(`${pkg} is installed ${localInstalled ? 'locally' : 'globally'}.`);
+        }
+    }
+}
+function ensureChangesetsAvailable() {
+    ensurePackagesAvailable(requiredPackages);
+}
+
 function publishPackages(branchConfig, npmToken) {
+    // Ensure changesets is available
+    ensureChangesetsAvailable();
     const publishCommand = branchConfig.channel
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
@@ -51584,8 +51586,6 @@ function publishPackages(branchConfig, npmToken) {
  */
 async function run() {
     try {
-        // Ensure changesets is available
-        ensureChangesetsAvailable();
         // Initialize inputs and configuration
         const { githubToken, npmToken, botName, branches } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
