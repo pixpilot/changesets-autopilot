@@ -3,7 +3,7 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
-import inject from '@rollup/plugin-inject';
+import replace from '@rollup/plugin-replace';
 
 const config = {
   input: 'src/index.ts',
@@ -22,17 +22,12 @@ const config = {
     }),
     commonjs(),
     nodeResolve({ preferBuiltins: true }),
-    inject({
-      __dirname: [
-        'path',
-        'dirname',
-        // This will inject: const __dirname = dirname(fileURLToPath(import.meta.url));
-      ],
-      __filename: [
-        'url',
-        'fileURLToPath',
-        // This will inject: const __filename = fileURLToPath(import.meta.url);
-      ],
+    replace({
+      preventAssignment: true,
+      values: {
+        __dirname: 'dirname(fileURLToPath(import.meta.url))',
+        __filename: 'fileURLToPath(import.meta.url)',
+      },
     }),
   ],
 };

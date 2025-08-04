@@ -1,8 +1,8 @@
-import require$$1$3, { fileURLToPath } from 'url';
+import require$$1$3, { fileURLToPath as fileURLToPath$1 } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import fs from 'fs';
-import path, { posix, dirname } from 'path';
+import path, { posix } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
 import require$$0$5 from 'net';
@@ -44715,10 +44715,10 @@ function requireWriterOpts () {
 
 	async function createWriterOpts () {
 	  const [template, header, commit, footer] = await Promise.all([
-	    readFile(resolve(dirname, './templates/template.hbs'), 'utf-8'),
-	    readFile(resolve(dirname, './templates/header.hbs'), 'utf-8'),
-	    readFile(resolve(dirname, './templates/commit.hbs'), 'utf-8'),
-	    readFile(resolve(dirname, './templates/footer.hbs'), 'utf-8')
+	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/template.hbs'), 'utf-8'),
+	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/header.hbs'), 'utf-8'),
+	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/commit.hbs'), 'utf-8'),
+	    readFile(resolve(dirname(fileURLToPath(import.meta.url)), './templates/footer.hbs'), 'utf-8')
 	  ]);
 	  const writerOpts = getWriterOpts();
 
@@ -52123,7 +52123,7 @@ async function run() {
     }
 }
 // Execute if this file is run directly
-if (process$1.argv[1] === fileURLToPath(import.meta.url)) {
+if (process$1.argv[1] === fileURLToPath$1(import.meta.url)) {
     void run();
 }
 
