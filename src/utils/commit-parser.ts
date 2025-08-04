@@ -1,5 +1,3 @@
-import parse from '@commitlint/parse';
-
 export type ChangeType = 'major' | 'minor' | 'patch' | 'none';
 
 export interface ChangeTypeResult {
@@ -33,6 +31,8 @@ export async function getChangeTypeAndDescription(
   console.warn('[getChangeTypeAndDescription] Received message:', message);
   try {
     console.warn('[getChangeTypeAndDescription] Parsing message...');
+    const { default: parse } = await import('@commitlint/parse');
+
     const parsed = (await parse(message, undefined, parserOptions)) as ParsedCommit;
     console.warn('[getChangeTypeAndDescription] Parsed result:', parsed);
     const notes: CommitNote[] = Array.isArray(parsed.notes) ? parsed.notes : [];

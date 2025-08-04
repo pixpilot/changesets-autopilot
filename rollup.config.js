@@ -11,6 +11,7 @@ const config = {
     file: 'dist/index.js',
     format: 'es',
     sourcemap: true,
+    inlineDynamicImports: true,
   },
   plugins: [
     typescript({
