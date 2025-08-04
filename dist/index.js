@@ -44518,38 +44518,47 @@ function configurePrereleaseMode(branchConfig) {
 
 const requiredPackages = ['@changesets/changelog-github', '@changesets/cli'];
 /**
- * Checks if a package exists in dependencies or devDependencies of package.json
+ * Checks if a package is installed locally by attempting require.resolve
  */
-function isPackageDeclared(pkgName) {
+function isPackageInstalledLocally(pkgName) {
     try {
-        const pkgJsonPath = path.join(process.cwd(), 'package.json');
-        coreExports.debug(`Checking for package.json at ${pkgJsonPath}`);
-        if (!fs.existsSync(pkgJsonPath)) {
-            coreExports.warning('package.json not found');
-            return false;
-        }
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-        coreExports.info(`Parsed package.json: ${JSON.stringify(pkgJson, null, 2)}`);
-        const deps = pkgJson.dependencies ?? {};
-        const devDeps = pkgJson.devDependencies ?? {};
-        return pkgName in deps || pkgName in devDeps;
+        require.resolve(pkgName, { paths: [process.cwd()] });
+        return true;
     }
-    catch (err) {
-        coreExports.warning(`Failed to read package.json: ${err.message}`);
+    catch {
         return false;
     }
 }
 /**
- * Ensures that required packages are declared in package.json or globally installed as fallback
+ * Checks if a package is installed globally by parsing `npm list -g --json`
+ */
+function isPackageInstalledGlobally(pkgName) {
+    try {
+        const npmListOutput = execSync('npm list -g --json', { encoding: 'utf8' });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(npmListOutput);
+        // npm global packages are under dependencies
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+        return parsed.dependencies && pkgName in parsed.dependencies;
+    }
+    catch (error) {
+        coreExports.warning(`Failed to check global npm packages: ${error.message}`);
+        return false;
+    }
+}
+/**
+ * Ensures that required packages are installed locally or globally, installs globally if missing
  */
 function ensurePackagesAvailable(packages) {
     for (const pkg of packages) {
-        if (!isPackageDeclared(pkg)) {
-            coreExports.info(`${pkg} not found in package.json, installing globally as fallback...`);
+        const localInstalled = isPackageInstalledLocally(pkg);
+        const globalInstalled = !localInstalled && isPackageInstalledGlobally(pkg);
+        if (!localInstalled && !globalInstalled) {
+            coreExports.info(`${pkg} is not installed locally or globally. Installing globally as fallback...`);
             execSync(`npm install -g ${pkg}`, { stdio: 'inherit' });
         }
         else {
-            coreExports.info(`${pkg} is declared in package.json`);
+            coreExports.info(`${pkg} is installed ${localInstalled ? 'locally' : 'globally'}.`);
         }
     }
 }
