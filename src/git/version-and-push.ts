@@ -8,7 +8,7 @@ import type { SimpleGit } from 'simple-git';
  * @param {string} githubToken - GitHub token for authentication
  */
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
-  execSync('npm changeset version', { stdio: 'inherit' });
+  execSync('npm run changeset version', { stdio: 'inherit' });
   await git.add('.');
   try {
     await git.commit('chore(release): version packages [skip ci]');
