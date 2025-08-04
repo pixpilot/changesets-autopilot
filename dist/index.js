@@ -2,7 +2,7 @@ import require$$1$3, { fileURLToPath } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import fs from 'fs';
-import path, { posix } from 'path';
+import path, { posix, dirname } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
 import require$$0$5 from 'net';
@@ -43940,6 +43940,994 @@ async function getChangesSinceLastCommit() {
     }
 }
 
+var conventionalCommitsParser = {exports: {}};
+
+var parser_1;
+var hasRequiredParser;
+
+function requireParser () {
+	if (hasRequiredParser) return parser_1;
+	hasRequiredParser = 1;
+
+	const CATCH_ALL = /()(.+)/gi;
+	const SCISSOR = '# ------------------------ >8 ------------------------';
+
+	function trimOffNewlines (input) {
+	  const result = input.match(/[^\r\n]/);
+	  if (!result) {
+	    return ''
+	  }
+	  const firstIndex = result.index;
+	  let lastIndex = input.length - 1;
+	  while (input[lastIndex] === '\r' || input[lastIndex] === '\n') {
+	    lastIndex--;
+	  }
+	  return input.substring(firstIndex, lastIndex + 1)
+	}
+
+	function append (src, line) {
+	  if (src) {
+	    src += '\n' + line;
+	  } else {
+	    src = line;
+	  }
+
+	  return src
+	}
+
+	function getCommentFilter (char) {
+	  return function (line) {
+	    return line.charAt(0) !== char
+	  }
+	}
+
+	function truncateToScissor (lines) {
+	  const scissorIndex = lines.indexOf(SCISSOR);
+
+	  if (scissorIndex === -1) {
+	    return lines
+	  }
+
+	  return lines.slice(0, scissorIndex)
+	}
+
+	function getReferences (input, regex) {
+	  const references = [];
+	  let referenceSentences;
+	  let referenceMatch;
+
+	  const reApplicable = input.match(regex.references) !== null
+	    ? regex.references
+	    : CATCH_ALL;
+
+	  while ((referenceSentences = reApplicable.exec(input))) {
+	    const action = referenceSentences[1] || null;
+	    const sentence = referenceSentences[2];
+
+	    while ((referenceMatch = regex.referenceParts.exec(sentence))) {
+	      let owner = null;
+	      let repository = referenceMatch[1] || '';
+	      const ownerRepo = repository.split('/');
+
+	      if (ownerRepo.length > 1) {
+	        owner = ownerRepo.shift();
+	        repository = ownerRepo.join('/');
+	      }
+
+	      const reference = {
+	        action,
+	        owner,
+	        repository: repository || null,
+	        issue: referenceMatch[3],
+	        raw: referenceMatch[0],
+	        prefix: referenceMatch[2]
+	      };
+
+	      references.push(reference);
+	    }
+	  }
+
+	  return references
+	}
+
+	function passTrough () {
+	  return true
+	}
+
+	function parser (raw, options, regex) {
+	  if (!raw || !raw.trim()) {
+	    throw new TypeError('Expected a raw commit')
+	  }
+
+	  if (!options || (typeof options === 'object' && !Object.keys(options).length)) {
+	    throw new TypeError('Expected options')
+	  }
+
+	  if (!regex) {
+	    throw new TypeError('Expected regex')
+	  }
+
+	  let currentProcessedField;
+	  let mentionsMatch;
+	  const otherFields = {};
+	  const commentFilter = typeof options.commentChar === 'string'
+	    ? getCommentFilter(options.commentChar)
+	    : passTrough;
+	  const gpgFilter = line => !line.match(/^\s*gpg:/);
+
+	  const rawLines = trimOffNewlines(raw).split(/\r?\n/);
+	  const lines = truncateToScissor(rawLines).filter(commentFilter).filter(gpgFilter);
+
+	  let continueNote = false;
+	  let isBody = true;
+	  const headerCorrespondence = options.headerCorrespondence?.map(function (part) {
+	    return part.trim()
+	  }) || [];
+	  const revertCorrespondence = options.revertCorrespondence?.map(function (field) {
+	    return field.trim()
+	  }) || [];
+	  const mergeCorrespondence = options.mergeCorrespondence?.map(function (field) {
+	    return field.trim()
+	  }) || [];
+
+	  let body = null;
+	  let footer = null;
+	  let header = null;
+	  const mentions = [];
+	  let merge = null;
+	  const notes = [];
+	  const references = [];
+	  let revert = null;
+
+	  if (lines.length === 0) {
+	    return {
+	      body,
+	      footer,
+	      header,
+	      mentions,
+	      merge,
+	      notes,
+	      references,
+	      revert,
+	      scope: null,
+	      subject: null,
+	      type: null
+	    }
+	  }
+
+	  // msg parts
+	  merge = lines.shift();
+	  const mergeParts = {};
+	  const headerParts = {};
+	  body = '';
+	  footer = '';
+
+	  const mergeMatch = merge.match(options.mergePattern);
+	  if (mergeMatch && options.mergePattern) {
+	    merge = mergeMatch[0];
+
+	    header = lines.shift();
+	    while (header !== undefined && !header.trim()) {
+	      header = lines.shift();
+	    }
+	    if (!header) {
+	      header = '';
+	    }
+
+	    mergeCorrespondence.forEach(function (partName, index) {
+	      const partValue = mergeMatch[index + 1] || null;
+	      mergeParts[partName] = partValue;
+	    });
+	  } else {
+	    header = merge;
+	    merge = null;
+
+	    mergeCorrespondence.forEach(function (partName) {
+	      mergeParts[partName] = null;
+	    });
+	  }
+
+	  const headerMatch = header.match(options.headerPattern);
+	  if (headerMatch) {
+	    headerCorrespondence.forEach(function (partName, index) {
+	      const partValue = headerMatch[index + 1] || null;
+	      headerParts[partName] = partValue;
+	    });
+	  } else {
+	    headerCorrespondence.forEach(function (partName) {
+	      headerParts[partName] = null;
+	    });
+	  }
+
+	  references.push(...getReferences(header, {
+	    references: regex.references,
+	    referenceParts: regex.referenceParts
+	  }));
+
+	  // body or footer
+	  lines.forEach(function (line) {
+	    if (options.fieldPattern) {
+	      const fieldMatch = options.fieldPattern.exec(line);
+
+	      if (fieldMatch) {
+	        currentProcessedField = fieldMatch[1];
+
+	        return
+	      }
+
+	      if (currentProcessedField) {
+	        otherFields[currentProcessedField] = append(otherFields[currentProcessedField], line);
+
+	        return
+	      }
+	    }
+
+	    let referenceMatched;
+
+	    // this is a new important note
+	    const notesMatch = line.match(regex.notes);
+	    if (notesMatch) {
+	      continueNote = true;
+	      isBody = false;
+	      footer = append(footer, line);
+
+	      const note = {
+	        title: notesMatch[1],
+	        text: notesMatch[2]
+	      };
+
+	      notes.push(note);
+
+	      return
+	    }
+
+	    const lineReferences = getReferences(line, {
+	      references: regex.references,
+	      referenceParts: regex.referenceParts
+	    });
+
+	    if (lineReferences.length > 0) {
+	      isBody = false;
+	      referenceMatched = true;
+	      continueNote = false;
+	    }
+
+	    Array.prototype.push.apply(references, lineReferences);
+
+	    if (referenceMatched) {
+	      footer = append(footer, line);
+
+	      return
+	    }
+
+	    if (continueNote) {
+	      notes[notes.length - 1].text = append(notes[notes.length - 1].text, line);
+	      footer = append(footer, line);
+
+	      return
+	    }
+
+	    if (isBody) {
+	      body = append(body, line);
+	    } else {
+	      footer = append(footer, line);
+	    }
+	  });
+
+	  if (options.breakingHeaderPattern && notes.length === 0) {
+	    const breakingHeader = header.match(options.breakingHeaderPattern);
+	    if (breakingHeader) {
+	      const noteText = breakingHeader[3]; // the description of the change.
+	      notes.push({
+	        title: 'BREAKING CHANGE',
+	        text: noteText
+	      });
+	    }
+	  }
+
+	  while ((mentionsMatch = regex.mentions.exec(raw))) {
+	    mentions.push(mentionsMatch[1]);
+	  }
+
+	  // does this commit revert any other commit?
+	  const revertMatch = raw.match(options.revertPattern);
+	  if (revertMatch) {
+	    revert = {};
+	    revertCorrespondence.forEach(function (partName, index) {
+	      const partValue = revertMatch[index + 1] || null;
+	      revert[partName] = partValue;
+	    });
+	  } else {
+	    revert = null;
+	  }
+
+	  notes.forEach(function (note) {
+	    note.text = trimOffNewlines(note.text);
+	  });
+
+	  const msg = {
+	    ...headerParts,
+	    ...mergeParts,
+	    merge,
+	    header,
+	    body: body ? trimOffNewlines(body) : null,
+	    footer: footer ? trimOffNewlines(footer) : null,
+	    notes,
+	    references,
+	    mentions,
+	    revert,
+	    ...otherFields
+	  };
+
+	  return msg
+	}
+
+	parser_1 = parser;
+	return parser_1;
+}
+
+var regex;
+var hasRequiredRegex;
+
+function requireRegex () {
+	if (hasRequiredRegex) return regex;
+	hasRequiredRegex = 1;
+
+	const reNomatch = /(?!.*)/;
+
+	function join (array, joiner) {
+	  return array
+	    .map(function (val) {
+	      return val.trim()
+	    })
+	    .filter(function (val) {
+	      return val.length
+	    })
+	    .join(joiner)
+	}
+
+	function getNotesRegex (noteKeywords, notesPattern) {
+	  if (!noteKeywords) {
+	    return reNomatch
+	  }
+
+	  const noteKeywordsSelection = join(noteKeywords, '|');
+
+	  if (!notesPattern) {
+	    return new RegExp('^[\\s|*]*(' + noteKeywordsSelection + ')[:\\s]+(.*)', 'i')
+	  }
+
+	  return notesPattern(noteKeywordsSelection)
+	}
+
+	function getReferencePartsRegex (issuePrefixes, issuePrefixesCaseSensitive) {
+	  if (!issuePrefixes) {
+	    return reNomatch
+	  }
+
+	  const flags = issuePrefixesCaseSensitive ? 'g' : 'gi';
+	  return new RegExp('(?:.*?)??\\s*([\\w-\\.\\/]*?)??(' + join(issuePrefixes, '|') + ')([\\w-]*\\d+)', flags)
+	}
+
+	function getReferencesRegex (referenceActions) {
+	  if (!referenceActions) {
+	    // matches everything
+	    return /()(.+)/gi
+	  }
+
+	  const joinedKeywords = join(referenceActions, '|');
+	  return new RegExp('(' + joinedKeywords + ')(?:\\s+(.*?))(?=(?:' + joinedKeywords + ')|$)', 'gi')
+	}
+
+	regex = function (options) {
+	  options = options || {};
+	  const reNotes = getNotesRegex(options.noteKeywords, options.notesPattern);
+	  const reReferenceParts = getReferencePartsRegex(options.issuePrefixes, options.issuePrefixesCaseSensitive);
+	  const reReferences = getReferencesRegex(options.referenceActions);
+
+	  return {
+	    notes: reNotes,
+	    referenceParts: reReferenceParts,
+	    references: reReferences,
+	    mentions: /@([\w-]+)/g
+	  }
+	};
+	return regex;
+}
+
+var hasRequiredConventionalCommitsParser;
+
+function requireConventionalCommitsParser () {
+	if (hasRequiredConventionalCommitsParser) return conventionalCommitsParser.exports;
+	hasRequiredConventionalCommitsParser = 1;
+
+	const { Transform } = require$$0$6;
+	const parser = requireParser();
+	const regex = requireRegex();
+
+	function assignOpts (options) {
+	  options = {
+	    headerPattern: /^(\w*)(?:\(([\w$.\-*/ ]*)\))?: (.*)$/,
+	    headerCorrespondence: ['type', 'scope', 'subject'],
+	    referenceActions: [
+	      'close',
+	      'closes',
+	      'closed',
+	      'fix',
+	      'fixes',
+	      'fixed',
+	      'resolve',
+	      'resolves',
+	      'resolved'
+	    ],
+	    issuePrefixes: ['#'],
+	    noteKeywords: ['BREAKING CHANGE', 'BREAKING-CHANGE'],
+	    fieldPattern: /^-(.*?)-$/,
+	    revertPattern: /^Revert\s"([\s\S]*)"\s*This reverts commit (\w*)\./,
+	    revertCorrespondence: ['header', 'hash'],
+	    warn: function () {},
+	    mergePattern: null,
+	    mergeCorrespondence: null,
+	    ...options
+	  };
+
+	  if (typeof options.headerPattern === 'string') {
+	    options.headerPattern = new RegExp(options.headerPattern);
+	  }
+
+	  if (typeof options.headerCorrespondence === 'string') {
+	    options.headerCorrespondence = options.headerCorrespondence.split(',');
+	  }
+
+	  if (typeof options.referenceActions === 'string') {
+	    options.referenceActions = options.referenceActions.split(',');
+	  }
+
+	  if (typeof options.issuePrefixes === 'string') {
+	    options.issuePrefixes = options.issuePrefixes.split(',');
+	  }
+
+	  if (typeof options.noteKeywords === 'string') {
+	    options.noteKeywords = options.noteKeywords.split(',');
+	  }
+
+	  if (typeof options.fieldPattern === 'string') {
+	    options.fieldPattern = new RegExp(options.fieldPattern);
+	  }
+
+	  if (typeof options.revertPattern === 'string') {
+	    options.revertPattern = new RegExp(options.revertPattern);
+	  }
+
+	  if (typeof options.revertCorrespondence === 'string') {
+	    options.revertCorrespondence = options.revertCorrespondence.split(',');
+	  }
+
+	  if (typeof options.mergePattern === 'string') {
+	    options.mergePattern = new RegExp(options.mergePattern);
+	  }
+
+	  return options
+	}
+
+	function conventionalCommitsParser$1 (options) {
+	  options = assignOpts(options);
+	  const reg = regex(options);
+
+	  return new Transform({
+	    objectMode: true,
+	    highWaterMark: 16,
+	    transform (data, enc, cb) {
+	      let commit;
+
+	      try {
+	        commit = parser(data.toString(), options, reg);
+	        cb(null, commit);
+	      } catch (err) {
+	        if (options.warn === true) {
+	          cb(err);
+	        } else {
+	          options.warn(err.toString());
+	          cb(null, '');
+	        }
+	      }
+	    }
+	  })
+	}
+
+	function sync (commit, options) {
+	  options = assignOpts(options);
+	  const reg = regex(options);
+
+	  return parser(commit, options, reg)
+	}
+
+	conventionalCommitsParser.exports = conventionalCommitsParser$1;
+	conventionalCommitsParser.exports.sync = sync;
+	return conventionalCommitsParser.exports;
+}
+
+var conventionalCommitsParserExports = requireConventionalCommitsParser();
+
+var parserOpts = {};
+
+var hasRequiredParserOpts;
+
+function requireParserOpts () {
+	if (hasRequiredParserOpts) return parserOpts;
+	hasRequiredParserOpts = 1;
+
+	function createParserOpts () {
+	  return {
+	    headerPattern: /^(\w*)(?:\((.*)\))?: (.*)$/,
+	    headerCorrespondence: [
+	      'type',
+	      'scope',
+	      'subject'
+	    ],
+	    noteKeywords: ['BREAKING CHANGE'],
+	    revertPattern: /^(?:Revert|revert:)\s"?([\s\S]+?)"?\s*This reverts commit (\w*)\./i,
+	    revertCorrespondence: ['header', 'hash']
+	  }
+	}
+
+	parserOpts.createParserOpts = createParserOpts;
+	return parserOpts;
+}
+
+var writerOpts = {};
+
+var arrayIfy;
+var hasRequiredArrayIfy;
+
+function requireArrayIfy () {
+	if (hasRequiredArrayIfy) return arrayIfy;
+	hasRequiredArrayIfy = 1;
+	arrayIfy = function(val) {
+	  return Array.isArray(val) ? val : [val];
+	};
+	return arrayIfy;
+}
+
+var isObj;
+var hasRequiredIsObj;
+
+function requireIsObj () {
+	if (hasRequiredIsObj) return isObj;
+	hasRequiredIsObj = 1;
+
+	isObj = value => {
+		const type = typeof value;
+		return value !== null && (type === 'object' || type === 'function');
+	};
+	return isObj;
+}
+
+var dotProp;
+var hasRequiredDotProp;
+
+function requireDotProp () {
+	if (hasRequiredDotProp) return dotProp;
+	hasRequiredDotProp = 1;
+	const isObj = requireIsObj();
+
+	const disallowedKeys = [
+		'__proto__',
+		'prototype',
+		'constructor'
+	];
+
+	const isValidPath = pathSegments => !pathSegments.some(segment => disallowedKeys.includes(segment));
+
+	function getPathSegments(path) {
+		const pathArray = path.split('.');
+		const parts = [];
+
+		for (let i = 0; i < pathArray.length; i++) {
+			let p = pathArray[i];
+
+			while (p[p.length - 1] === '\\' && pathArray[i + 1] !== undefined) {
+				p = p.slice(0, -1) + '.';
+				p += pathArray[++i];
+			}
+
+			parts.push(p);
+		}
+
+		if (!isValidPath(parts)) {
+			return [];
+		}
+
+		return parts;
+	}
+
+	dotProp = {
+		get(object, path, value) {
+			if (!isObj(object) || typeof path !== 'string') {
+				return value === undefined ? object : value;
+			}
+
+			const pathArray = getPathSegments(path);
+			if (pathArray.length === 0) {
+				return;
+			}
+
+			for (let i = 0; i < pathArray.length; i++) {
+				if (!Object.prototype.propertyIsEnumerable.call(object, pathArray[i])) {
+					return value;
+				}
+
+				object = object[pathArray[i]];
+
+				if (object === undefined || object === null) {
+					// `object` is either `undefined` or `null` so we want to stop the loop, and
+					// if this is not the last bit of the path, and
+					// if it did't return `undefined`
+					// it would return `null` if `object` is `null`
+					// but we want `get({foo: null}, 'foo.bar')` to equal `undefined`, or the supplied value, not `null`
+					if (i !== pathArray.length - 1) {
+						return value;
+					}
+
+					break;
+				}
+			}
+
+			return object;
+		},
+
+		set(object, path, value) {
+			if (!isObj(object) || typeof path !== 'string') {
+				return object;
+			}
+
+			const root = object;
+			const pathArray = getPathSegments(path);
+
+			for (let i = 0; i < pathArray.length; i++) {
+				const p = pathArray[i];
+
+				if (!isObj(object[p])) {
+					object[p] = {};
+				}
+
+				if (i === pathArray.length - 1) {
+					object[p] = value;
+				}
+
+				object = object[p];
+			}
+
+			return root;
+		},
+
+		delete(object, path) {
+			if (!isObj(object) || typeof path !== 'string') {
+				return false;
+			}
+
+			const pathArray = getPathSegments(path);
+
+			for (let i = 0; i < pathArray.length; i++) {
+				const p = pathArray[i];
+
+				if (i === pathArray.length - 1) {
+					delete object[p];
+					return true;
+				}
+
+				object = object[p];
+
+				if (!isObj(object)) {
+					return false;
+				}
+			}
+		},
+
+		has(object, path) {
+			if (!isObj(object) || typeof path !== 'string') {
+				return false;
+			}
+
+			const pathArray = getPathSegments(path);
+			if (pathArray.length === 0) {
+				return false;
+			}
+
+			// eslint-disable-next-line unicorn/no-for-loop
+			for (let i = 0; i < pathArray.length; i++) {
+				if (isObj(object)) {
+					if (!(pathArray[i] in object)) {
+						return false;
+					}
+
+					object = object[pathArray[i]];
+				} else {
+					return false;
+				}
+			}
+
+			return true;
+		}
+	};
+	return dotProp;
+}
+
+var compareFunc_1;
+var hasRequiredCompareFunc;
+
+function requireCompareFunc () {
+	if (hasRequiredCompareFunc) return compareFunc_1;
+	hasRequiredCompareFunc = 1;
+	var arrayify = requireArrayIfy();
+	var dotPropGet = requireDotProp().get;
+
+	function compareFunc(prop) {
+	  return function(a, b) {
+	    var ret = 0;
+
+	    arrayify(prop).some(function(el) {
+	      var x;
+	      var y;
+
+	      if (typeof el === 'function') {
+	        x = el(a);
+	        y = el(b);
+	      } else if (typeof el === 'string') {
+	        x = dotPropGet(a, el);
+	        y = dotPropGet(b, el);
+	      } else {
+	        x = a;
+	        y = b;
+	      }
+
+	      if (x === y) {
+	        ret = 0;
+	        return;
+	      }
+
+	      if (typeof x === 'string' && typeof y === 'string') {
+	        ret = x.localeCompare(y);
+	        return ret !== 0;
+	      }
+
+	      ret = x < y ? -1 : 1;
+	      return true;
+	    });
+
+	    return ret;
+	  };
+	}
+
+	compareFunc_1 = compareFunc;
+	return compareFunc_1;
+}
+
+var hasRequiredWriterOpts;
+
+function requireWriterOpts () {
+	if (hasRequiredWriterOpts) return writerOpts;
+	hasRequiredWriterOpts = 1;
+
+	const compareFunc = requireCompareFunc();
+	const { readFile } = fs.promises;
+	const { resolve } = path;
+
+	async function createWriterOpts () {
+	  const [template, header, commit, footer] = await Promise.all([
+	    readFile(resolve(dirname, './templates/template.hbs'), 'utf-8'),
+	    readFile(resolve(dirname, './templates/header.hbs'), 'utf-8'),
+	    readFile(resolve(dirname, './templates/commit.hbs'), 'utf-8'),
+	    readFile(resolve(dirname, './templates/footer.hbs'), 'utf-8')
+	  ]);
+	  const writerOpts = getWriterOpts();
+
+	  writerOpts.mainTemplate = template;
+	  writerOpts.headerPartial = header;
+	  writerOpts.commitPartial = commit;
+	  writerOpts.footerPartial = footer;
+
+	  return writerOpts
+	}
+
+	writerOpts.createWriterOpts = createWriterOpts;
+
+	function getWriterOpts () {
+	  return {
+	    transform: (commit, context) => {
+	      let discard = true;
+	      const issues = [];
+
+	      commit.notes.forEach(note => {
+	        note.title = 'BREAKING CHANGES';
+	        discard = false;
+	      });
+
+	      if (commit.type === 'feat') {
+	        commit.type = 'Features';
+	      } else if (commit.type === 'fix') {
+	        commit.type = 'Bug Fixes';
+	      } else if (commit.type === 'perf') {
+	        commit.type = 'Performance Improvements';
+	      } else if (commit.type === 'revert' || commit.revert) {
+	        commit.type = 'Reverts';
+	      } else if (discard) {
+	        return
+	      } else if (commit.type === 'docs') {
+	        commit.type = 'Documentation';
+	      } else if (commit.type === 'style') {
+	        commit.type = 'Styles';
+	      } else if (commit.type === 'refactor') {
+	        commit.type = 'Code Refactoring';
+	      } else if (commit.type === 'test') {
+	        commit.type = 'Tests';
+	      } else if (commit.type === 'build') {
+	        commit.type = 'Build System';
+	      } else if (commit.type === 'ci') {
+	        commit.type = 'Continuous Integration';
+	      }
+
+	      if (commit.scope === '*') {
+	        commit.scope = '';
+	      }
+
+	      if (typeof commit.hash === 'string') {
+	        commit.shortHash = commit.hash.substring(0, 7);
+	      }
+
+	      if (typeof commit.subject === 'string') {
+	        let url = context.repository
+	          ? `${context.host}/${context.owner}/${context.repository}`
+	          : context.repoUrl;
+	        if (url) {
+	          url = `${url}/issues/`;
+	          // Issue URLs.
+	          commit.subject = commit.subject.replace(/#([0-9]+)/g, (_, issue) => {
+	            issues.push(issue);
+	            return `[#${issue}](${url}${issue})`
+	          });
+	        }
+	        if (context.host) {
+	          // User URLs.
+	          commit.subject = commit.subject.replace(/\B@([a-z0-9](?:-?[a-z0-9/]){0,38})/g, (_, username) => {
+	            if (username.includes('/')) {
+	              return `@${username}`
+	            }
+
+	            return `[@${username}](${context.host}/${username})`
+	          });
+	        }
+	      }
+
+	      // remove references that already appear in the subject
+	      commit.references = commit.references.filter(reference => {
+	        if (issues.indexOf(reference.issue) === -1) {
+	          return true
+	        }
+
+	        return false
+	      });
+
+	      return commit
+	    },
+	    groupBy: 'type',
+	    commitGroupsSort: 'title',
+	    commitsSort: ['scope', 'subject'],
+	    noteGroupsSort: 'title',
+	    notesSort: compareFunc
+	  }
+	}
+	return writerOpts;
+}
+
+var conventionalChangelog = {};
+
+var hasRequiredConventionalChangelog;
+
+function requireConventionalChangelog () {
+	if (hasRequiredConventionalChangelog) return conventionalChangelog;
+	hasRequiredConventionalChangelog = 1;
+
+	function createConventionalChangelogOpts (parserOpts, writerOpts) {
+	  return {
+	    parserOpts,
+	    writerOpts
+	  }
+	}
+
+	conventionalChangelog.createConventionalChangelogOpts = createConventionalChangelogOpts;
+	return conventionalChangelog;
+}
+
+var conventionalRecommendedBump = {};
+
+var hasRequiredConventionalRecommendedBump;
+
+function requireConventionalRecommendedBump () {
+	if (hasRequiredConventionalRecommendedBump) return conventionalRecommendedBump;
+	hasRequiredConventionalRecommendedBump = 1;
+
+	function createConventionalRecommendedBumpOpts (parserOpts) {
+	  return {
+	    parserOpts,
+
+	    whatBump (commits) {
+	      let level = 2;
+	      let breakings = 0;
+	      let features = 0;
+
+	      commits.forEach(commit => {
+	        if (commit.notes.length > 0) {
+	          breakings += commit.notes.length;
+	          level = 0;
+	        } else if (commit.type === 'feat') {
+	          features += 1;
+	          if (level === 2) {
+	            level = 1;
+	          }
+	        }
+	      });
+
+	      return {
+	        level,
+	        reason: breakings === 1
+	          ? `There is ${breakings} BREAKING CHANGE and ${features} features`
+	          : `There are ${breakings} BREAKING CHANGES and ${features} features`
+	      }
+	    }
+	  }
+	}
+
+	conventionalRecommendedBump.createConventionalRecommendedBumpOpts = createConventionalRecommendedBumpOpts;
+	return conventionalRecommendedBump;
+}
+
+var conventionalChangelogAngular;
+var hasRequiredConventionalChangelogAngular;
+
+function requireConventionalChangelogAngular () {
+	if (hasRequiredConventionalChangelogAngular) return conventionalChangelogAngular;
+	hasRequiredConventionalChangelogAngular = 1;
+
+	const { createParserOpts } = requireParserOpts();
+	const { createWriterOpts } = requireWriterOpts();
+	const { createConventionalChangelogOpts } = requireConventionalChangelog();
+	const { createConventionalRecommendedBumpOpts } = requireConventionalRecommendedBump();
+
+	async function createPreset () {
+	  const parserOpts = createParserOpts();
+	  const writerOpts = await createWriterOpts();
+	  const recommendedBumpOpts = createConventionalRecommendedBumpOpts(parserOpts);
+	  const conventionalChangelog = createConventionalChangelogOpts(parserOpts, writerOpts);
+
+	  return {
+	    parserOpts,
+	    writerOpts,
+	    recommendedBumpOpts,
+	    conventionalChangelog
+	  }
+	}
+
+	conventionalChangelogAngular = createPreset;
+	return conventionalChangelogAngular;
+}
+
+var conventionalChangelogAngularExports = requireConventionalChangelogAngular();
+var defaultChangelogOpts = /*@__PURE__*/getDefaultExportFromCjs(conventionalChangelogAngularExports);
+
+async function parse$1(message, parser = conventionalCommitsParserExports.sync, parserOpts) {
+    const preset = await defaultChangelogOpts();
+    const defaultOpts = preset.parserOpts;
+    const opts = {
+        ...defaultOpts,
+        fieldPattern: null,
+        ...(parserOpts || {}),
+    };
+    const parsed = parser(message, opts);
+    parsed.raw = message;
+    return parsed;
+}
+
 const parserOptions = {
     // Require space after colon: \s+ instead of \s*
     headerPattern: /^(\w+)(?:\(([^)]*)\))?\s*:\s+(.+)$/,
@@ -43950,8 +44938,7 @@ async function getChangeTypeAndDescription(message) {
     console.warn('[getChangeTypeAndDescription] Received message:', message);
     try {
         console.warn('[getChangeTypeAndDescription] Parsing message...');
-        const { default: parse } = await Promise.resolve().then(function () { return index; });
-        const parsed = (await parse(message, undefined, parserOptions));
+        const parsed = (await parse$1(message, undefined, parserOptions));
         console.warn('[getChangeTypeAndDescription] Parsed result:', parsed);
         const notes = Array.isArray(parsed.notes) ? parsed.notes : [];
         console.warn('[getChangeTypeAndDescription] Commit notes:', notes);
@@ -50929,7 +51916,7 @@ function parseDocument(source, options = {}) {
     }
     return doc;
 }
-function parse$1(src, reviver, options) {
+function parse(src, reviver, options) {
     let _reviver = undefined;
     const doc = parseDocument(src, options);
     if (!doc)
@@ -50953,7 +51940,7 @@ function getActionInputs() {
     let branches;
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const parsed = parse$1(branchesInput);
+        const parsed = parse(branchesInput);
         if (Array.isArray(parsed)) {
             branches = parsed;
         }
@@ -51146,1000 +52133,6 @@ if (process$1.argv[1] === fileURLToPath(import.meta.url)) {
  */
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();
-
-var conventionalCommitsParser = {exports: {}};
-
-var parser_1;
-var hasRequiredParser;
-
-function requireParser () {
-	if (hasRequiredParser) return parser_1;
-	hasRequiredParser = 1;
-
-	const CATCH_ALL = /()(.+)/gi;
-	const SCISSOR = '# ------------------------ >8 ------------------------';
-
-	function trimOffNewlines (input) {
-	  const result = input.match(/[^\r\n]/);
-	  if (!result) {
-	    return ''
-	  }
-	  const firstIndex = result.index;
-	  let lastIndex = input.length - 1;
-	  while (input[lastIndex] === '\r' || input[lastIndex] === '\n') {
-	    lastIndex--;
-	  }
-	  return input.substring(firstIndex, lastIndex + 1)
-	}
-
-	function append (src, line) {
-	  if (src) {
-	    src += '\n' + line;
-	  } else {
-	    src = line;
-	  }
-
-	  return src
-	}
-
-	function getCommentFilter (char) {
-	  return function (line) {
-	    return line.charAt(0) !== char
-	  }
-	}
-
-	function truncateToScissor (lines) {
-	  const scissorIndex = lines.indexOf(SCISSOR);
-
-	  if (scissorIndex === -1) {
-	    return lines
-	  }
-
-	  return lines.slice(0, scissorIndex)
-	}
-
-	function getReferences (input, regex) {
-	  const references = [];
-	  let referenceSentences;
-	  let referenceMatch;
-
-	  const reApplicable = input.match(regex.references) !== null
-	    ? regex.references
-	    : CATCH_ALL;
-
-	  while ((referenceSentences = reApplicable.exec(input))) {
-	    const action = referenceSentences[1] || null;
-	    const sentence = referenceSentences[2];
-
-	    while ((referenceMatch = regex.referenceParts.exec(sentence))) {
-	      let owner = null;
-	      let repository = referenceMatch[1] || '';
-	      const ownerRepo = repository.split('/');
-
-	      if (ownerRepo.length > 1) {
-	        owner = ownerRepo.shift();
-	        repository = ownerRepo.join('/');
-	      }
-
-	      const reference = {
-	        action,
-	        owner,
-	        repository: repository || null,
-	        issue: referenceMatch[3],
-	        raw: referenceMatch[0],
-	        prefix: referenceMatch[2]
-	      };
-
-	      references.push(reference);
-	    }
-	  }
-
-	  return references
-	}
-
-	function passTrough () {
-	  return true
-	}
-
-	function parser (raw, options, regex) {
-	  if (!raw || !raw.trim()) {
-	    throw new TypeError('Expected a raw commit')
-	  }
-
-	  if (!options || (typeof options === 'object' && !Object.keys(options).length)) {
-	    throw new TypeError('Expected options')
-	  }
-
-	  if (!regex) {
-	    throw new TypeError('Expected regex')
-	  }
-
-	  let currentProcessedField;
-	  let mentionsMatch;
-	  const otherFields = {};
-	  const commentFilter = typeof options.commentChar === 'string'
-	    ? getCommentFilter(options.commentChar)
-	    : passTrough;
-	  const gpgFilter = line => !line.match(/^\s*gpg:/);
-
-	  const rawLines = trimOffNewlines(raw).split(/\r?\n/);
-	  const lines = truncateToScissor(rawLines).filter(commentFilter).filter(gpgFilter);
-
-	  let continueNote = false;
-	  let isBody = true;
-	  const headerCorrespondence = options.headerCorrespondence?.map(function (part) {
-	    return part.trim()
-	  }) || [];
-	  const revertCorrespondence = options.revertCorrespondence?.map(function (field) {
-	    return field.trim()
-	  }) || [];
-	  const mergeCorrespondence = options.mergeCorrespondence?.map(function (field) {
-	    return field.trim()
-	  }) || [];
-
-	  let body = null;
-	  let footer = null;
-	  let header = null;
-	  const mentions = [];
-	  let merge = null;
-	  const notes = [];
-	  const references = [];
-	  let revert = null;
-
-	  if (lines.length === 0) {
-	    return {
-	      body,
-	      footer,
-	      header,
-	      mentions,
-	      merge,
-	      notes,
-	      references,
-	      revert,
-	      scope: null,
-	      subject: null,
-	      type: null
-	    }
-	  }
-
-	  // msg parts
-	  merge = lines.shift();
-	  const mergeParts = {};
-	  const headerParts = {};
-	  body = '';
-	  footer = '';
-
-	  const mergeMatch = merge.match(options.mergePattern);
-	  if (mergeMatch && options.mergePattern) {
-	    merge = mergeMatch[0];
-
-	    header = lines.shift();
-	    while (header !== undefined && !header.trim()) {
-	      header = lines.shift();
-	    }
-	    if (!header) {
-	      header = '';
-	    }
-
-	    mergeCorrespondence.forEach(function (partName, index) {
-	      const partValue = mergeMatch[index + 1] || null;
-	      mergeParts[partName] = partValue;
-	    });
-	  } else {
-	    header = merge;
-	    merge = null;
-
-	    mergeCorrespondence.forEach(function (partName) {
-	      mergeParts[partName] = null;
-	    });
-	  }
-
-	  const headerMatch = header.match(options.headerPattern);
-	  if (headerMatch) {
-	    headerCorrespondence.forEach(function (partName, index) {
-	      const partValue = headerMatch[index + 1] || null;
-	      headerParts[partName] = partValue;
-	    });
-	  } else {
-	    headerCorrespondence.forEach(function (partName) {
-	      headerParts[partName] = null;
-	    });
-	  }
-
-	  references.push(...getReferences(header, {
-	    references: regex.references,
-	    referenceParts: regex.referenceParts
-	  }));
-
-	  // body or footer
-	  lines.forEach(function (line) {
-	    if (options.fieldPattern) {
-	      const fieldMatch = options.fieldPattern.exec(line);
-
-	      if (fieldMatch) {
-	        currentProcessedField = fieldMatch[1];
-
-	        return
-	      }
-
-	      if (currentProcessedField) {
-	        otherFields[currentProcessedField] = append(otherFields[currentProcessedField], line);
-
-	        return
-	      }
-	    }
-
-	    let referenceMatched;
-
-	    // this is a new important note
-	    const notesMatch = line.match(regex.notes);
-	    if (notesMatch) {
-	      continueNote = true;
-	      isBody = false;
-	      footer = append(footer, line);
-
-	      const note = {
-	        title: notesMatch[1],
-	        text: notesMatch[2]
-	      };
-
-	      notes.push(note);
-
-	      return
-	    }
-
-	    const lineReferences = getReferences(line, {
-	      references: regex.references,
-	      referenceParts: regex.referenceParts
-	    });
-
-	    if (lineReferences.length > 0) {
-	      isBody = false;
-	      referenceMatched = true;
-	      continueNote = false;
-	    }
-
-	    Array.prototype.push.apply(references, lineReferences);
-
-	    if (referenceMatched) {
-	      footer = append(footer, line);
-
-	      return
-	    }
-
-	    if (continueNote) {
-	      notes[notes.length - 1].text = append(notes[notes.length - 1].text, line);
-	      footer = append(footer, line);
-
-	      return
-	    }
-
-	    if (isBody) {
-	      body = append(body, line);
-	    } else {
-	      footer = append(footer, line);
-	    }
-	  });
-
-	  if (options.breakingHeaderPattern && notes.length === 0) {
-	    const breakingHeader = header.match(options.breakingHeaderPattern);
-	    if (breakingHeader) {
-	      const noteText = breakingHeader[3]; // the description of the change.
-	      notes.push({
-	        title: 'BREAKING CHANGE',
-	        text: noteText
-	      });
-	    }
-	  }
-
-	  while ((mentionsMatch = regex.mentions.exec(raw))) {
-	    mentions.push(mentionsMatch[1]);
-	  }
-
-	  // does this commit revert any other commit?
-	  const revertMatch = raw.match(options.revertPattern);
-	  if (revertMatch) {
-	    revert = {};
-	    revertCorrespondence.forEach(function (partName, index) {
-	      const partValue = revertMatch[index + 1] || null;
-	      revert[partName] = partValue;
-	    });
-	  } else {
-	    revert = null;
-	  }
-
-	  notes.forEach(function (note) {
-	    note.text = trimOffNewlines(note.text);
-	  });
-
-	  const msg = {
-	    ...headerParts,
-	    ...mergeParts,
-	    merge,
-	    header,
-	    body: body ? trimOffNewlines(body) : null,
-	    footer: footer ? trimOffNewlines(footer) : null,
-	    notes,
-	    references,
-	    mentions,
-	    revert,
-	    ...otherFields
-	  };
-
-	  return msg
-	}
-
-	parser_1 = parser;
-	return parser_1;
-}
-
-var regex;
-var hasRequiredRegex;
-
-function requireRegex () {
-	if (hasRequiredRegex) return regex;
-	hasRequiredRegex = 1;
-
-	const reNomatch = /(?!.*)/;
-
-	function join (array, joiner) {
-	  return array
-	    .map(function (val) {
-	      return val.trim()
-	    })
-	    .filter(function (val) {
-	      return val.length
-	    })
-	    .join(joiner)
-	}
-
-	function getNotesRegex (noteKeywords, notesPattern) {
-	  if (!noteKeywords) {
-	    return reNomatch
-	  }
-
-	  const noteKeywordsSelection = join(noteKeywords, '|');
-
-	  if (!notesPattern) {
-	    return new RegExp('^[\\s|*]*(' + noteKeywordsSelection + ')[:\\s]+(.*)', 'i')
-	  }
-
-	  return notesPattern(noteKeywordsSelection)
-	}
-
-	function getReferencePartsRegex (issuePrefixes, issuePrefixesCaseSensitive) {
-	  if (!issuePrefixes) {
-	    return reNomatch
-	  }
-
-	  const flags = issuePrefixesCaseSensitive ? 'g' : 'gi';
-	  return new RegExp('(?:.*?)??\\s*([\\w-\\.\\/]*?)??(' + join(issuePrefixes, '|') + ')([\\w-]*\\d+)', flags)
-	}
-
-	function getReferencesRegex (referenceActions) {
-	  if (!referenceActions) {
-	    // matches everything
-	    return /()(.+)/gi
-	  }
-
-	  const joinedKeywords = join(referenceActions, '|');
-	  return new RegExp('(' + joinedKeywords + ')(?:\\s+(.*?))(?=(?:' + joinedKeywords + ')|$)', 'gi')
-	}
-
-	regex = function (options) {
-	  options = options || {};
-	  const reNotes = getNotesRegex(options.noteKeywords, options.notesPattern);
-	  const reReferenceParts = getReferencePartsRegex(options.issuePrefixes, options.issuePrefixesCaseSensitive);
-	  const reReferences = getReferencesRegex(options.referenceActions);
-
-	  return {
-	    notes: reNotes,
-	    referenceParts: reReferenceParts,
-	    references: reReferences,
-	    mentions: /@([\w-]+)/g
-	  }
-	};
-	return regex;
-}
-
-var hasRequiredConventionalCommitsParser;
-
-function requireConventionalCommitsParser () {
-	if (hasRequiredConventionalCommitsParser) return conventionalCommitsParser.exports;
-	hasRequiredConventionalCommitsParser = 1;
-
-	const { Transform } = require$$0$6;
-	const parser = requireParser();
-	const regex = requireRegex();
-
-	function assignOpts (options) {
-	  options = {
-	    headerPattern: /^(\w*)(?:\(([\w$.\-*/ ]*)\))?: (.*)$/,
-	    headerCorrespondence: ['type', 'scope', 'subject'],
-	    referenceActions: [
-	      'close',
-	      'closes',
-	      'closed',
-	      'fix',
-	      'fixes',
-	      'fixed',
-	      'resolve',
-	      'resolves',
-	      'resolved'
-	    ],
-	    issuePrefixes: ['#'],
-	    noteKeywords: ['BREAKING CHANGE', 'BREAKING-CHANGE'],
-	    fieldPattern: /^-(.*?)-$/,
-	    revertPattern: /^Revert\s"([\s\S]*)"\s*This reverts commit (\w*)\./,
-	    revertCorrespondence: ['header', 'hash'],
-	    warn: function () {},
-	    mergePattern: null,
-	    mergeCorrespondence: null,
-	    ...options
-	  };
-
-	  if (typeof options.headerPattern === 'string') {
-	    options.headerPattern = new RegExp(options.headerPattern);
-	  }
-
-	  if (typeof options.headerCorrespondence === 'string') {
-	    options.headerCorrespondence = options.headerCorrespondence.split(',');
-	  }
-
-	  if (typeof options.referenceActions === 'string') {
-	    options.referenceActions = options.referenceActions.split(',');
-	  }
-
-	  if (typeof options.issuePrefixes === 'string') {
-	    options.issuePrefixes = options.issuePrefixes.split(',');
-	  }
-
-	  if (typeof options.noteKeywords === 'string') {
-	    options.noteKeywords = options.noteKeywords.split(',');
-	  }
-
-	  if (typeof options.fieldPattern === 'string') {
-	    options.fieldPattern = new RegExp(options.fieldPattern);
-	  }
-
-	  if (typeof options.revertPattern === 'string') {
-	    options.revertPattern = new RegExp(options.revertPattern);
-	  }
-
-	  if (typeof options.revertCorrespondence === 'string') {
-	    options.revertCorrespondence = options.revertCorrespondence.split(',');
-	  }
-
-	  if (typeof options.mergePattern === 'string') {
-	    options.mergePattern = new RegExp(options.mergePattern);
-	  }
-
-	  return options
-	}
-
-	function conventionalCommitsParser$1 (options) {
-	  options = assignOpts(options);
-	  const reg = regex(options);
-
-	  return new Transform({
-	    objectMode: true,
-	    highWaterMark: 16,
-	    transform (data, enc, cb) {
-	      let commit;
-
-	      try {
-	        commit = parser(data.toString(), options, reg);
-	        cb(null, commit);
-	      } catch (err) {
-	        if (options.warn === true) {
-	          cb(err);
-	        } else {
-	          options.warn(err.toString());
-	          cb(null, '');
-	        }
-	      }
-	    }
-	  })
-	}
-
-	function sync (commit, options) {
-	  options = assignOpts(options);
-	  const reg = regex(options);
-
-	  return parser(commit, options, reg)
-	}
-
-	conventionalCommitsParser.exports = conventionalCommitsParser$1;
-	conventionalCommitsParser.exports.sync = sync;
-	return conventionalCommitsParser.exports;
-}
-
-var conventionalCommitsParserExports = requireConventionalCommitsParser();
-
-var parserOpts = {};
-
-var hasRequiredParserOpts;
-
-function requireParserOpts () {
-	if (hasRequiredParserOpts) return parserOpts;
-	hasRequiredParserOpts = 1;
-
-	function createParserOpts () {
-	  return {
-	    headerPattern: /^(\w*)(?:\((.*)\))?: (.*)$/,
-	    headerCorrespondence: [
-	      'type',
-	      'scope',
-	      'subject'
-	    ],
-	    noteKeywords: ['BREAKING CHANGE'],
-	    revertPattern: /^(?:Revert|revert:)\s"?([\s\S]+?)"?\s*This reverts commit (\w*)\./i,
-	    revertCorrespondence: ['header', 'hash']
-	  }
-	}
-
-	parserOpts.createParserOpts = createParserOpts;
-	return parserOpts;
-}
-
-var writerOpts = {};
-
-var arrayIfy;
-var hasRequiredArrayIfy;
-
-function requireArrayIfy () {
-	if (hasRequiredArrayIfy) return arrayIfy;
-	hasRequiredArrayIfy = 1;
-	arrayIfy = function(val) {
-	  return Array.isArray(val) ? val : [val];
-	};
-	return arrayIfy;
-}
-
-var isObj;
-var hasRequiredIsObj;
-
-function requireIsObj () {
-	if (hasRequiredIsObj) return isObj;
-	hasRequiredIsObj = 1;
-
-	isObj = value => {
-		const type = typeof value;
-		return value !== null && (type === 'object' || type === 'function');
-	};
-	return isObj;
-}
-
-var dotProp;
-var hasRequiredDotProp;
-
-function requireDotProp () {
-	if (hasRequiredDotProp) return dotProp;
-	hasRequiredDotProp = 1;
-	const isObj = requireIsObj();
-
-	const disallowedKeys = [
-		'__proto__',
-		'prototype',
-		'constructor'
-	];
-
-	const isValidPath = pathSegments => !pathSegments.some(segment => disallowedKeys.includes(segment));
-
-	function getPathSegments(path) {
-		const pathArray = path.split('.');
-		const parts = [];
-
-		for (let i = 0; i < pathArray.length; i++) {
-			let p = pathArray[i];
-
-			while (p[p.length - 1] === '\\' && pathArray[i + 1] !== undefined) {
-				p = p.slice(0, -1) + '.';
-				p += pathArray[++i];
-			}
-
-			parts.push(p);
-		}
-
-		if (!isValidPath(parts)) {
-			return [];
-		}
-
-		return parts;
-	}
-
-	dotProp = {
-		get(object, path, value) {
-			if (!isObj(object) || typeof path !== 'string') {
-				return value === undefined ? object : value;
-			}
-
-			const pathArray = getPathSegments(path);
-			if (pathArray.length === 0) {
-				return;
-			}
-
-			for (let i = 0; i < pathArray.length; i++) {
-				if (!Object.prototype.propertyIsEnumerable.call(object, pathArray[i])) {
-					return value;
-				}
-
-				object = object[pathArray[i]];
-
-				if (object === undefined || object === null) {
-					// `object` is either `undefined` or `null` so we want to stop the loop, and
-					// if this is not the last bit of the path, and
-					// if it did't return `undefined`
-					// it would return `null` if `object` is `null`
-					// but we want `get({foo: null}, 'foo.bar')` to equal `undefined`, or the supplied value, not `null`
-					if (i !== pathArray.length - 1) {
-						return value;
-					}
-
-					break;
-				}
-			}
-
-			return object;
-		},
-
-		set(object, path, value) {
-			if (!isObj(object) || typeof path !== 'string') {
-				return object;
-			}
-
-			const root = object;
-			const pathArray = getPathSegments(path);
-
-			for (let i = 0; i < pathArray.length; i++) {
-				const p = pathArray[i];
-
-				if (!isObj(object[p])) {
-					object[p] = {};
-				}
-
-				if (i === pathArray.length - 1) {
-					object[p] = value;
-				}
-
-				object = object[p];
-			}
-
-			return root;
-		},
-
-		delete(object, path) {
-			if (!isObj(object) || typeof path !== 'string') {
-				return false;
-			}
-
-			const pathArray = getPathSegments(path);
-
-			for (let i = 0; i < pathArray.length; i++) {
-				const p = pathArray[i];
-
-				if (i === pathArray.length - 1) {
-					delete object[p];
-					return true;
-				}
-
-				object = object[p];
-
-				if (!isObj(object)) {
-					return false;
-				}
-			}
-		},
-
-		has(object, path) {
-			if (!isObj(object) || typeof path !== 'string') {
-				return false;
-			}
-
-			const pathArray = getPathSegments(path);
-			if (pathArray.length === 0) {
-				return false;
-			}
-
-			// eslint-disable-next-line unicorn/no-for-loop
-			for (let i = 0; i < pathArray.length; i++) {
-				if (isObj(object)) {
-					if (!(pathArray[i] in object)) {
-						return false;
-					}
-
-					object = object[pathArray[i]];
-				} else {
-					return false;
-				}
-			}
-
-			return true;
-		}
-	};
-	return dotProp;
-}
-
-var compareFunc_1;
-var hasRequiredCompareFunc;
-
-function requireCompareFunc () {
-	if (hasRequiredCompareFunc) return compareFunc_1;
-	hasRequiredCompareFunc = 1;
-	var arrayify = requireArrayIfy();
-	var dotPropGet = requireDotProp().get;
-
-	function compareFunc(prop) {
-	  return function(a, b) {
-	    var ret = 0;
-
-	    arrayify(prop).some(function(el) {
-	      var x;
-	      var y;
-
-	      if (typeof el === 'function') {
-	        x = el(a);
-	        y = el(b);
-	      } else if (typeof el === 'string') {
-	        x = dotPropGet(a, el);
-	        y = dotPropGet(b, el);
-	      } else {
-	        x = a;
-	        y = b;
-	      }
-
-	      if (x === y) {
-	        ret = 0;
-	        return;
-	      }
-
-	      if (typeof x === 'string' && typeof y === 'string') {
-	        ret = x.localeCompare(y);
-	        return ret !== 0;
-	      }
-
-	      ret = x < y ? -1 : 1;
-	      return true;
-	    });
-
-	    return ret;
-	  };
-	}
-
-	compareFunc_1 = compareFunc;
-	return compareFunc_1;
-}
-
-var hasRequiredWriterOpts;
-
-function requireWriterOpts () {
-	if (hasRequiredWriterOpts) return writerOpts;
-	hasRequiredWriterOpts = 1;
-
-	const compareFunc = requireCompareFunc();
-	const { readFile } = fs.promises;
-	const { resolve } = path;
-
-	async function createWriterOpts () {
-	  const [template, header, commit, footer] = await Promise.all([
-	    readFile(resolve(__dirname, './templates/template.hbs'), 'utf-8'),
-	    readFile(resolve(__dirname, './templates/header.hbs'), 'utf-8'),
-	    readFile(resolve(__dirname, './templates/commit.hbs'), 'utf-8'),
-	    readFile(resolve(__dirname, './templates/footer.hbs'), 'utf-8')
-	  ]);
-	  const writerOpts = getWriterOpts();
-
-	  writerOpts.mainTemplate = template;
-	  writerOpts.headerPartial = header;
-	  writerOpts.commitPartial = commit;
-	  writerOpts.footerPartial = footer;
-
-	  return writerOpts
-	}
-
-	writerOpts.createWriterOpts = createWriterOpts;
-
-	function getWriterOpts () {
-	  return {
-	    transform: (commit, context) => {
-	      let discard = true;
-	      const issues = [];
-
-	      commit.notes.forEach(note => {
-	        note.title = 'BREAKING CHANGES';
-	        discard = false;
-	      });
-
-	      if (commit.type === 'feat') {
-	        commit.type = 'Features';
-	      } else if (commit.type === 'fix') {
-	        commit.type = 'Bug Fixes';
-	      } else if (commit.type === 'perf') {
-	        commit.type = 'Performance Improvements';
-	      } else if (commit.type === 'revert' || commit.revert) {
-	        commit.type = 'Reverts';
-	      } else if (discard) {
-	        return
-	      } else if (commit.type === 'docs') {
-	        commit.type = 'Documentation';
-	      } else if (commit.type === 'style') {
-	        commit.type = 'Styles';
-	      } else if (commit.type === 'refactor') {
-	        commit.type = 'Code Refactoring';
-	      } else if (commit.type === 'test') {
-	        commit.type = 'Tests';
-	      } else if (commit.type === 'build') {
-	        commit.type = 'Build System';
-	      } else if (commit.type === 'ci') {
-	        commit.type = 'Continuous Integration';
-	      }
-
-	      if (commit.scope === '*') {
-	        commit.scope = '';
-	      }
-
-	      if (typeof commit.hash === 'string') {
-	        commit.shortHash = commit.hash.substring(0, 7);
-	      }
-
-	      if (typeof commit.subject === 'string') {
-	        let url = context.repository
-	          ? `${context.host}/${context.owner}/${context.repository}`
-	          : context.repoUrl;
-	        if (url) {
-	          url = `${url}/issues/`;
-	          // Issue URLs.
-	          commit.subject = commit.subject.replace(/#([0-9]+)/g, (_, issue) => {
-	            issues.push(issue);
-	            return `[#${issue}](${url}${issue})`
-	          });
-	        }
-	        if (context.host) {
-	          // User URLs.
-	          commit.subject = commit.subject.replace(/\B@([a-z0-9](?:-?[a-z0-9/]){0,38})/g, (_, username) => {
-	            if (username.includes('/')) {
-	              return `@${username}`
-	            }
-
-	            return `[@${username}](${context.host}/${username})`
-	          });
-	        }
-	      }
-
-	      // remove references that already appear in the subject
-	      commit.references = commit.references.filter(reference => {
-	        if (issues.indexOf(reference.issue) === -1) {
-	          return true
-	        }
-
-	        return false
-	      });
-
-	      return commit
-	    },
-	    groupBy: 'type',
-	    commitGroupsSort: 'title',
-	    commitsSort: ['scope', 'subject'],
-	    noteGroupsSort: 'title',
-	    notesSort: compareFunc
-	  }
-	}
-	return writerOpts;
-}
-
-var conventionalChangelog = {};
-
-var hasRequiredConventionalChangelog;
-
-function requireConventionalChangelog () {
-	if (hasRequiredConventionalChangelog) return conventionalChangelog;
-	hasRequiredConventionalChangelog = 1;
-
-	function createConventionalChangelogOpts (parserOpts, writerOpts) {
-	  return {
-	    parserOpts,
-	    writerOpts
-	  }
-	}
-
-	conventionalChangelog.createConventionalChangelogOpts = createConventionalChangelogOpts;
-	return conventionalChangelog;
-}
-
-var conventionalRecommendedBump = {};
-
-var hasRequiredConventionalRecommendedBump;
-
-function requireConventionalRecommendedBump () {
-	if (hasRequiredConventionalRecommendedBump) return conventionalRecommendedBump;
-	hasRequiredConventionalRecommendedBump = 1;
-
-	function createConventionalRecommendedBumpOpts (parserOpts) {
-	  return {
-	    parserOpts,
-
-	    whatBump (commits) {
-	      let level = 2;
-	      let breakings = 0;
-	      let features = 0;
-
-	      commits.forEach(commit => {
-	        if (commit.notes.length > 0) {
-	          breakings += commit.notes.length;
-	          level = 0;
-	        } else if (commit.type === 'feat') {
-	          features += 1;
-	          if (level === 2) {
-	            level = 1;
-	          }
-	        }
-	      });
-
-	      return {
-	        level,
-	        reason: breakings === 1
-	          ? `There is ${breakings} BREAKING CHANGE and ${features} features`
-	          : `There are ${breakings} BREAKING CHANGES and ${features} features`
-	      }
-	    }
-	  }
-	}
-
-	conventionalRecommendedBump.createConventionalRecommendedBumpOpts = createConventionalRecommendedBumpOpts;
-	return conventionalRecommendedBump;
-}
-
-var conventionalChangelogAngular;
-var hasRequiredConventionalChangelogAngular;
-
-function requireConventionalChangelogAngular () {
-	if (hasRequiredConventionalChangelogAngular) return conventionalChangelogAngular;
-	hasRequiredConventionalChangelogAngular = 1;
-
-	const { createParserOpts } = requireParserOpts();
-	const { createWriterOpts } = requireWriterOpts();
-	const { createConventionalChangelogOpts } = requireConventionalChangelog();
-	const { createConventionalRecommendedBumpOpts } = requireConventionalRecommendedBump();
-
-	async function createPreset () {
-	  const parserOpts = createParserOpts();
-	  const writerOpts = await createWriterOpts();
-	  const recommendedBumpOpts = createConventionalRecommendedBumpOpts(parserOpts);
-	  const conventionalChangelog = createConventionalChangelogOpts(parserOpts, writerOpts);
-
-	  return {
-	    parserOpts,
-	    writerOpts,
-	    recommendedBumpOpts,
-	    conventionalChangelog
-	  }
-	}
-
-	conventionalChangelogAngular = createPreset;
-	return conventionalChangelogAngular;
-}
-
-var conventionalChangelogAngularExports = requireConventionalChangelogAngular();
-var defaultChangelogOpts = /*@__PURE__*/getDefaultExportFromCjs(conventionalChangelogAngularExports);
-
-async function parse(message, parser = conventionalCommitsParserExports.sync, parserOpts) {
-    const preset = await defaultChangelogOpts();
-    const defaultOpts = preset.parserOpts;
-    const opts = {
-        ...defaultOpts,
-        fieldPattern: null,
-        ...(parserOpts || {}),
-    };
-    const parsed = parser(message, opts);
-    parsed.raw = message;
-    return parsed;
-}
-
-var index = /*#__PURE__*/Object.freeze({
-	__proto__: null,
-	default: parse,
-	parse: parse
-});
 
 export { run };
 //# sourceMappingURL=index.js.map
