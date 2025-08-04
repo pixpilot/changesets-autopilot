@@ -11,6 +11,8 @@ import type { SimpleGit } from 'simple-git';
  * @param {string} githubToken - GitHub token for authentication
  */
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
+  process.env.PRETTIER_FALLBACK_RESOLVE = 'true';
+
   // Gather changeset objects from .changeset markdown files
   const cwd = process.cwd();
 
