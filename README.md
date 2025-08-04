@@ -1,8 +1,5 @@
 # Changeset Autopilot Action
 
-[![GitHub Super-Linter](https://github.com/pixpilot/changeset-autopilot/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/pixpilot/changeset-autopilot/actions/workflows/ci.yml/badge.svg)
-
 A GitHub Action that automates changeset-based releases with branch-specific configurations, similar to semantic-release. Automatically generates changesets from conventional commits, handles pre-release channels, and publishes to npm.
 
 ## Features
