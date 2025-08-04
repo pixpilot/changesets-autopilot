@@ -1,53 +1,45 @@
-import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 import * as core from '@actions/core';
 
 const requiredPackages = ['@changesets/changelog-github', '@changesets/cli'];
 
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  name?: string;
+}
+
 /**
- * Checks if a package is installed locally by attempting require.resolve
+ * Checks if a package exists in dependencies or devDependencies of package.json
  */
-function isPackageInstalledLocally(pkgName: string): boolean {
+function isPackageDeclared(pkgName: string): boolean {
   try {
-    require.resolve(pkgName, { paths: [process.cwd()] });
-    return true;
-  } catch {
+    const pkgJsonPath = path.join(process.cwd(), 'package.json');
+    if (!fs.existsSync(pkgJsonPath)) {
+      throw new Error('package.json not found');
+    }
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
+    const deps = pkgJson.dependencies ?? {};
+    const devDeps = pkgJson.devDependencies ?? {};
+    return pkgName in deps || pkgName in devDeps;
+  } catch (err) {
+    core.warning(`Failed to read package.json: ${(err as Error).message}`);
     return false;
   }
 }
 
 /**
- * Checks if a package is installed globally by parsing `npm list -g --json`
- */
-function isPackageInstalledGlobally(pkgName: string): boolean {
-  try {
-    const npmListOutput = execSync('npm list -g --json', { encoding: 'utf8' });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parsed = JSON.parse(npmListOutput);
-    // npm global packages are under dependencies
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-    return parsed.dependencies && pkgName in parsed.dependencies;
-  } catch (error) {
-    core.warning(`Failed to check global npm packages: ${(error as Error).message}`);
-    return false;
-  }
-}
-
-/**
- * Ensures that required packages are installed locally or globally, installs globally if missing
+ * Ensures that required packages are declared in package.json or globally installed as fallback
  */
 export function ensurePackagesAvailable(packages: string[]): void {
   for (const pkg of packages) {
-    const localInstalled = isPackageInstalledLocally(pkg);
-    const globalInstalled = isPackageInstalledGlobally(pkg);
-
-    if (!localInstalled || !globalInstalled) {
-      core.info(
-        `${pkg} is not installed locally or globally. Installing globally as fallback...`,
+    if (!isPackageDeclared(pkg)) {
+      throw new Error(
+        `Package ${pkg} is not declared in package.json. Please add it to your dependencies or devDependencies.`,
       );
-      execSync(`npm install -g ${pkg}`, { stdio: 'inherit' });
-    } else {
-      core.info(`${pkg} is installed.`);
     }
   }
 }
