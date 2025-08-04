@@ -45001,6 +45001,7 @@ async function processChanges() {
         if (info.commits.length > 0) {
             for (const commit of info.commits) {
                 const { changeType, description } = await getChangeTypeAndDescription(commit.message);
+                coreExports.info(`Processing commit:${JSON.stringify(commit, null, 2)}`);
                 createChangesetFile(packageName, changeType, description);
                 coreExports.info(`Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`);
             }

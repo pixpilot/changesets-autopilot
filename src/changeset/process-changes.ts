@@ -17,6 +17,7 @@ export async function processChanges(): Promise<void> {
         const { changeType, description } = await getChangeTypeAndDescription(
           commit.message,
         );
+        core.info(`Processing commit:${JSON.stringify(commit, null, 2)}`);
         createChangesetFile(packageName, changeType, description);
         core.info(
           `Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`,
