@@ -45036,7 +45036,7 @@ function configurePrereleaseMode(branchConfig) {
     const isInPrereleaseMode = fs.existsSync(preJsonPath);
     if (branchConfig.prerelease) {
         if (!isInPrereleaseMode) {
-            const prereleaseCommand = `pnpm changeset pre enter ${branchConfig.prerelease}`;
+            const prereleaseCommand = `npm changeset pre enter ${branchConfig.prerelease}`;
             coreExports.info(`Entering pre-release mode: ${prereleaseCommand}`);
             execSync(prereleaseCommand, { stdio: 'inherit' });
         }
@@ -45047,7 +45047,7 @@ function configurePrereleaseMode(branchConfig) {
     else {
         if (isInPrereleaseMode) {
             coreExports.info('Exiting pre-release mode');
-            execSync('pnpm changeset pre exit', { stdio: 'inherit' });
+            execSync('npm changeset pre exit', { stdio: 'inherit' });
         }
         else {
             coreExports.info('Not in pre-release mode, skipping exit.');
@@ -52002,6 +52002,12 @@ function validateBranchConfiguration(branchConfig) {
  * @returns {Promise<SimpleGit>} The configured SimpleGit instance.
  */
 async function configureGit(botName) {
+    // Remove .git/config.lock if it exists to prevent locking errors
+    const gitDir = path.resolve(process.cwd(), '.git');
+    const configLockPath = path.join(gitDir, 'config.lock');
+    if (fs.existsSync(configLockPath)) {
+        fs.unlinkSync(configLockPath);
+    }
     const git = esm_default();
     await git.addConfig('user.name', `${botName}[bot]`);
     await git.addConfig('user.email', `${botName}[bot]@users.noreply.github.com`);
@@ -52013,7 +52019,7 @@ async function configureGit(botName) {
  * @param {string} githubToken - GitHub token for authentication
  */
 async function gitVersionAndPush(git, githubToken) {
-    execSync('pnpm changeset version', { stdio: 'inherit' });
+    execSync('npm changeset version', { stdio: 'inherit' });
     await git.add('.');
     try {
         await git.commit('chore(release): version packages [skip ci]');
@@ -52036,8 +52042,8 @@ async function gitVersionAndPush(git, githubToken) {
  */
 function publishPackages(branchConfig, npmToken) {
     const publishCommand = branchConfig.channel
-        ? `pnpm changeset publish --tag ${branchConfig.channel}`
-        : 'pnpm changeset publish';
+        ? `npm changeset publish --tag ${branchConfig.channel}`
+        : 'npm changeset publish';
     coreExports.info(`Publishing packages: ${publishCommand}`);
     execSync(publishCommand, {
         stdio: 'inherit',

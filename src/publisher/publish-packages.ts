@@ -12,8 +12,8 @@ export function publishPackages(
   npmToken: string,
 ): void {
   const publishCommand = branchConfig.channel
-    ? `pnpm changeset publish --tag ${branchConfig.channel}`
-    : 'pnpm changeset publish';
+    ? `npm changeset publish --tag ${branchConfig.channel}`
+    : 'npm changeset publish';
   core.info(`Publishing packages: ${publishCommand}`);
   execSync(publishCommand, {
     stdio: 'inherit',

@@ -17,7 +17,7 @@ export function configurePrereleaseMode(branchConfig: ResolvedBranchConfig): voi
 
   if (branchConfig.prerelease) {
     if (!isInPrereleaseMode) {
-      const prereleaseCommand = `pnpm changeset pre enter ${branchConfig.prerelease}`;
+      const prereleaseCommand = `npm changeset pre enter ${branchConfig.prerelease}`;
       core.info(`Entering pre-release mode: ${prereleaseCommand}`);
       execSync(prereleaseCommand, { stdio: 'inherit' });
     } else {
@@ -26,7 +26,7 @@ export function configurePrereleaseMode(branchConfig: ResolvedBranchConfig): voi
   } else {
     if (isInPrereleaseMode) {
       core.info('Exiting pre-release mode');
-      execSync('pnpm changeset pre exit', { stdio: 'inherit' });
+      execSync('npm changeset pre exit', { stdio: 'inherit' });
     } else {
       core.info('Not in pre-release mode, skipping exit.');
     }

@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Release
-        uses: pixpilot/changeset-autopilot@v1
+        uses: pixpilot/changesets-autopilot@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

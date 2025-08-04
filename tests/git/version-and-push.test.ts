@@ -44,7 +44,7 @@ describe('gitVersionAndPush', () => {
 
   test('runs version, add, commit, and push with correct args', async () => {
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
-    expect(child_process.execSync).toHaveBeenCalledWith('pnpm changeset version', {
+    expect(child_process.execSync).toHaveBeenCalledWith('npm changeset version', {
       stdio: 'inherit',
     });
     expect(mockGit.add).toHaveBeenCalledWith('.');

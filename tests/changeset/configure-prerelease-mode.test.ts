@@ -33,7 +33,7 @@ describe('configurePrereleaseMode', () => {
     expect(core.info).toHaveBeenCalledWith(
       expect.stringContaining('Entering pre-release mode'),
     );
-    expect(child_process.execSync).toHaveBeenCalledWith('pnpm changeset pre enter beta', {
+    expect(child_process.execSync).toHaveBeenCalledWith('npm changeset pre enter beta', {
       stdio: 'inherit',
     });
   });
@@ -61,7 +61,7 @@ describe('configurePrereleaseMode', () => {
 
     configurePrereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith('Exiting pre-release mode');
-    expect(child_process.execSync).toHaveBeenCalledWith('pnpm changeset pre exit', {
+    expect(child_process.execSync).toHaveBeenCalledWith('npm changeset pre exit', {
       stdio: 'inherit',
     });
   });
