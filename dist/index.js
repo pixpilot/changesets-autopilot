@@ -45036,7 +45036,7 @@ function configurePrereleaseMode(branchConfig) {
     const isInPrereleaseMode = fs.existsSync(preJsonPath);
     if (branchConfig.prerelease) {
         if (!isInPrereleaseMode) {
-            const prereleaseCommand = `npm run changeset pre enter ${branchConfig.prerelease}`;
+            const prereleaseCommand = `npx changeset pre enter ${branchConfig.prerelease}`;
             coreExports.info(`Entering pre-release mode: ${prereleaseCommand}`);
             execSync(prereleaseCommand, { stdio: 'inherit' });
         }
@@ -45047,7 +45047,7 @@ function configurePrereleaseMode(branchConfig) {
     else {
         if (isInPrereleaseMode) {
             coreExports.info('Exiting pre-release mode');
-            execSync('npm run changeset pre exit', { stdio: 'inherit' });
+            execSync('npx changeset pre exit', { stdio: 'inherit' });
         }
         else {
             coreExports.info('Not in pre-release mode, skipping exit.');
@@ -52019,7 +52019,7 @@ async function configureGit(botName) {
  * @param {string} githubToken - GitHub token for authentication
  */
 async function gitVersionAndPush(git, githubToken) {
-    execSync('npm run changeset version', { stdio: 'inherit' });
+    execSync('npx changeset version', { stdio: 'inherit' });
     await git.add('.');
     try {
         await git.commit('chore(release): version packages [skip ci]');
@@ -52042,8 +52042,8 @@ async function gitVersionAndPush(git, githubToken) {
  */
 function publishPackages(branchConfig, npmToken) {
     const publishCommand = branchConfig.channel
-        ? `npm run changeset publish --tag ${branchConfig.channel}`
-        : 'npm run changeset publish';
+        ? `npx changeset publish --tag ${branchConfig.channel}`
+        : 'npx changeset publish';
     coreExports.info(`Publishing packages: ${publishCommand}`);
     execSync(publishCommand, {
         stdio: 'inherit',

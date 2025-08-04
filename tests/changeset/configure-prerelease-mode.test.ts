@@ -33,12 +33,9 @@ describe('configurePrereleaseMode', () => {
     expect(core.info).toHaveBeenCalledWith(
       expect.stringContaining('Entering pre-release mode'),
     );
-    expect(child_process.execSync).toHaveBeenCalledWith(
-      'npm run changeset pre enter beta',
-      {
-        stdio: 'inherit',
-      },
-    );
+    expect(child_process.execSync).toHaveBeenCalledWith('npx changeset pre enter beta', {
+      stdio: 'inherit',
+    });
   });
 
   test('skips enter if already in prerelease mode', async () => {
@@ -64,7 +61,7 @@ describe('configurePrereleaseMode', () => {
 
     configurePrereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith('Exiting pre-release mode');
-    expect(child_process.execSync).toHaveBeenCalledWith('npm run changeset pre exit', {
+    expect(child_process.execSync).toHaveBeenCalledWith('npx changeset pre exit', {
       stdio: 'inherit',
     });
   });

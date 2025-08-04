@@ -21,10 +21,10 @@ describe('publishPackages', () => {
     const branchConfig = { name: 'next', isMatch: true, channel: 'next' };
     publishPackages(branchConfig, npmToken);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('npm run changeset publish --tag next'),
+      expect.stringContaining('npx changeset publish --tag next'),
     );
     expect(execSync).toHaveBeenCalledWith(
-      'npm run changeset publish --tag next',
+      'npx changeset publish --tag next',
       expect.objectContaining({
         env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
         stdio: 'inherit',
@@ -36,10 +36,10 @@ describe('publishPackages', () => {
     const branchConfig = { name: 'main', isMatch: true };
     publishPackages(branchConfig, npmToken);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('npm run changeset publish'),
+      expect.stringContaining('npx changeset publish'),
     );
     expect(execSync).toHaveBeenCalledWith(
-      'npm run changeset publish',
+      'npx changeset publish',
       expect.objectContaining({
         env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
         stdio: 'inherit',
