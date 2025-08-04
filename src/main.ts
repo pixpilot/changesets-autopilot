@@ -1,3 +1,6 @@
+import process from 'process';
+import { fileURLToPath } from 'url';
+
 import * as core from '@actions/core';
 
 import { configurePrereleaseMode, ensureChangesets } from './changeset';
@@ -52,6 +55,6 @@ export async function run(): Promise<void> {
 }
 
 // Execute if this file is run directly
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   void run();
 }

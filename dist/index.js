@@ -1,3 +1,4 @@
+import require$$1$3, { fileURLToPath } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import fs from 'fs';
@@ -20,7 +21,6 @@ import require$$2$1 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4 from 'async_hooks';
 import require$$1$2 from 'console';
-import require$$1$3 from 'url';
 import require$$3$1 from 'zlib';
 import require$$0$a from 'diagnostics_channel';
 import require$$2$2, { spawn, execSync } from 'child_process';
@@ -40,6 +40,20 @@ var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof win
 function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
+
+var process$2;
+var hasRequiredProcess;
+
+function requireProcess () {
+	if (hasRequiredProcess) return process$2;
+	hasRequiredProcess = 1;
+	// for now just expose the builtin process global from node.js
+	process$2 = commonjsGlobal.process;
+	return process$2;
+}
+
+var processExports = requireProcess();
+var process$1 = /*@__PURE__*/getDefaultExportFromCjs(processExports);
 
 var core$1 = {};
 
@@ -28114,6 +28128,8 @@ function isChangesetFile(file) {
  * @returns {boolean} True if there are changesets, false otherwise.
  */
 function checkForChangesetFiles() {
+    if (!fs.existsSync(changesetDir))
+        return false;
     return fs.readdirSync(changesetDir).some(isChangesetFile);
 }
 /**
@@ -28121,6 +28137,8 @@ function checkForChangesetFiles() {
  * @returns {string[]} Array of changeset file names.
  */
 function getChangesetFiles() {
+    if (!fs.existsSync(changesetDir))
+        return [];
     return fs.readdirSync(changesetDir).filter(isChangesetFile);
 }
 
@@ -52069,7 +52087,7 @@ async function run() {
     }
 }
 // Execute if this file is run directly
-if (require.main === module) {
+if (process$1.argv[1] === fileURLToPath(import.meta.url)) {
     void run();
 }
 
