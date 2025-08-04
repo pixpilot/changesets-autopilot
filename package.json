@@ -41,7 +41,8 @@
     "test:watch": "vitest --run --watch",
     "test:ui": "vitest --ui",
     "all": "npm run format:write && npm run lint && npm run typecheck && npm run test && npm run coverage && npm run package",
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "prepare": "husky install"
   },
   "license": "MIT",
   "dependencies": {
@@ -72,6 +73,7 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jest": "^28.13.5",
     "eslint-plugin-prettier": "^5.4.1",
+    "husky": "^9.1.7",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.5.3",
     "prettier-eslint": "^16.4.2",

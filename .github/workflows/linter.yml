@@ -58,20 +58,3 @@ jobs:
       - name: Check Formatting
         id: format-check
         run: npm run format:check
-
-      # Lint other files using Super Linter
-      - name: Lint Other Files
-        id: super-linter
-        uses: super-linter/super-linter/slim@v7
-        env:
-          DEFAULT_BRANCH: main
-          FILTER_REGEX_EXCLUDE: (dist/**/*|package-lock\.json|node_modules/**|\.devcontainer/**|\.vscode/**|\.github/workflows/codeql-analysis.yml|\.markdownlint.json|\.automation/\.markdownlint.json)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LINTER_RULES_PATH: .automation
-          VALIDATE_ALL_CODEBASE: false
-          # Only validate specific file types we want Super Linter to handle
-          VALIDATE_MARKDOWN: true
-          VALIDATE_YAML: true
-          VALIDATE_DOCKERFILE_HADOLINT: true
-          VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_JSON: true
