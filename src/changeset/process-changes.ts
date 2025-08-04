@@ -11,11 +11,11 @@ import { createChangesetFile } from './create-changeset-file';
  */
 export async function processChanges(): Promise<void> {
   const changes = await getChangesSinceLastCommit();
+  core.info(`Changes detected: ${JSON.stringify(changes, null, 2)}`);
   for (const [packageName, info] of Object.entries(changes)) {
     if (info.commits.length > 0) {
       for (const commit of info.commits) {
         const { changeType, description } = getChangeTypeAndDescription(commit.message);
-        core.info(`Processing commit:${JSON.stringify(commit, null, 2)}`);
         createChangesetFile(packageName, changeType, description);
         core.info(
           `Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`,

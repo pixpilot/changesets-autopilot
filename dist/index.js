@@ -44472,11 +44472,11 @@ function getChangeTypeAndDescription(message) {
  */
 async function processChanges() {
     const changes = await getChangesSinceLastCommit();
+    coreExports.info(`Changes detected: ${JSON.stringify(changes, null, 2)}`);
     for (const [packageName, info] of Object.entries(changes)) {
         if (info.commits.length > 0) {
             for (const commit of info.commits) {
                 const { changeType, description } = getChangeTypeAndDescription(commit.message);
-                coreExports.info(`Processing commit:${JSON.stringify(commit, null, 2)}`);
                 createChangesetFile(packageName, changeType, description);
                 coreExports.info(`Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`);
             }
