@@ -1,3 +1,5 @@
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import require$$1$3, { fileURLToPath as fileURLToPath$1 } from 'url';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';

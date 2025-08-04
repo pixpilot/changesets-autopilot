@@ -13,6 +13,7 @@ const config = {
     format: 'es',
     sourcemap: true,
     inlineDynamicImports: true,
+    banner: `import { dirname } from 'path';\nimport { fileURLToPath } from 'url';`,
   },
   plugins: [
     typescript({
