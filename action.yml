@@ -1,0 +1,38 @@
+name: 'Changeset Autopilot'
+description: 'Automate changeset-based releases with branch-specific configurations'
+author: 'Pixpilot'
+
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+branding:
+  icon: package
+  color: blue
+
+# Define your inputs here.
+inputs:
+  GITHUB_TOKEN:
+    description: GitHub token for authentication
+    required: true
+  NPM_TOKEN:
+    description: NPM token for publishing
+    required: true
+  BOT_NAME:
+    description: Optional bot name
+    required: false
+    default: 'changesets-autopilot'
+  BRANCHES:
+    description: Branch configuration for releases (YAML array)
+    required: false
+    default: |
+      - main
+      - name: next
+        prerelease: rc
+        channel: next
+
+# Define your outputs here.
+outputs:
+  published:
+    description: Whether packages were published
+
+runs:
+  using: node20
+  main: dist/index.js
