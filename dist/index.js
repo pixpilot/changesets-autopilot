@@ -52014,34 +52014,116 @@ async function configureGit(botName) {
     return git;
 }
 
-/**
- * Versions packages, commits, and pushes changes to the repository.
- * @param {string} githubToken - GitHub token for authentication
- */
 async function gitVersionAndPush(git, githubToken) {
+    const cwd = process.cwd();
+    // Debug: Check environment
+    coreExports.info(`=== DEBUG INFO ===`);
+    coreExports.info(`Working directory: ${cwd}`);
+    coreExports.info(`Node version: ${process.version}`);
+    coreExports.info(`PATH: ${process.env.PATH}`);
+    // Debug: Check if .changeset exists
+    const changesetDir = path.join(cwd, '.changeset');
+    coreExports.info(`Changeset dir exists: ${fs.existsSync(changesetDir)}`);
+    if (fs.existsSync(changesetDir)) {
+        const files = fs.readdirSync(changesetDir);
+        coreExports.info(`Changeset files: ${JSON.stringify(files)}`);
+        // Check config.json
+        const configPath = path.join(changesetDir, 'config.json');
+        if (fs.existsSync(configPath)) {
+            const config = fs.readFileSync(configPath, 'utf8');
+            coreExports.info(`Changeset config: ${config}`);
+        }
+        else {
+            coreExports.info('No config.json found in .changeset');
+        }
+    }
+    // Debug: Check if npx/changeset is available
     try {
-        coreExports.info('Running changeset version...');
-        execSync('npx changeset version', {
-            stdio: 'inherit',
+        const whichChangeset = execSync('which changeset', { encoding: 'utf8' });
+        coreExports.info(`Changeset binary location: ${whichChangeset.trim()}`);
+    }
+    catch {
+        coreExports.info('Changeset not in PATH, will use npx');
+    }
+    try {
+        const npxVersion = execSync('npx --version', { encoding: 'utf8' });
+        coreExports.info(`NPX version: ${npxVersion.trim()}`);
+    }
+    catch (e) {
+        coreExports.info(`NPX check failed: ${String(e)}`);
+    }
+    // Debug: Try changeset status first
+    try {
+        coreExports.info('=== CHECKING CHANGESET STATUS ===');
+        const statusOutput = execSync('npx changeset status', {
+            encoding: 'utf8',
             cwd: process.cwd(),
         });
+        coreExports.info(`Changeset status output: ${statusOutput}`);
     }
     catch (error) {
-        console.error(error);
-        coreExports.info('No changesets to version or version command failed');
-        return;
+        coreExports.info(`Changeset status failed: ${error.message}`);
+        if (typeof error === 'object' && error !== null) {
+            if ('stderr' in error &&
+                typeof error.stderr !== 'undefined') {
+                coreExports.info(`Status stderr: ${error.stderr?.toString()}`);
+            }
+            if ('stdout' in error &&
+                typeof error.stdout !== 'undefined') {
+                coreExports.info(`Status stdout: ${error.stdout?.toString()}`);
+            }
+        }
     }
+    try {
+        coreExports.info('=== RUNNING CHANGESET VERSION ===');
+        const versionOutput = execSync('npx changeset version', {
+            encoding: 'utf8',
+            cwd: process.cwd(),
+        });
+        coreExports.info(`Version output: ${versionOutput}`);
+        coreExports.info('Changeset version completed successfully');
+    }
+    catch (error) {
+        coreExports.info(`=== CHANGESET VERSION ERROR ===`);
+        coreExports.info(`Error message: ${error.message}`);
+        if (typeof error === 'object' && error !== null) {
+            if ('status' in error) {
+                coreExports.info(`Error code: ${error.status}`);
+            }
+            if ('signal' in error) {
+                coreExports.info(`Error signal: ${error.signal}`);
+            }
+            if ('stdout' in error &&
+                typeof error.stdout !== 'undefined') {
+                coreExports.info(`Stdout: ${error.stdout?.toString() ?? 'null'}`);
+            }
+            if ('stderr' in error &&
+                typeof error.stderr !== 'undefined') {
+                coreExports.info(`Stderr: ${error.stderr?.toString() ?? 'null'}`);
+            }
+        }
+        return; // Stop execution on any error
+    }
+    coreExports.info('=== GIT OPERATIONS ===');
     await git.add('.');
     try {
         await git.commit('chore(release): version packages [skip ci]');
+        coreExports.info('Git commit successful');
     }
     catch (e) {
-        coreExports.info(`No changes to commit or commit failed: ${String(e)}`);
+        coreExports.info(`Git commit failed: ${String(e)}`);
     }
     const repo = process.env.GITHUB_REPOSITORY;
     const refName = process.env.GITHUB_REF_NAME;
+    coreExports.info(`Repo: ${repo}, Ref: ${refName}`);
     if (repo && githubToken && refName) {
-        await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
+        try {
+            await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${refName}`);
+            coreExports.info('Git push successful');
+        }
+        catch (e) {
+            coreExports.info(`Git push failed: ${String(e)}`);
+        }
     }
     else {
         coreExports.info('Missing repo, token, or refName for push.');
