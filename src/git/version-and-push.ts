@@ -1,6 +1,9 @@
-import { execSync } from 'child_process';
-
 import * as core from '@actions/core';
+import applyReleasePlan from '@changesets/apply-release-plan';
+import assembleReleasePlan from '@changesets/assemble-release-plan';
+import { read } from '@changesets/config';
+import readChangesets from '@changesets/read';
+import { getPackages } from '@manypkg/get-packages';
 import type { SimpleGit } from 'simple-git';
 
 /**
@@ -8,7 +11,41 @@ import type { SimpleGit } from 'simple-git';
  * @param {string} githubToken - GitHub token for authentication
  */
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
-  execSync('npx changeset version', { stdio: 'inherit' });
+  // Gather changeset objects from .changeset markdown files
+  const cwd = process.cwd();
+
+  core.info('Reading packages...');
+  const packages = await getPackages(cwd);
+
+  core.info('Reading changesets config...');
+  // The config is needed to know how to generate changelogs
+  const config = await read(cwd, packages as never);
+
+  core.info('Reading changeset files...');
+  const changesets = await readChangesets(cwd);
+
+  if (changesets.length === 0) {
+    core.info('No changesets found. Skipping versioning.');
+    return;
+  }
+
+  core.info('Assembling release plan...');
+  const releasePlan = assembleReleasePlan(
+    changesets,
+    packages as never,
+    config,
+    undefined, // previous versions data - not needed for basic versioning
+    undefined, // options
+  );
+
+  core.info('Applying release plan...');
+  await applyReleasePlan(
+    releasePlan,
+    packages as never,
+    config,
+    undefined, // snapshot info
+  );
+
   await git.add('.');
   try {
     await git.commit('chore(release): version packages [skip ci]');
