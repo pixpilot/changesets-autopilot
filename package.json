@@ -42,7 +42,7 @@
     "test:ui": "vitest --ui",
     "all": "npm run format:write && npm run lint && npm run typecheck && npm run test && npm run coverage && npm run package",
     "build": "rollup -c",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "license": "MIT",
   "dependencies": {
