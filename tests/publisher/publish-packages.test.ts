@@ -23,7 +23,7 @@ describe('publishPackages', () => {
     const getPackagesModule = await import('@manypkg/get-packages');
     mockGetPackages = vi.mocked(getPackagesModule.getPackages);
 
-    // Default mock for getPackages - return the same packages before and after publish
+    // Default mock for getPackages - return test packages
     mockGetPackages.mockResolvedValue({
       packages: [
         {
@@ -32,6 +32,9 @@ describe('publishPackages', () => {
         },
       ],
     });
+
+    // Default mock for execSync - return no published packages output
+    vi.mocked(execSync).mockReturnValue('🦋  info Publishing complete');
   });
 
   test('publishes with tag if channel is provided', async () => {
@@ -43,8 +46,8 @@ describe('publishPackages', () => {
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish --tag next',
       expect.objectContaining({
+        encoding: 'utf8',
         env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
-        stdio: 'inherit',
       }),
     );
     expect(Array.isArray(result)).toBe(true);
@@ -59,57 +62,61 @@ describe('publishPackages', () => {
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish',
       expect.objectContaining({
+        encoding: 'utf8',
         env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
-        stdio: 'inherit',
       }),
     );
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('detects published packages by version changes', async () => {
+  test('detects published packages from changeset output', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
-    // Mock getPackages to return different versions before and after publish
-    mockGetPackages
-      .mockResolvedValueOnce({
-        packages: [
-          {
-            dir: '/packages/pkg-a',
-            packageJson: { name: 'pkg-a', version: '1.0.0', private: false },
-          },
-          {
-            dir: '/packages/pkg-b',
-            packageJson: { name: 'pkg-b', version: '2.0.0', private: false },
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        packages: [
-          {
-            dir: '/packages/pkg-a',
-            packageJson: { name: 'pkg-a', version: '1.0.1', private: false }, // version changed
-          },
-          {
-            dir: '/packages/pkg-b',
-            packageJson: { name: 'pkg-b', version: '2.0.0', private: false }, // no change
-          },
-        ],
-      });
-
-    const result = await publishPackages(branchConfig, npmToken);
-    expect(result).toHaveLength(1);
-    expect(result[0].packageJson.name).toBe('pkg-a');
-    expect(result[0].packageJson.version).toBe('1.0.1');
-  });
-
-  test('excludes private packages from released packages', async () => {
-    const branchConfig = { name: 'main', isMatch: true };
+    // Mock execSync to return changeset publish output showing published packages with "New tag:" format
+    vi.mocked(execSync).mockReturnValue(`
+🦋  info npm info @pixpilot/pkg-a
+🦋  info npm info @pixpilot/pkg-b
+🦋  warn @pixpilot/pkg-b is not being published because version 2.0.0 is already published on npm
+🦋  info @pixpilot/pkg-a is being published because our local version (1.0.1) has not been published on npm
+🦋  info Publishing "@pixpilot/pkg-a" at "1.0.1"
+🦋  success packages published successfully:
+🦋  @pixpilot/pkg-a@1.0.1
+🦋  Creating git tag...
+🦋  New tag:  @pixpilot/pkg-a@1.0.1
+    `);
 
     mockGetPackages.mockResolvedValue({
       packages: [
         {
           dir: '/packages/pkg-a',
-          packageJson: { name: 'pkg-a', version: '1.0.0', private: true },
+          packageJson: { name: '@pixpilot/pkg-a', version: '1.0.1', private: false },
+        },
+        {
+          dir: '/packages/pkg-b',
+          packageJson: { name: '@pixpilot/pkg-b', version: '2.0.0', private: false },
+        },
+      ],
+    });
+
+    const result = await publishPackages(branchConfig, npmToken);
+    expect(result).toHaveLength(1);
+    expect(result[0].packageJson.name).toBe('@pixpilot/pkg-a');
+    expect(result[0].packageJson.version).toBe('1.0.1');
+  });
+  test('excludes private packages from released packages', async () => {
+    const branchConfig = { name: 'main', isMatch: true };
+
+    // Mock execSync to show a tag was created for a private package (shouldn't happen in reality)
+    vi.mocked(execSync).mockReturnValue(`
+🦋  Creating git tag...
+🦋  New tag:  @private/pkg-a@1.0.0
+    `);
+
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/packages/pkg-a',
+          packageJson: { name: '@private/pkg-a', version: '1.0.0', private: true },
         },
         {
           dir: '/packages/pkg-b',
@@ -119,6 +126,6 @@ describe('publishPackages', () => {
     });
 
     const result = await publishPackages(branchConfig, npmToken);
-    expect(result).toHaveLength(0); // No packages should be returned since no versions changed
+    expect(result).toHaveLength(0); // Private packages should be excluded
   });
 });

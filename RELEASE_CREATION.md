@@ -1,52 +1,80 @@
-# Release Creation Feature
+# GitHub Release Creation Feature
 
-This document demonstrates the new GitHub release creation feature that has been added to the changesets-autopilot action.
+## Overview
 
-## What was added
+This project now automatically creates GitHub releases for packages that are published via changeset. The feature was implemented by improving the `publishPackages` function to return information about which packages were actually published, and then creating GitHub releases for those packages.
 
-1. **Modified `publishPackages` function** in `src/publisher/publish-packages.ts`:
-   - Now returns an array of `Package` objects representing the packages that were published
-   - Detects published packages by comparing package versions before and after the `changeset publish` command
-   - Excludes private packages from the returned list
+## Implementation Details
 
-2. **Updated main function** in `src/main.ts`:
-   - After publishing packages, creates GitHub releases for each published package
-   - Uses the package name and version to create tag names in the format `package-name@version`
-   - Reads changelog entries from each package's `CHANGELOG.md` file
-   - Creates GitHub releases with the changelog content as the release body
-   - Handles prerelease versions (versions containing hyphens) by marking them as prereleases
+### Package Detection Strategy
 
-3. **Added `createRelease` function** in `src/github/create-release.ts`:
-   - Takes an Octokit instance, package info, tag name, and repository details
-   - Reads the package's CHANGELOG.md file
-   - Extracts the changelog entry for the specific version
-   - Creates a GitHub release with the extracted changelog content
+We use a reliable approach based on the official changesets action to detect which packages were published:
 
-## How it works
+1. **Parse "New tag" output**: When `changeset publish` runs, it outputs lines like `🦋  New tag:  package-name@version` for each published package
+2. **Regex pattern**: We use `/New tag:\s+(@[^/]+\/[^@]+|[^/]+)@([^\s]+)/` to extract package names and versions
+3. **Filter private packages**: We exclude any packages marked as `private: true` in their package.json
 
-The flow now works as follows:
+### Code Changes
 
-1. **Version packages**: `changeset version` updates package.json files with new versions
-2. **Publish packages**: `changeset publish` publishes packages to npm and creates git tags
-3. **Detect published packages**: Compare package versions before/after publish to identify which packages were released
-4. **Push tags**: Push the git tags created by changeset to GitHub
-5. **Create releases**: For each published package, create a GitHub release using the changelog content
+#### `src/publisher/publish-packages.ts`
 
-## Example usage
+- Modified to be `async` and return `Package[]` instead of `void`
+- Uses `execSync` to capture changeset publish output
+- Parses output for "New tag:" lines to identify published packages
+- Filters out private packages from the results
 
-When the action runs and publishes packages, you'll see logs like:
+#### `src/main.ts`
+
+- Updated to handle async `publishPackages`
+- Creates GitHub releases for each published package using `Promise.all`
+- Includes proper error handling with warnings if release creation fails
+- Uses the pattern: `${pkg.packageJson.name}@${pkg.packageJson.version}` for tag names
+
+#### `src/github/create-release.ts`
+
+- Pre-existing function that creates releases by reading CHANGELOG.md
+- Handles both regular and pre-release versions
+- Extracts changelog content for the specific version
+
+### Testing
+
+All functionality is covered by tests:
+
+- `tests/publisher/publish-packages.test.ts`: Tests package detection logic
+- `tests/github/create-release.test.ts`: Tests release creation functionality
+- Both test suites pass successfully
+
+### Usage Flow
+
+1. **Version**: `changeset version` updates package versions and CHANGELOGs
+2. **Git Operations**: Commit and push the version changes
+3. **Publish**: `changeset publish` publishes packages to npm and creates git tags
+4. **Tag Push**: Push the created tags to GitHub
+5. **Release Creation**: Create GitHub releases for each published package using their CHANGELOG content
+
+## Benefits
+
+- **Automatic**: No manual intervention needed to create releases
+- **Reliable**: Uses the same detection method as the official changesets action
+- **Comprehensive**: Creates releases for all published packages
+- **Error Tolerant**: If release creation fails for one package, others still get processed
+- **Changelog Integration**: Uses existing CHANGELOG.md content for release descriptions
+
+## Example Output
+
+When packages are published, you'll see logs like:
 
 ```
-Package @my-org/package-a was published with version 1.2.0
-Package @my-org/package-b was published with version 0.5.1
-Pushing tags created by changeset publish to GitHub...
-Tags pushed successfully
 Creating GitHub releases for published packages...
 Created GitHub release for @my-org/package-a@1.2.0
-Created GitHub release for @my-org/package-b@0.5.1
+Created GitHub release for package-b@2.1.0
 ```
 
-The GitHub releases will be created with:
+If no packages are published:
+
+```
+No packages were published, skipping release creation
+```
 
 - **Name**: `@my-org/package-a@1.2.0`
 - **Tag**: `@my-org/package-a@1.2.0`
