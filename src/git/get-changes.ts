@@ -1,15 +1,15 @@
 import path from 'path';
 
 import * as core from '@actions/core';
+import getReleasePlan from '@changesets/get-release-plan';
+import type { NewChangeset } from '@changesets/types';
 import { getPackages } from '@manypkg/get-packages';
-import simpleGit from 'simple-git';
 
 import type { ChangesMap, PackageChange, Commit } from '../../types/changes';
-import { getChangeTypeAndDescription } from '../utils/commit-parser';
 
 export async function getChangesSinceLastCommit() {
-  const git = simpleGit();
   const { packages } = await getPackages(process.cwd());
+
   // Filter out private packages
   const publicPackages = packages.filter((pkg) => !pkg.packageJson.private);
   const privatePackages = packages.filter((pkg) => pkg.packageJson.private);
@@ -21,178 +21,72 @@ export async function getChangesSinceLastCommit() {
   }
 
   try {
-    // Find the base commit to compare against
-    const baseCommit = await findLastPublishedCommit(git);
-    core.info(`Found base commit for comparison: ${baseCommit}`);
+    // Get the release plan from changesets
+    // This automatically determines what needs to be released based on existing changesets
+    const releasePlan = await getReleasePlan(process.cwd());
 
-    // Get changed files since the base commit
-    const diff = await git.diff([baseCommit, 'HEAD', '--name-only']);
-    const changedFiles = diff.split('\n').filter(Boolean);
+    core.info(`Found ${releasePlan.releases.length} packages to release`);
+    core.info(`Found ${releasePlan.changesets.length} changesets`);
 
-    // Get all commits since the base commit
-    const log = await git.log({
-      from: baseCommit,
-      to: 'HEAD',
-    });
-
-    // Filter commits to only include those that would create publishable changes
-    const publishableCommits: {
-      hash: string;
-      date: string;
-      message: string;
-      refs: string;
-      body: string;
-      author_name: string;
-      author_email: string;
-    }[] = [];
-
-    for (const commit of log.all) {
-      // Skip merge commits and version commits
-      if (isMergeCommit(commit.message) || isVersionOrReleaseCommit(commit.message)) {
-        continue;
-      }
-
-      // Check if this commit would result in a publishable change
-      const { changeType } = getChangeTypeAndDescription(commit.message);
-      if (changeType !== 'none') {
-        publishableCommits.push({
-          hash: commit.hash,
-          date: commit.date,
-          message: commit.message,
-          refs: commit.refs,
-          body: commit.body || '',
-          author_name: commit.author_name,
-          author_email: commit.author_email,
-        });
-      }
-    }
-
-    if (publishableCommits.length === 0) {
-      core.info('No publishable commits found since base commit');
+    // If no releases are planned, return empty
+    if (releasePlan.releases.length === 0) {
+      core.info('No releases planned by changesets');
       return {};
     }
 
-    core.info(
-      `Found ${publishableCommits.length} publishable commits since ${baseCommit}`,
-    );
-
     const changes: ChangesMap = {};
-    // Only process public packages that have actual changes
-    publicPackages.forEach((pkg) => {
-      const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
-      const pkgChangedFiles = changedFiles.filter(
-        (file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`,
-      );
-      if (pkgChangedFiles.length > 0) {
-        changes[pkg.packageJson.name] = {
-          files: pkgChangedFiles,
-          commits: publishableCommits,
-          version: pkg.packageJson.version,
-          private: pkg.packageJson.private ?? false,
-        } as PackageChange;
+
+    // Process each release in the plan
+    for (const release of releasePlan.releases) {
+      // Skip packages with no version change
+      if (release.type === 'none') {
+        continue;
       }
-    });
+
+      // Find the corresponding package
+      const pkg = publicPackages.find((p) => p.packageJson.name === release.name);
+      if (!pkg) {
+        core.warning(`Package ${release.name} not found in workspace packages`);
+        continue;
+      }
+
+      // Get changesets that affect this package
+      const relevantChangesets = releasePlan.changesets.filter(
+        (changeset: NewChangeset) =>
+          changeset.releases.some((r) => r.name === release.name && r.type !== 'none'),
+      );
+
+      // Convert changesets to our Commit format for compatibility
+      const commits: Commit[] = relevantChangesets.map((changeset: NewChangeset) => ({
+        hash: changeset.id, // Use changeset ID as hash
+        date: new Date().toISOString(), // We don't have commit dates from changesets
+        message: changeset.summary,
+        refs: '',
+        body: changeset.summary,
+        author_name: 'changeset',
+        author_email: 'changeset@changesets.dev',
+      }));
+
+      // Since changesets don't track specific files, we'll include the package.json
+      // This is sufficient for the changeset workflow
+      const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
+      const files = [`${pkgPath}/package.json`];
+
+      changes[release.name] = {
+        files,
+        commits,
+        version: release.oldVersion,
+        private: pkg.packageJson.private ?? false,
+      } as PackageChange;
+
+      core.info(
+        `Package ${release.name}: ${release.oldVersion} → ${release.newVersion} (${release.type})`,
+      );
+    }
+
     return changes;
   } catch (error) {
-    core.error('Error getting changes: ' + String(error));
+    core.error('Error getting release plan: ' + String(error));
     return {};
   }
-}
-
-/**
- * Finds the last published commit by looking for release tags or published commits
- */
-async function findLastPublishedCommit(
-  git: ReturnType<typeof simpleGit>,
-): Promise<string> {
-  try {
-    // First, try to find the most recent release tag
-    const tags = await git.tags(['--sort=-version:refname', '--merged']);
-    if (tags.all.length > 0) {
-      // Find the first tag that looks like a version tag
-      for (const tag of tags.all) {
-        if (/^v?\d+\.\d+\.\d+/.test(tag)) {
-          core.info(`Using last release tag as base: ${tag}`);
-          return tag;
-        }
-      }
-    }
-
-    // If no version tags found, look through commit history for the last published commit
-    const log = await git.log({ maxCount: 50 });
-
-    // Look for commits that indicate a published release
-    for (const commit of log.all) {
-      if (isPublishedReleaseCommit(commit.message)) {
-        core.info(`Using last published release commit as base: ${commit.hash}`);
-        return commit.hash;
-      }
-    }
-
-    // If no published commits found, look for the last commit that would create publishable changes
-    // by finding commits that are not version/merge commits
-    for (const [index, commit] of log.all.entries()) {
-      if (!isVersionOrReleaseCommit(commit.message) && !isMergeCommit(commit.message)) {
-        // This might be a publishable commit, but we want to find what was published before it
-        if (index < log.all.length - 1) {
-          core.info(
-            `Using commit before last publishable commit as base: ${log.all[index + 1].hash}`,
-          );
-          return log.all[index + 1].hash;
-        }
-      }
-    }
-
-    // Fallback to HEAD~1 if no clear base found
-    core.info('No clear base commit found, falling back to HEAD~1');
-    return 'HEAD~1';
-  } catch (error) {
-    core.warning(
-      `Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`,
-    );
-    return 'HEAD~1';
-  }
-}
-
-/**
- * Checks if a commit message indicates a version or release commit
- */
-function isVersionOrReleaseCommit(message: string): boolean {
-  const versionPatterns = [
-    /^chore\(release\):/i,
-    /^version packages/i,
-    /^\d+\.\d+\.\d+/,
-    /^v\d+\.\d+\.\d+/,
-    /^release/i,
-    /\[skip ci\]/i,
-    /\[ci skip\]/i,
-    /^bump version/i,
-    /^update version/i,
-    /^prepare release/i,
-  ];
-
-  return versionPatterns.some((pattern) => pattern.test(message.trim()));
-}
-
-/**
- * Checks if a commit message indicates a published release commit
- */
-function isPublishedReleaseCommit(message: string): boolean {
-  const publishedPatterns = [
-    /^chore\(release\):/i,
-    /^version packages/i,
-    /release.*\[skip ci\]/i,
-    /published/i,
-  ];
-
-  return publishedPatterns.some((pattern) => pattern.test(message.trim()));
-}
-
-/**
- * Checks if a commit message indicates a merge commit
- */
-function isMergeCommit(message: string): boolean {
-  const mergePatterns = [/^merge\s+/i, /^merge pull request/i, /^merge branch/i];
-
-  return mergePatterns.some((pattern) => pattern.test(message.trim()));
 }
