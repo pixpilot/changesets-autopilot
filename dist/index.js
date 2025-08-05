@@ -43893,17 +43893,25 @@ async function getChangesSinceLastCommit() {
         coreExports.info('Skipped private packages: ' +
             privatePackages.map((pkg) => pkg.packageJson.name).join(', '));
     }
-    const baseSha = 'HEAD~1';
     try {
-        // Get changed files since last commit
-        const diff = await git.diff([baseSha, 'HEAD', '--name-only']);
+        // Find the last publishable commit by looking back through history
+        const lastPublishableCommit = await findLastPublishableCommit(git);
+        coreExports.info(`Found last publishable commit: ${lastPublishableCommit}`);
+        // Get changed files since the last publishable commit
+        const diff = await git.diff([lastPublishableCommit, 'HEAD', '--name-only']);
         const changedFiles = diff.split('\n').filter(Boolean);
-        // Get commits
+        // Get commits since the last publishable commit
         const log = await git.log({
-            from: baseSha,
+            from: lastPublishableCommit,
             to: 'HEAD',
-            maxCount: 1,
         });
+        // Filter out version/release commits from the log
+        const publishableCommits = log.all.filter((commit) => !isVersionOrReleaseCommit(commit.message));
+        if (publishableCommits.length === 0) {
+            coreExports.info('No publishable commits found since last publishable commit');
+            return {};
+        }
+        coreExports.info(`Found ${publishableCommits.length} publishable commits since ${lastPublishableCommit}`);
         const changes = {};
         // Only process public packages
         publicPackages.forEach((pkg) => {
@@ -43912,7 +43920,7 @@ async function getChangesSinceLastCommit() {
             if (pkgChangedFiles.length > 0) {
                 changes[pkg.packageJson.name] = {
                     files: pkgChangedFiles,
-                    commits: log.all,
+                    commits: publishableCommits,
                     version: pkg.packageJson.version,
                     private: pkg.packageJson.private ?? false,
                 };
@@ -43924,6 +43932,64 @@ async function getChangesSinceLastCommit() {
         coreExports.error('Error getting changes: ' + String(error));
         return {};
     }
+}
+/**
+ * Finds the last publishable commit by looking back through history
+ * and excluding version/release commits created by the action
+ */
+async function findLastPublishableCommit(git) {
+    try {
+        // Get recent commit history (up to 50 commits should be enough)
+        const log = await git.log({ maxCount: 50 });
+        // Look for the first non-version/release commit from the end
+        for (let i = log.all.length - 1; i >= 0; i--) {
+            const commit = log.all[i];
+            if (!isVersionOrReleaseCommit(commit.message)) {
+                // Found a publishable commit, return the commit before it as the base
+                if (i === log.all.length - 1) {
+                    // If it's the oldest commit in our log, use HEAD~1 as fallback
+                    return 'HEAD~1';
+                }
+                return log.all[i + 1].hash;
+            }
+        }
+        // If all recent commits are version/release commits, look for the last tag
+        try {
+            const tags = await git.tags(['--sort=-version:refname']);
+            if (tags.latest) {
+                coreExports.info(`Using last tag as base: ${tags.latest}`);
+                return tags.latest;
+            }
+        }
+        catch (tagError) {
+            coreExports.warning(`Could not get tags: ${String(tagError)}`);
+        }
+        // Fallback to HEAD~1 if no tags found
+        coreExports.info('No publishable commits or tags found, falling back to HEAD~1');
+        return 'HEAD~1';
+    }
+    catch (error) {
+        coreExports.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
+        return 'HEAD~1';
+    }
+}
+/**
+ * Checks if a commit message indicates a version or release commit
+ */
+function isVersionOrReleaseCommit(message) {
+    const versionPatterns = [
+        /^chore\(release\):/i,
+        /^version packages/i,
+        /^\d+\.\d+\.\d+/,
+        /^v\d+\.\d+\.\d+/,
+        /^release/i,
+        /\[skip ci\]/i,
+        /\[ci skip\]/i,
+        /^bump version/i,
+        /^update version/i,
+        /^prepare release/i,
+    ];
+    return versionPatterns.some((pattern) => pattern.test(message.trim()));
 }
 
 const nomatchRegex = /(?!.*)/;
