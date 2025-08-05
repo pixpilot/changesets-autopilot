@@ -82157,16 +82157,6 @@ async function getPackagesToRelease() {
 async function gitVersionAndPush(git, githubToken) {
     let packagesToRelease = [];
     try {
-        // Get packages that will be released BEFORE running changeset version
-        // because changeset version consumes the changeset files
-        packagesToRelease = await getPackagesToRelease();
-        coreExports.info(`Found "${packagesToRelease.map((x) => x.name).join(',')}" packages to be released`);
-    }
-    catch (error) {
-        coreExports.warning(`Failed to get release plan: ${String(error)}`);
-        // Continue with empty array - will use default commit message
-    }
-    try {
         coreExports.info('Running changeset version command...');
         const versionOutput = execSync('npx changeset version', {
             encoding: 'utf8',
@@ -82182,6 +82172,16 @@ async function gitVersionAndPush(git, githubToken) {
     catch (error) {
         coreExports.info(`Error message: ${error.message}`);
         return;
+    }
+    try {
+        // Get packages that will be released BEFORE running changeset version
+        // because changeset version consumes the changeset files
+        packagesToRelease = await getPackagesToRelease();
+        coreExports.info(`Found "${packagesToRelease.map((x) => x.name).join(',')}" packages to be released`);
+    }
+    catch (error) {
+        coreExports.warning(`Failed to get release plan: ${String(error)}`);
+        // Continue with empty array - will use default commit message
     }
     // Get packages information after versioning to create an appropriate commit message
     let commitMessage = DEFAULT_RELEASE_COMMIT_MESSAGE;
