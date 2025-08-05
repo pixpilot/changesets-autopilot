@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { describe, it, beforeEach, expect, vi } from 'vitest';
 
 import * as extractGitTagsModule from '../../src/git/extract-git-tags';
-import { getCommits, Commit } from '../../src/git/get-commits';
+import { getCommits } from '../../src/git/get-commits';
 
 vi.mock('child_process');
 

@@ -25,7 +25,7 @@ export function getTagHead(
       stdio: 'pipe',
     });
     return result.trim();
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }

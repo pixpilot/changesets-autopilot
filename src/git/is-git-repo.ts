@@ -19,7 +19,7 @@ export function isGitRepo(options: IsGitRepoOptions = {}): boolean {
       stdio: 'pipe',
     });
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
