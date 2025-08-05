@@ -4,11 +4,20 @@ import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
 
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../constants/release-commit-message';
-import { getSelectedPackagesInfo } from '../utils/select-packages-info';
-
-import { getChangesSinceLastCommit } from './get-changes';
+import { getPackagesToRelease } from '../utils/get-release-plan';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
+  let packagesToRelease: Awaited<ReturnType<typeof getPackagesToRelease>> = [];
+
+  try {
+    // Get packages that will be released BEFORE running changeset version
+    // because changeset version consumes the changeset files
+    packagesToRelease = await getPackagesToRelease();
+  } catch (error) {
+    core.warning(`Failed to get release plan: ${String(error)}`);
+    // Continue with empty array - will use default commit message
+  }
+
   try {
     core.info('Running changeset version command...');
     const versionOutput = execSync('npx changeset version', {
@@ -30,33 +39,20 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   let commitMessage = DEFAULT_RELEASE_COMMIT_MESSAGE;
 
   try {
-    const { publishablePackages } = await getSelectedPackagesInfo();
-
-    // Get the packages that actually have changes (not just all publishable packages)
-    const changedPackages = await getChangesSinceLastCommit();
-    const changedPackageNames = Object.keys(changedPackages);
-
-    // Filter publishable packages to only include those that have changes
-    const changedPublishablePackages = publishablePackages.filter((pkg) =>
-      changedPackageNames.includes(pkg.packageJson.name),
-    );
-
-    if (changedPublishablePackages.length === 1) {
+    if (packagesToRelease.length === 1) {
       // Single package - include version in title
-      const pkg = changedPublishablePackages[0];
-      commitMessage = `chore(release): ${pkg.packageJson.version} [skip ci]`;
-      core.info(
-        `Creating commit message for single package: ${pkg.packageJson.name}@${pkg.packageJson.version}`,
-      );
-    } else if (changedPublishablePackages.length > 1) {
+      const pkg = packagesToRelease[0];
+      commitMessage = `chore(release): ${pkg.version} [skip ci]`;
+      core.info(`Creating commit message for single package: ${pkg.name}@${pkg.version}`);
+    } else if (packagesToRelease.length > 1) {
       // Multiple packages - add versions to commit body (only changed packages)
-      const packageVersions = changedPublishablePackages
-        .map((pkg) => `${pkg.packageJson.name}@${pkg.packageJson.version}`)
+      const packageVersions = packagesToRelease
+        .map((pkg) => `${pkg.name}@${pkg.version}`)
         .join('\n');
 
       commitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}\n\n${packageVersions}`;
       core.info(
-        `Creating commit message for ${changedPublishablePackages.length} changed packages`,
+        `Creating commit message for ${packagesToRelease.length} changed packages`,
       );
     } else {
       // No changed packages found - use default message
