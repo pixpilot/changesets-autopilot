@@ -51641,16 +51641,40 @@ async function gitVersionAndPush(git, githubToken) {
                 GITHUB_TOKEN: githubToken,
             },
         });
-        coreExports.info(`Version output: ${versionOutput}`);
+        coreExports.info(versionOutput);
         coreExports.info('Changeset version completed successfully');
     }
     catch (error) {
         coreExports.info(`Error message: ${error.message}`);
         return;
     }
+    // Get packages information after versioning to create an appropriate commit message
+    let commitMessage = 'chore(release): version packages [skip ci]';
+    try {
+        const { packages } = await getPackages(process.cwd());
+        const nonPrivatePackages = packages.filter((pkg) => !pkg.packageJson.private);
+        if (nonPrivatePackages.length === 1) {
+            // Single package - include version in title
+            const pkg = nonPrivatePackages[0];
+            commitMessage = `chore(release): ${pkg.packageJson.version} [skip ci]`;
+            coreExports.info(`Creating commit message for single package: ${pkg.packageJson.name}@${pkg.packageJson.version}`);
+        }
+        else if (nonPrivatePackages.length > 1) {
+            // Multiple packages - add versions to commit body
+            const packageVersions = nonPrivatePackages
+                .map((pkg) => `${pkg.packageJson.name}: ${pkg.packageJson.version}`)
+                .join('\n');
+            commitMessage = `chore(release): version packages [skip ci]\n\n${packageVersions}`;
+            coreExports.info(`Creating commit message for ${nonPrivatePackages.length} packages`);
+        }
+    }
+    catch (error) {
+        coreExports.warning(`Failed to get package information for commit message: ${String(error)}`);
+        // Fall back to default message
+    }
     await git.add('.');
     try {
-        await git.commit('chore(release): version packages [skip ci]');
+        await git.commit(commitMessage);
         coreExports.info('Git commit successful');
     }
     catch (e) {

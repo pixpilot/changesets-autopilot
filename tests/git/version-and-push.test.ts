@@ -1,10 +1,21 @@
-import * as child_process from 'child_process';
+import { execSync } from 'child_process';
 
 import * as core from '@actions/core';
+import { getPackages } from '@manypkg/get-packages';
 import type { SimpleGit } from 'simple-git';
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 
 import { gitVersionAndPush } from '../../src/git/version-and-push';
+
+// Mock child_process
+vi.mock('child_process', () => ({
+  execSync: vi.fn(),
+}));
+
+// Mock @manypkg/get-packages
+vi.mock('@manypkg/get-packages', () => ({
+  getPackages: vi.fn(),
+}));
 
 const GITHUB_REPOSITORY = 'owner/repo';
 const GITHUB_REF_NAME = 'main';
@@ -20,60 +31,124 @@ function createMockGit() {
 
 describe('gitVersionAndPush', () => {
   let mockGit: SimpleGit;
-  let coreInfoSpy: ReturnType<typeof vi.spyOn>;
+  let mockExecSync: ReturnType<typeof vi.mocked<typeof execSync>>;
+  let mockGetPackages: ReturnType<typeof vi.mocked<typeof getPackages>>;
 
   beforeEach(() => {
     mockGit = createMockGit();
-    vi.mock('child_process', () => ({
-      execSync: vi.fn(() => undefined),
-    }));
-    coreInfoSpy = vi.spyOn(core, 'info').mockImplementation(() => {});
+    mockExecSync = vi.mocked(execSync);
+    mockGetPackages = vi.mocked(getPackages);
+
+    vi.spyOn(core, 'info').mockImplementation(() => {});
+    vi.spyOn(core, 'warning').mockImplementation(() => {});
+
     process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
     process.env.GITHUB_REF_NAME = GITHUB_REF_NAME;
+
+    // Default mock returns
+    mockExecSync.mockReturnValue('version output' as any);
   });
 
-  // afterEach(() => {
-  //   vi.restoreAllMocks();
-  //   delete process.env.GITHUB_REPOSITORY;
-  //   delete process.env.GITHUB_REF_NAME;
-  // });
+  test('should create single package commit message with version', async () => {
+    // Mock single package scenario
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/test/package',
+          packageJson: {
+            name: 'test-package',
+            version: '1.2.3',
+            private: false,
+          },
+        },
+      ],
+    } as any);
 
-  test('should be a function', () => {
-    expect(typeof gitVersionAndPush).toBe('function');
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.2.3 [skip ci]');
   });
 
-  // test('runs version, add, commit, and push with correct args', async () => {
-  //   await gitVersionAndPush(mockGit, GITHUB_TOKEN);
-  //   expect(child_process.execSync).toHaveBeenCalledWith('npx changeset version', {
-  //     stdio: 'inherit',
-  //   });
-  //   expect(mockGit.add).toHaveBeenCalledWith('.');
-  //   expect(mockGit.commit).toHaveBeenCalledWith(
-  //     'chore(release): version packages [skip ci]',
-  //   );
-  //   expect(mockGit.push).toHaveBeenCalledWith(
-  //     `https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git`,
-  //     `HEAD:${GITHUB_REF_NAME}`,
-  //   );
-  // });
+  test('should create multi-package commit message with versions in body', async () => {
+    // Mock multi-package scenario
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/test/package1',
+          packageJson: {
+            name: 'package1',
+            version: '1.0.3',
+            private: false,
+          },
+        },
+        {
+          dir: '/test/package2',
+          packageJson: {
+            name: 'package2',
+            version: '1.0.4',
+            private: false,
+          },
+        },
+      ],
+    } as any);
 
-  // test('logs info if commit fails', async () => {
-  //   vi.mocked(mockGit.commit).mockRejectedValueOnce(new Error('fail'));
-  //   await gitVersionAndPush(mockGit, GITHUB_TOKEN);
-  //   expect(coreInfoSpy).toHaveBeenCalledWith(
-  //     expect.stringContaining('No changes to commit or commit failed'),
-  //   );
-  // });
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
-  // test('logs info if env vars are missing', async () => {
-  //   delete process.env.GITHUB_REPOSITORY;
-  //   await gitVersionAndPush(mockGit, GITHUB_TOKEN);
-  //   expect(coreInfoSpy).toHaveBeenCalledWith('Missing repo, token, or refName for push.');
-  // });
+    const expectedCommitMessage = `chore(release): version packages [skip ci]
 
-  // test('does not push if githubToken is missing', async () => {
-  //   await gitVersionAndPush(mockGit, '');
-  //   expect(mockGit.push).not.toHaveBeenCalled();
-  //   expect(coreInfoSpy).toHaveBeenCalledWith('Missing repo, token, or refName for push.');
-  // });
+package1: 1.0.3
+package2: 1.0.4`;
+
+    expect(mockGit.commit).toHaveBeenCalledWith(expectedCommitMessage);
+  });
+
+  test('should filter out private packages', async () => {
+    // Mock scenario with private packages
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/test/package1',
+          packageJson: {
+            name: 'package1',
+            version: '1.0.3',
+            private: false,
+          },
+        },
+        {
+          dir: '/test/private-package',
+          packageJson: {
+            name: 'private-package',
+            version: '1.0.0',
+            private: true,
+          },
+        },
+      ],
+    } as any);
+
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.0.3 [skip ci]');
+  });
+
+  test('should use default message if getPackages fails', async () => {
+    mockGetPackages.mockRejectedValue(new Error('Failed to get packages'));
+
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    expect(mockGit.commit).toHaveBeenCalledWith(
+      'chore(release): version packages [skip ci]',
+    );
+  });
+
+  test('should handle changeset version failure', async () => {
+    mockExecSync.mockImplementation(() => {
+      throw new Error('Changeset version failed');
+    });
+
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    expect(mockGit.add).not.toHaveBeenCalled();
+    expect(mockGit.commit).not.toHaveBeenCalled();
+    expect(mockGit.push).not.toHaveBeenCalled();
+  });
 });

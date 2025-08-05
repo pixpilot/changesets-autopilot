@@ -1,7 +1,9 @@
-import { describe, it, beforeEach, expect, vi } from 'vitest';
-import { getCommits, Commit } from '../../src/git/get-commits';
 import { execSync } from 'child_process';
+
+import { describe, it, beforeEach, expect, vi } from 'vitest';
+
 import * as extractGitTagsModule from '../../src/git/extract-git-tags';
+import { getCommits, Commit } from '../../src/git/get-commits';
 
 vi.mock('child_process');
 
@@ -34,7 +36,9 @@ describe('getCommits', () => {
       '---COMMIT-END---',
     ].join('\n');
     mockedExecSync.mockReturnValue(gitLog);
-    vi.spyOn(extractGitTagsModule, 'extractGitTags').mockImplementation((refs) => refs.includes('v1.0.0') ? ['v1.0.0'] : ['v2.0.0']);
+    vi.spyOn(extractGitTagsModule, 'extractGitTags').mockImplementation((refs) =>
+      refs.includes('v1.0.0') ? ['v1.0.0'] : ['v2.0.0'],
+    );
     const commits = getCommits('abc', 'def');
     expect(commits).toHaveLength(2);
     expect(commits[0]).toMatchObject({
@@ -67,7 +71,9 @@ describe('getCommits', () => {
 
   it('throws error if execSync fails', () => {
     const error = new Error('git error');
-    mockedExecSync.mockImplementation(() => { throw error; });
+    mockedExecSync.mockImplementation(() => {
+      throw error;
+    });
     expect(() => getCommits()).toThrow('Failed to get commits: git error');
   });
 });

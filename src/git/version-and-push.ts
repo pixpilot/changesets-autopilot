@@ -1,6 +1,7 @@
 import { execSync } from 'child_process';
 
 import * as core from '@actions/core';
+import { getPackages } from '@manypkg/get-packages';
 import type { SimpleGit } from 'simple-git';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
@@ -14,16 +15,46 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
         GITHUB_TOKEN: githubToken,
       },
     });
-    core.info(`Version output: ${versionOutput}`);
+    core.info(versionOutput);
     core.info('Changeset version completed successfully');
   } catch (error) {
     core.info(`Error message: ${(error as Error).message}`);
     return;
   }
 
+  // Get packages information after versioning to create an appropriate commit message
+  let commitMessage = 'chore(release): version packages [skip ci]';
+
+  try {
+    const { packages } = await getPackages(process.cwd());
+    const nonPrivatePackages = packages.filter((pkg) => !pkg.packageJson.private);
+
+    if (nonPrivatePackages.length === 1) {
+      // Single package - include version in title
+      const pkg = nonPrivatePackages[0];
+      commitMessage = `chore(release): ${pkg.packageJson.version} [skip ci]`;
+      core.info(
+        `Creating commit message for single package: ${pkg.packageJson.name}@${pkg.packageJson.version}`,
+      );
+    } else if (nonPrivatePackages.length > 1) {
+      // Multiple packages - add versions to commit body
+      const packageVersions = nonPrivatePackages
+        .map((pkg) => `${pkg.packageJson.name}: ${pkg.packageJson.version}`)
+        .join('\n');
+
+      commitMessage = `chore(release): version packages [skip ci]\n\n${packageVersions}`;
+      core.info(`Creating commit message for ${nonPrivatePackages.length} packages`);
+    }
+  } catch (error) {
+    core.warning(
+      `Failed to get package information for commit message: ${String(error)}`,
+    );
+    // Fall back to default message
+  }
+
   await git.add('.');
   try {
-    await git.commit('chore(release): version packages [skip ci]');
+    await git.commit(commitMessage);
     core.info('Git commit successful');
   } catch (e) {
     core.info(`Git commit failed: ${String(e)}`);
