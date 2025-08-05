@@ -3,6 +3,13 @@ import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Mock all external dependencies
 vi.mock('@actions/core');
+vi.mock('@octokit/rest', () => ({
+  Octokit: vi.fn(() => ({
+    repos: {
+      createRelease: vi.fn(),
+    },
+  })),
+}));
 vi.mock('fs', () => ({ default: { existsSync: vi.fn() } }));
 vi.mock('child_process', () => ({ execSync: vi.fn() }));
 vi.mock('simple-git', () => ({ default: vi.fn(() => ({ addConfig: vi.fn() })) }));
@@ -16,6 +23,7 @@ vi.mock('../src/changeset/ensure-changesets');
 vi.mock('../src/changeset/configure-prerelease-mode');
 vi.mock('../src/git/version-and-push');
 vi.mock('../src/publisher/publish-packages');
+vi.mock('../src/github/create-release');
 
 describe('main.js', () => {
   let mockGetActionInputs: MockedFunction<any>;
@@ -26,6 +34,7 @@ describe('main.js', () => {
   let mockConfigurePrereleaseMode: MockedFunction<any>;
   let mockGitVersionAndPush: MockedFunction<any>;
   let mockPublishPackages: MockedFunction<any>;
+  let mockCreateRelease: MockedFunction<any>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -44,6 +53,7 @@ describe('main.js', () => {
     );
     const gitVersionAndPushModule = await import('../src/git/version-and-push');
     const publishPackagesModule = await import('../src/publisher/publish-packages');
+    const createReleaseModule = await import('../src/github/create-release');
 
     mockGetActionInputs = vi.mocked(getActionInputsModule.getActionInputs);
     mockGetBranchConfig = vi.mocked(getBranchConfigModule.getBranchConfig);
@@ -57,6 +67,7 @@ describe('main.js', () => {
     );
     mockGitVersionAndPush = vi.mocked(gitVersionAndPushModule.gitVersionAndPush);
     mockPublishPackages = vi.mocked(publishPackagesModule.publishPackages);
+    mockCreateRelease = vi.mocked(createReleaseModule.createRelease);
 
     // Default return values
     mockGetActionInputs.mockReturnValue({
@@ -67,14 +78,21 @@ describe('main.js', () => {
     });
     mockGetBranchConfig.mockReturnValue({ name: 'main', isMatch: true });
     mockValidateBranchConfiguration.mockReturnValue(true);
-    mockConfigureGit.mockResolvedValue({ addConfig: vi.fn() });
+    mockConfigureGit.mockResolvedValue({
+      addConfig: vi.fn(),
+      pushTags: vi.fn().mockResolvedValue(undefined),
+    });
     mockEnsureChangesets.mockResolvedValue(true);
+    mockPublishPackages.mockResolvedValue([]);
+    mockCreateRelease.mockResolvedValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
+    process.env.GITHUB_REPOSITORY = 'owner/repo';
   });
 
   afterEach(() => {
     delete process.env.GITHUB_REF_NAME;
+    delete process.env.GITHUB_REPOSITORY;
   });
 
   test('should skip processing for unconfigured branch', async () => {

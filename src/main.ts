@@ -1,9 +1,11 @@
 import * as core from '@actions/core';
+import { Octokit } from '@octokit/rest';
 
 import { configurePrereleaseMode, ensureChangesets } from './changeset';
 import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
 import { configureGit, gitVersionAndPush } from './git';
+import { createRelease } from './github/create-release';
 import { publishPackages } from './publisher';
 
 /**
@@ -39,15 +41,39 @@ export async function run(): Promise<void> {
 
       // Publish to npm if token is provided
       if (npmToken) {
-        publishPackages(branchConfig, npmToken);
+        const releasedPackages = await publishPackages(branchConfig, npmToken);
         core.info('Packages published successfully!');
+
         // NOW push the tags that were created by changeset publish
         const repo = process.env.GITHUB_REPOSITORY;
         if (repo && githubToken) {
           try {
             core.info('Pushing tags created by changeset publish to GitHub...');
             await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-            core.info('Tags pushed successfully - GitHub releases should be created');
+            core.info('Tags pushed successfully');
+
+            // Create GitHub releases for published packages
+            if (releasedPackages.length > 0) {
+              core.info('Creating GitHub releases for published packages...');
+              const octokit = new Octokit({ auth: githubToken });
+              const [owner, repoName] = repo.split('/');
+
+              await Promise.all(
+                releasedPackages.map(async (pkg) => {
+                  const tagName = `${pkg.packageJson.name}@${pkg.packageJson.version}`;
+                  try {
+                    await createRelease(octokit, { pkg, tagName, owner, repo: repoName });
+                    core.info(`Created GitHub release for ${tagName}`);
+                  } catch (error) {
+                    core.warning(
+                      `Failed to create release for ${tagName}: ${String(error)}`,
+                    );
+                  }
+                }),
+              );
+            } else {
+              core.info('No packages were published, skipping release creation');
+            }
           } catch (error) {
             core.warning(`Failed to push tags: ${String(error)}`);
           }
