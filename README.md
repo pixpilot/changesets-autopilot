@@ -117,6 +117,29 @@ This action uses [Conventional Commits](https://www.conventionalcommits.org/) to
 5. **Versions packages** using changeset tooling
 6. **Publishes to npm** with appropriate dist-tags
 
+## Versioning Examples
+
+### Single Package Repository
+
+```bash
+# Commit: feat: add new feature
+# Result: 1.2.0 -> 1.3.0
+# Release commit: "chore(release): 1.3.0 [skip ci]"
+```
+
+### Monorepo (Multiple Packages)
+
+```bash
+# Commit: feat: add dashboard to ui package
+# Result:
+#   @my-org/ui: 1.0.0 -> 1.1.0
+#   @my-org/core: unchanged
+# Release commit:
+#   "chore(release): bump package versions [skip ci]
+#
+#   @my-org/ui@1.1.0"
+```
+
 ## Requirements
 
 - Node.js 20+
