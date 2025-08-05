@@ -9,4 +9,6 @@ export interface ActionInputs {
   npmToken: string;
   botName: string;
   branches: (string | BranchConfig)[];
+  createRelease: boolean;
+  pushTags: boolean;
 }

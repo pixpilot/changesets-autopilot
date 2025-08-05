@@ -49,6 +49,7 @@ jobs:
 | `NPM_TOKEN` | NPM token for publishing | ✅ | - |
 | `BOT_NAME` | Bot name for commits | ❌ | `changesets-autopilot` |
 | `BRANCHES` | Branch configuration (YAML array) | ❌ | See below |
+| `CREATE_RELEASE` | Enable or disable GitHub release creation | ❌ | `true` |
 
 **Default BRANCHES configuration:**
 ```yaml

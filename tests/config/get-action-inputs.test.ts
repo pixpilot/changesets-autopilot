@@ -32,6 +32,8 @@ describe('getActionInputs', () => {
       npmToken: 'npm-token',
       botName: 'changesets-autopilot',
       branches: ['main', { name: 'next', prerelease: 'rc', channel: 'next' }],
+      createRelease: true,
+      pushTags: true,
     });
   });
 

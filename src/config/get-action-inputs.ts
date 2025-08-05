@@ -26,10 +26,16 @@ export function getActionInputs(): ActionInputs {
     );
     branches = ['main', { name: 'next', prerelease: 'rc', channel: 'next' }];
   }
+  const shouldCreateReleaseInput = core.getInput('CREATE_RELEASE') || 'true';
+  const shouldCreateRelease = shouldCreateReleaseInput.toLowerCase() === 'true';
+  const shouldPushTagsInput = core.getInput('PUSH_TAGS') || 'true';
+  const pushTags = shouldPushTagsInput.toLowerCase() === 'true';
   return {
     githubToken: core.getInput('GITHUB_TOKEN', { required: true }),
     npmToken: core.getInput('NPM_TOKEN', { required: true }),
     botName: core.getInput('BOT_NAME') || 'changesets-autopilot',
     branches,
+    createRelease: shouldCreateRelease,
+    pushTags,
   };
 }

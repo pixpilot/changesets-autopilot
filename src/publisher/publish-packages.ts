@@ -5,6 +5,7 @@ import { getPackages } from '@manypkg/get-packages';
 
 import type { ResolvedBranchConfig } from '../config/get-branch-config';
 import type { Package } from '../github/create-release';
+import { parsePublishedPackageNames } from '../utils/parse-published-packages';
 
 export async function publishPackages(
   branchConfig: ResolvedBranchConfig,
@@ -25,20 +26,10 @@ export async function publishPackages(
 
   core.info(publishOutput); // Display the full output in the logs
 
-  // Parse the output to find published packages using the "New tag:" approach
-  const publishedPackageNames = new Set<string>();
-  const lines = publishOutput.split('\n');
-
-  // Look for "New tag:" lines which indicate a package was published
-  const newTagRegex = /New tag:\s+(@[^/]+\/[^@]+|[^/]+)@([^\s]+)/;
-
-  for (const line of lines) {
-    const match = newTagRegex.exec(line);
-    if (match) {
-      const pkgName = match[1];
-      publishedPackageNames.add(pkgName);
-      core.info(`Detected published package from tag: ${pkgName}`);
-    }
+  // Use utility to parse published package names
+  const publishedPackageNames = parsePublishedPackageNames(publishOutput);
+  for (const pkgName of publishedPackageNames) {
+    core.info(`Detected published package from tag: ${pkgName}`);
   }
 
   // Get current packages info and filter to only published ones
