@@ -43883,115 +43883,6 @@ function gitInstanceFactory(baseDir, options) {
 init_git_response_error();
 var esm_default = gitInstanceFactory;
 
-async function getChangesSinceLastCommit() {
-    const git = esm_default();
-    const { packages } = await getPackages(process.cwd());
-    // Filter out private packages
-    const publicPackages = packages.filter((pkg) => !pkg.packageJson.private);
-    const privatePackages = packages.filter((pkg) => pkg.packageJson.private);
-    if (privatePackages.length > 0) {
-        coreExports.info('Skipped private packages: ' +
-            privatePackages.map((pkg) => pkg.packageJson.name).join(', '));
-    }
-    try {
-        // Find the last publishable commit by looking back through history
-        const lastPublishableCommit = await findLastPublishableCommit(git);
-        coreExports.info(`Found last publishable commit: ${lastPublishableCommit}`);
-        // Get changed files since the last publishable commit
-        const diff = await git.diff([lastPublishableCommit, 'HEAD', '--name-only']);
-        const changedFiles = diff.split('\n').filter(Boolean);
-        // Get commits since the last publishable commit
-        const log = await git.log({
-            from: lastPublishableCommit,
-            to: 'HEAD',
-        });
-        // Filter out version/release commits from the log
-        const publishableCommits = log.all.filter((commit) => !isVersionOrReleaseCommit(commit.message));
-        if (publishableCommits.length === 0) {
-            coreExports.info('No publishable commits found since last publishable commit');
-            return {};
-        }
-        coreExports.info(`Found ${publishableCommits.length} publishable commits since ${lastPublishableCommit}`);
-        const changes = {};
-        // Only process public packages
-        publicPackages.forEach((pkg) => {
-            const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
-            const pkgChangedFiles = changedFiles.filter((file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`);
-            if (pkgChangedFiles.length > 0) {
-                changes[pkg.packageJson.name] = {
-                    files: pkgChangedFiles,
-                    commits: publishableCommits,
-                    version: pkg.packageJson.version,
-                    private: pkg.packageJson.private ?? false,
-                };
-            }
-        });
-        return changes;
-    }
-    catch (error) {
-        coreExports.error('Error getting changes: ' + String(error));
-        return {};
-    }
-}
-/**
- * Finds the last publishable commit by looking back through history
- * and excluding version/release commits created by the action
- */
-async function findLastPublishableCommit(git) {
-    try {
-        // Get recent commit history (up to 50 commits should be enough)
-        const log = await git.log({ maxCount: 50 });
-        // Look for the first non-version/release commit from the end
-        for (let i = log.all.length - 1; i >= 0; i--) {
-            const commit = log.all[i];
-            if (!isVersionOrReleaseCommit(commit.message)) {
-                // Found a publishable commit, return the commit before it as the base
-                if (i === log.all.length - 1) {
-                    // If it's the oldest commit in our log, use HEAD~1 as fallback
-                    return 'HEAD~1';
-                }
-                return log.all[i + 1].hash;
-            }
-        }
-        // If all recent commits are version/release commits, look for the last tag
-        try {
-            const tags = await git.tags(['--sort=-version:refname']);
-            if (tags.latest) {
-                coreExports.info(`Using last tag as base: ${tags.latest}`);
-                return tags.latest;
-            }
-        }
-        catch (tagError) {
-            coreExports.warning(`Could not get tags: ${String(tagError)}`);
-        }
-        // Fallback to HEAD~1 if no tags found
-        coreExports.info('No publishable commits or tags found, falling back to HEAD~1');
-        return 'HEAD~1';
-    }
-    catch (error) {
-        coreExports.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
-        return 'HEAD~1';
-    }
-}
-/**
- * Checks if a commit message indicates a version or release commit
- */
-function isVersionOrReleaseCommit(message) {
-    const versionPatterns = [
-        /^chore\(release\):/i,
-        /^version packages/i,
-        /^\d+\.\d+\.\d+/,
-        /^v\d+\.\d+\.\d+/,
-        /^release/i,
-        /\[skip ci\]/i,
-        /\[ci skip\]/i,
-        /^bump version/i,
-        /^update version/i,
-        /^prepare release/i,
-    ];
-    return versionPatterns.some((pattern) => pattern.test(message.trim()));
-}
-
 const nomatchRegex = /(?!.*)/;
 function join(parts, joiner) {
     return parts
@@ -44516,6 +44407,158 @@ function getChangeTypeAndDescription(message) {
             description: message,
         };
     }
+}
+
+async function getChangesSinceLastCommit() {
+    const git = esm_default();
+    const { packages } = await getPackages(process.cwd());
+    // Filter out private packages
+    const publicPackages = packages.filter((pkg) => !pkg.packageJson.private);
+    const privatePackages = packages.filter((pkg) => pkg.packageJson.private);
+    if (privatePackages.length > 0) {
+        coreExports.info('Skipped private packages: ' +
+            privatePackages.map((pkg) => pkg.packageJson.name).join(', '));
+    }
+    try {
+        // Find the base commit to compare against
+        const baseCommit = await findLastPublishedCommit(git);
+        coreExports.info(`Found base commit for comparison: ${baseCommit}`);
+        // Get changed files since the base commit
+        const diff = await git.diff([baseCommit, 'HEAD', '--name-only']);
+        const changedFiles = diff.split('\n').filter(Boolean);
+        // Get all commits since the base commit
+        const log = await git.log({
+            from: baseCommit,
+            to: 'HEAD',
+        });
+        // Filter commits to only include those that would create publishable changes
+        const publishableCommits = [];
+        for (const commit of log.all) {
+            // Skip merge commits and version commits
+            if (isMergeCommit(commit.message) || isVersionOrReleaseCommit(commit.message)) {
+                continue;
+            }
+            // Check if this commit would result in a publishable change
+            const { changeType } = getChangeTypeAndDescription(commit.message);
+            if (changeType !== 'none') {
+                publishableCommits.push({
+                    hash: commit.hash,
+                    date: commit.date,
+                    message: commit.message,
+                    refs: commit.refs,
+                    body: commit.body || '',
+                    author_name: commit.author_name,
+                    author_email: commit.author_email,
+                });
+            }
+        }
+        if (publishableCommits.length === 0) {
+            coreExports.info('No publishable commits found since base commit');
+            return {};
+        }
+        coreExports.info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
+        const changes = {};
+        // Only process public packages that have actual changes
+        publicPackages.forEach((pkg) => {
+            const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
+            const pkgChangedFiles = changedFiles.filter((file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`);
+            if (pkgChangedFiles.length > 0) {
+                changes[pkg.packageJson.name] = {
+                    files: pkgChangedFiles,
+                    commits: publishableCommits,
+                    version: pkg.packageJson.version,
+                    private: pkg.packageJson.private ?? false,
+                };
+            }
+        });
+        return changes;
+    }
+    catch (error) {
+        coreExports.error('Error getting changes: ' + String(error));
+        return {};
+    }
+}
+/**
+ * Finds the last published commit by looking for release tags or published commits
+ */
+async function findLastPublishedCommit(git) {
+    try {
+        // First, try to find the most recent release tag
+        const tags = await git.tags(['--sort=-version:refname', '--merged']);
+        if (tags.all.length > 0) {
+            // Find the first tag that looks like a version tag
+            for (const tag of tags.all) {
+                if (/^v?\d+\.\d+\.\d+/.test(tag)) {
+                    coreExports.info(`Using last release tag as base: ${tag}`);
+                    return tag;
+                }
+            }
+        }
+        // If no version tags found, look through commit history for the last published commit
+        const log = await git.log({ maxCount: 50 });
+        // Look for commits that indicate a published release
+        for (const commit of log.all) {
+            if (isPublishedReleaseCommit(commit.message)) {
+                coreExports.info(`Using last published release commit as base: ${commit.hash}`);
+                return commit.hash;
+            }
+        }
+        // If no published commits found, look for the last commit that would create publishable changes
+        // by finding commits that are not version/merge commits
+        for (const [index, commit] of log.all.entries()) {
+            if (!isVersionOrReleaseCommit(commit.message) && !isMergeCommit(commit.message)) {
+                // This might be a publishable commit, but we want to find what was published before it
+                if (index < log.all.length - 1) {
+                    coreExports.info(`Using commit before last publishable commit as base: ${log.all[index + 1].hash}`);
+                    return log.all[index + 1].hash;
+                }
+            }
+        }
+        // Fallback to HEAD~1 if no clear base found
+        coreExports.info('No clear base commit found, falling back to HEAD~1');
+        return 'HEAD~1';
+    }
+    catch (error) {
+        coreExports.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
+        return 'HEAD~1';
+    }
+}
+/**
+ * Checks if a commit message indicates a version or release commit
+ */
+function isVersionOrReleaseCommit(message) {
+    const versionPatterns = [
+        /^chore\(release\):/i,
+        /^version packages/i,
+        /^\d+\.\d+\.\d+/,
+        /^v\d+\.\d+\.\d+/,
+        /^release/i,
+        /\[skip ci\]/i,
+        /\[ci skip\]/i,
+        /^bump version/i,
+        /^update version/i,
+        /^prepare release/i,
+    ];
+    return versionPatterns.some((pattern) => pattern.test(message.trim()));
+}
+/**
+ * Checks if a commit message indicates a published release commit
+ */
+function isPublishedReleaseCommit(message) {
+    const publishedPatterns = [
+        /^chore\(release\):/i,
+        /^version packages/i,
+        /release.*\[skip ci\]/i,
+        /published/i,
+    ];
+    return publishedPatterns.some((pattern) => pattern.test(message.trim()));
+}
+/**
+ * Checks if a commit message indicates a merge commit
+ */
+function isMergeCommit(message) {
+    const mergePatterns = [/^merge\s+/i, /^merge pull request/i, /^merge branch/i];
+    return mergePatterns.some((pattern) => pattern.test(message.trim()));
 }
 
 /**
