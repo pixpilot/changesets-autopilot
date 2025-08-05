@@ -14,7 +14,7 @@ import { changesetDir } from './changesets';
 export function configurePrereleaseMode(branchConfig: ResolvedBranchConfig): void {
   // Debug logging for environment and paths
   core.info(
-    `DEBUG: configurePrereleaseMode - Current working directory: ${process.cwd()}`,
+    `DEBUG: configurePrereleaseMode - Current working directory : ${process.cwd()}`,
   );
   core.info(`DEBUG: configurePrereleaseMode - changesetDir: ${changesetDir}`);
 

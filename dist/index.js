@@ -44647,7 +44647,7 @@ async function ensureChangesets() {
  */
 function configurePrereleaseMode(branchConfig) {
     // Debug logging for environment and paths
-    coreExports.info(`DEBUG: configurePrereleaseMode - Current working directory: ${process.cwd()}`);
+    coreExports.info(`DEBUG: configurePrereleaseMode - Current working directory : ${process.cwd()}`);
     coreExports.info(`DEBUG: configurePrereleaseMode - changesetDir: ${changesetDir}`);
     coreExports.info(`DEBUG: configurePrereleaseMode called with branch config - name: ${branchConfig.name}, prerelease: ${branchConfig.prerelease}, channel: ${branchConfig.channel}, isMatch: ${branchConfig.isMatch}`);
     const preJsonPath = path$1.join(changesetDir, 'pre.json');
