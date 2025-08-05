@@ -18,6 +18,11 @@ vi.mock('@manypkg/get-packages', () => ({
   getPackages: vi.fn(),
 }));
 
+// Mock get-changes
+vi.mock('../../src/git/get-changes', () => ({
+  getChangesSinceLastCommit: vi.fn(),
+}));
+
 const GITHUB_REPOSITORY = 'owner/repo';
 const GITHUB_REF_NAME = 'main';
 const GITHUB_TOKEN = 'gh_token';
@@ -65,6 +70,17 @@ describe('gitVersionAndPush', () => {
       ],
     } as any);
 
+    // Mock that this package has changes
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    vi.mocked(getChangesSinceLastCommit).mockResolvedValue({
+      'test-package': {
+        files: ['test-package/src/index.ts'],
+        commits: [],
+        version: '1.2.3',
+        private: false,
+      },
+    } as any);
+
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.2.3 [skip ci]');
@@ -91,6 +107,23 @@ describe('gitVersionAndPush', () => {
           },
         },
       ],
+    } as any);
+
+    // Mock that both packages have changes
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    vi.mocked(getChangesSinceLastCommit).mockResolvedValue({
+      package1: {
+        files: ['package1/src/index.ts'],
+        commits: [],
+        version: '1.0.3',
+        private: false,
+      },
+      package2: {
+        files: ['package2/src/index.ts'],
+        commits: [],
+        version: '1.0.4',
+        private: false,
+      },
     } as any);
 
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
@@ -126,6 +159,17 @@ package2@1.0.4`;
       ],
     } as any);
 
+    // Mock that only the public package has changes
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    vi.mocked(getChangesSinceLastCommit).mockResolvedValue({
+      package1: {
+        files: ['package1/src/index.ts'],
+        commits: [],
+        version: '1.0.3',
+        private: false,
+      },
+    } as any);
+
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.0.3 [skip ci]');
@@ -137,6 +181,88 @@ package2@1.0.4`;
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
+  });
+
+  test('should use default message when no packages have changes', async () => {
+    // Mock packages but no changes
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/test/package1',
+          packageJson: {
+            name: 'package1',
+            version: '1.0.3',
+            private: false,
+          },
+        },
+      ],
+    } as any);
+
+    // Mock empty changes (no packages changed)
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    vi.mocked(getChangesSinceLastCommit).mockResolvedValue({});
+
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
+  });
+
+  test('should only include changed packages in monorepo commit message', async () => {
+    // Mock monorepo with multiple packages
+    mockGetPackages.mockResolvedValue({
+      packages: [
+        {
+          dir: '/test/package1',
+          packageJson: {
+            name: 'package1',
+            version: '1.0.3',
+            private: false,
+          },
+        },
+        {
+          dir: '/test/package2',
+          packageJson: {
+            name: 'package2',
+            version: '1.0.4',
+            private: false,
+          },
+        },
+        {
+          dir: '/test/package3',
+          packageJson: {
+            name: 'package3',
+            version: '1.0.5',
+            private: false,
+          },
+        },
+      ],
+    } as any);
+
+    // Mock that only package1 and package3 have changes (package2 is not changed)
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    vi.mocked(getChangesSinceLastCommit).mockResolvedValue({
+      package1: {
+        files: ['package1/src/index.ts'],
+        commits: [],
+        version: '1.0.3',
+        private: false,
+      },
+      package3: {
+        files: ['package3/src/index.ts'],
+        commits: [],
+        version: '1.0.5',
+        private: false,
+      },
+    } as any);
+
+    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+
+    const expectedCommitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}
+
+package1@1.0.3
+package3@1.0.5`;
+
+    expect(mockGit.commit).toHaveBeenCalledWith(expectedCommitMessage);
   });
 
   test('should handle changeset version failure', async () => {
