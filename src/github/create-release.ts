@@ -25,21 +25,59 @@ function getChangelogEntry(changelog: string, version: string) {
   const lines = changelog.split('\n');
   let start = -1;
   let end = lines.length;
+  let changeLevel = 'Unknown';
+
+  // Find the version section
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith(`#`) && lines[i].includes(version)) {
+    const trimmedLine = lines[i].trim();
+    if (trimmedLine.startsWith('## ') && trimmedLine.includes(version)) {
       start = i;
+
+      // Look for the next version section to determine the end
       for (let j = i + 1; j < lines.length; j++) {
-        if (lines[j].trim().startsWith(`#`)) {
+        const nextTrimmedLine = lines[j].trim();
+        if (nextTrimmedLine.startsWith('## ')) {
           end = j;
+          break;
+        }
+      }
+
+      // Detect the change level (Major, Minor, Patch Changes)
+      for (let k = i + 1; k < end; k++) {
+        const line = lines[k].trim();
+        if (line.startsWith('### ')) {
+          if (line.includes('Major Changes')) {
+            changeLevel = 'Major Changes';
+          } else if (line.includes('Minor Changes')) {
+            changeLevel = 'Minor Changes';
+          } else if (line.includes('Patch Changes')) {
+            changeLevel = 'Patch Changes';
+          }
           break;
         }
       }
       break;
     }
   }
+
   if (start === -1) return null;
+
+  // Extract content starting from after the version header
+  const contentLines = lines.slice(start + 1, end);
+
+  // Remove empty lines at the beginning
+  while (contentLines.length > 0 && contentLines[0].trim() === '') {
+    contentLines.shift();
+  }
+
+  // Remove empty lines at the end
+  while (contentLines.length > 0 && contentLines[contentLines.length - 1].trim() === '') {
+    contentLines.pop();
+  }
+
   return {
-    content: lines.slice(start, end).join('\n'),
+    content: contentLines.join('\n'),
+    changeLevel,
     highestLevel: 0,
   };
 }
@@ -77,12 +115,17 @@ export const createRelease = async (
     );
   }
 
+  // Create a formatted release body
+  const releaseBody = `## ${changelogEntry.changeLevel}
+
+${changelogEntry.content}`;
+
   await octokit.repos.createRelease({
     owner,
     repo,
     name: tagName,
     tag_name: tagName,
-    body: changelogEntry.content,
+    body: releaseBody,
     prerelease: pkg.packageJson.version.includes('-'),
   });
 };

@@ -35,14 +35,14 @@ describe('createRelease', () => {
 
 ## 1.0.0
 
-### Features
+### Patch Changes
 
 - Added new feature
 - Fixed bug
 
 ## 0.9.0
 
-### Features
+### Minor Changes
 
 - Previous version
 `;
@@ -65,7 +65,7 @@ describe('createRelease', () => {
       repo: 'test-repo',
       name: 'test-pkg@1.0.0',
       tag_name: 'test-pkg@1.0.0',
-      body: expect.stringContaining('## 1.0.0'),
+      body: expect.stringContaining('## Patch Changes'),
       prerelease: false,
     });
   });
@@ -84,7 +84,7 @@ describe('createRelease', () => {
 
 ## 1.0.0-beta.1
 
-### Features
+### Major Changes
 
 - Beta feature
 `;
@@ -143,7 +143,7 @@ describe('createRelease', () => {
 
 ## 0.9.0
 
-### Features
+### Minor Changes
 
 - Previous version
 `;
@@ -158,5 +158,57 @@ describe('createRelease', () => {
         repo: 'test-repo',
       }),
     ).rejects.toThrow('Could not find changelog entry for test-pkg@1.0.0');
+  });
+
+  test('detects different change levels correctly', async () => {
+    const testCases = [
+      { changeLevel: 'Major Changes', expectedBody: '## Major Changes' },
+      { changeLevel: 'Minor Changes', expectedBody: '## Minor Changes' },
+      { changeLevel: 'Patch Changes', expectedBody: '## Patch Changes' },
+    ];
+
+    for (const { changeLevel, expectedBody } of testCases) {
+      const pkg = {
+        dir: '/packages/test-pkg',
+        packageJson: {
+          name: 'test-pkg',
+          version: '2.0.0',
+          private: false,
+        },
+      };
+
+      const changelogContent = `# Changelog
+
+## 2.0.0
+
+### ${changeLevel}
+
+- Test change for ${changeLevel}
+
+## 1.0.0
+
+### Patch Changes
+
+- Previous version
+`;
+
+      mockFs.readFile.mockResolvedValue(changelogContent);
+
+      await createRelease(mockOctokit, {
+        pkg,
+        tagName: 'test-pkg@2.0.0',
+        owner: 'test-owner',
+        repo: 'test-repo',
+      });
+
+      expect(mockOctokit.repos.createRelease).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining(expectedBody),
+        }),
+      );
+
+      vi.clearAllMocks();
+      mockOctokit.repos.createRelease = vi.fn().mockResolvedValue({ data: { id: 123 } });
+    }
   });
 });
