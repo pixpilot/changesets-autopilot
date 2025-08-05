@@ -11,34 +11,32 @@ import { processChanges } from './process-changes';
 export async function ensureChangesets(): Promise<boolean> {
   let hasChangesetFiles = checkForChangesetFiles();
 
+  // if (!hasChangesetFiles) {
+  core.info('No existing changesets found. Running autopilot to create release notes...');
+  await processChanges();
+
+  // After creating changesets, check for ANY changeset files (including auto-generated ones)
+  const allFiles = getAllChangesetFiles();
+  hasChangesetFiles = allFiles.length > 0;
+
   if (!hasChangesetFiles) {
-    core.info(
-      'No existing changesets found. Running autopilot to create release notes...',
-    );
-    await processChanges();
-
-    // After creating changesets, check for ANY changeset files (including auto-generated ones)
-    const allFiles = getAllChangesetFiles();
-    hasChangesetFiles = allFiles.length > 0;
-
-    if (!hasChangesetFiles) {
-      core.info('No changes detected that require versioning.');
-    }
-  } else {
-    // Show all changeset files (including auto-generated ones) for transparency
-    const foundFiles = getAllChangesetFiles();
-    const autoFiles = foundFiles.filter((file) => file.startsWith('auto-generated-at-'));
-
-    core.info(
-      `Existing changesets found. No need to create new ones.\nList of found changeset files: ${foundFiles.length ? foundFiles.join(', ') : 'None'}`,
-    );
-
-    if (autoFiles.length > 0) {
-      core.info(
-        `Note: ${autoFiles.length} auto-generated files from previous runs will be cleaned up after publishing.`,
-      );
-    }
+    core.info('No changes detected that require versioning.');
   }
+  // } else {
+  //   // Show all changeset files (including auto-generated ones) for transparency
+  //   const foundFiles = getAllChangesetFiles();
+  //   const autoFiles = foundFiles.filter((file) => file.startsWith('auto-generated-at-'));
+
+  //   core.info(
+  //     `Existing changesets found. No need to create new ones.\nList of found changeset files: ${foundFiles.length ? foundFiles.join(', ') : 'None'}`,
+  //   );
+
+  //   if (autoFiles.length > 0) {
+  //     core.info(
+  //       `Note: ${autoFiles.length} auto-generated files from previous runs will be cleaned up after publishing.`,
+  //     );
+  //   }
+  // }
 
   return hasChangesetFiles;
 }
