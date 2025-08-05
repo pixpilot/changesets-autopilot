@@ -63,7 +63,21 @@ describe('getChangesSinceLastCommit', () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue('packages/pkg-a/file.js\npackages/pkg-b/file.js'),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
@@ -94,7 +108,21 @@ describe('getChangesSinceLastCommit', () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue('packages/pkg-a/file.js'),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
@@ -121,7 +149,21 @@ describe('getChangesSinceLastCommit', () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue('packages/pkg-a/package.json'),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
@@ -146,7 +188,21 @@ describe('getChangesSinceLastCommit', () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue(''),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
@@ -172,7 +228,21 @@ describe('getChangesSinceLastCommit', () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue('packages/pkg-a/file.js'),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
@@ -196,7 +266,21 @@ describe('getChangesSinceLastCommit', () => {
         diff: vi
           .fn()
           .mockResolvedValue('packages/pkg-a/file.js\npackages/pkg-b/file2.js'),
-        log: vi.fn().mockResolvedValue({ all: [{ message: 'feat: commit', hash: 'abc123', date: '2023-01-01', refs: '', body: '', author_name: 'Test', author_email: 'test@example.com' }] }),
+        log: vi
+          .fn()
+          .mockResolvedValue({
+            all: [
+              {
+                message: 'feat: commit',
+                hash: 'abc123',
+                date: '2023-01-01',
+                refs: '',
+                body: '',
+                author_name: 'Test',
+                author_email: 'test@example.com',
+              },
+            ],
+          }),
         tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
       }),
     }));
