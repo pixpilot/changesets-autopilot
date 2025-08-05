@@ -12,7 +12,7 @@ export function createChangesetFile(
   if (!fs.existsSync(changesetDir)) {
     fs.mkdirSync(changesetDir);
   }
-  const filePath = `${changesetDir}/auto-${Date.now()}.md`;
+  const filePath = `${changesetDir}/auto-generated-at-${Date.now()}.md`;
   fs.writeFileSync(filePath, changesetContent);
   return filePath;
 }
