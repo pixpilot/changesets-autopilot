@@ -28134,14 +28134,20 @@ var coreExports = requireCore$2();
 
 const changesetDir = path$1.join(process.cwd(), '.changeset');
 /**
- * Returns true if the file is a changeset markdown file (excluding README.md).
+ * Returns true if the file is a changeset markdown file (excluding README.md and auto-generated files).
  */
 function isChangesetFile(file) {
+    return (file.endsWith('.md') && file !== 'README.md' && !file.startsWith('auto-generated-at-'));
+}
+/**
+ * Returns true if the file is any changeset markdown file (including auto-generated ones, excluding README.md).
+ */
+function isAnyChangesetFile(file) {
     return file.endsWith('.md') && file !== 'README.md';
 }
 /**
- * Checks if there are any changeset markdown files (excluding README.md) in the .changeset directory.
- * @returns {boolean} True if there are changesets, false otherwise.
+ * Checks if there are any manual changeset markdown files (excluding README.md and auto-generated files) in the .changeset directory.
+ * @returns {boolean} True if there are manual changesets, false otherwise.
  */
 function checkForChangesetFiles() {
     if (!fs$6.existsSync(changesetDir))
@@ -28149,13 +28155,13 @@ function checkForChangesetFiles() {
     return fs$6.readdirSync(changesetDir).some(isChangesetFile);
 }
 /**
- * Returns the list of changeset markdown files (excluding README.md) in the .changeset directory.
- * @returns {string[]} Array of changeset file names.
+ * Returns the list of all changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
+ * @returns {string[]} Array of all changeset file names.
  */
-function getChangesetFiles() {
+function getAllChangesetFiles() {
     if (!fs$6.existsSync(changesetDir))
         return [];
-    return fs$6.readdirSync(changesetDir).filter(isChangesetFile);
+    return fs$6.readdirSync(changesetDir).filter(isAnyChangesetFile);
 }
 
 /**
@@ -44653,6 +44659,8 @@ async function processChanges() {
 
 /**
  * Ensures changesets exist, creating them if necessary
+ * Only considers manual changesets when determining if new ones are needed.
+ * Auto-generated files from previous runs are ignored for this purpose.
  */
 async function ensureChangesets() {
     let hasChangesetFiles = checkForChangesetFiles();
@@ -44665,8 +44673,13 @@ async function ensureChangesets() {
         }
     }
     else {
-        const foundFiles = getChangesetFiles();
+        // Show all changeset files (including auto-generated ones) for transparency
+        const foundFiles = getAllChangesetFiles();
+        const autoFiles = foundFiles.filter((file) => file.startsWith('auto-generated-at-'));
         coreExports.info(`Existing changesets found. No need to create new ones.\nList of found changeset files: ${foundFiles.length ? foundFiles.join(', ') : 'None'}`);
+        if (autoFiles.length > 0) {
+            coreExports.info(`Note: ${autoFiles.length} auto-generated files from previous runs will be cleaned up after publishing.`);
+        }
     }
     return hasChangesetFiles;
 }

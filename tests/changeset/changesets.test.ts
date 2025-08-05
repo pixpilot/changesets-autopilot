@@ -5,19 +5,34 @@ import { describe, test, expect } from 'vitest';
 import {
   checkForChangesetFiles,
   getChangesetFiles,
+  getAllChangesetFiles,
   isChangesetFile,
+  isAnyChangesetFile,
   changesetDir,
 } from '../../src/changeset/changesets';
 
 describe('changesets', () => {
-  test('isChangesetFile should detect .md files except README.md', () => {
+  test('isChangesetFile should detect .md files except README.md and auto-generated files', () => {
     expect(isChangesetFile('foo.md')).toBe(true);
     expect(isChangesetFile('README.md')).toBe(false);
     expect(isChangesetFile('bar.txt')).toBe(false);
+    expect(isChangesetFile('auto-generated-at-12345.md')).toBe(false);
+  });
+
+  test('isAnyChangesetFile should detect all .md files except README.md', () => {
+    expect(isAnyChangesetFile('foo.md')).toBe(true);
+    expect(isAnyChangesetFile('README.md')).toBe(false);
+    expect(isAnyChangesetFile('bar.txt')).toBe(false);
+    expect(isAnyChangesetFile('auto-generated-at-12345.md')).toBe(true);
   });
 
   test('getChangesetFiles should return an array', () => {
     const files = getChangesetFiles();
+    expect(Array.isArray(files)).toBe(true);
+  });
+
+  test('getAllChangesetFiles should return an array', () => {
+    const files = getAllChangesetFiles();
     expect(Array.isArray(files)).toBe(true);
   });
 
