@@ -1,13 +1,7 @@
 import { execSync } from 'child_process';
-import fs from 'fs/promises';
-import path from 'path';
 
 import * as core from '@actions/core';
-import { Octokit } from '@octokit/rest';
 import type { SimpleGit } from 'simple-git';
-
-import type { Package } from '../github/create-release';
-import { createRelease } from '../github/create-release';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   try {

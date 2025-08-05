@@ -63,7 +63,7 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
-      name: 'test-pkg@1.0.0',
+      name: expect.stringMatching(/test-pkg@1\.0\.0 \(\d{4}-\d{2}-\d{2}\)/),
       tag_name: 'test-pkg@1.0.0',
       body: expect.stringContaining('## Patch Changes'),
       prerelease: false,
@@ -129,7 +129,7 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).not.toHaveBeenCalled();
   });
 
-  test('throws error if changelog entry not found', async () => {
+  test('returns early if changelog entry not found', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -150,14 +150,15 @@ describe('createRelease', () => {
 
     mockFs.readFile.mockResolvedValue(changelogContent);
 
-    await expect(
-      createRelease(mockOctokit, {
-        pkg,
-        tagName: 'test-pkg@1.0.0',
-        owner: 'test-owner',
-        repo: 'test-repo',
-      }),
-    ).rejects.toThrow('Could not find changelog entry for test-pkg@1.0.0');
+    const result = await createRelease(mockOctokit, {
+      pkg,
+      tagName: 'test-pkg@1.0.0',
+      owner: 'test-owner',
+      repo: 'test-repo',
+    });
+
+    expect(mockOctokit.repos.createRelease).not.toHaveBeenCalled();
+    expect(result).toBeUndefined();
   });
 
   test('detects different change levels correctly', async () => {
@@ -210,5 +211,83 @@ describe('createRelease', () => {
       vi.clearAllMocks();
       mockOctokit.repos.createRelease = vi.fn().mockResolvedValue({ data: { id: 123 } });
     }
+  });
+
+  test('includes comparison link when previous version exists', async () => {
+    const pkg = {
+      dir: '/packages/test-pkg',
+      packageJson: {
+        name: 'test-pkg',
+        version: '2.0.0',
+        private: false,
+      },
+    };
+
+    const changelogContent = `# Changelog
+
+## 2.0.0
+
+### Major Changes
+
+- Breaking change
+
+## 1.5.0
+
+### Minor Changes
+
+- Previous version
+`;
+
+    mockFs.readFile.mockResolvedValue(changelogContent);
+
+    await createRelease(mockOctokit, {
+      pkg,
+      tagName: 'test-pkg@2.0.0',
+      owner: 'test-owner',
+      repo: 'test-repo',
+    });
+
+    expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining(
+          '**Full Changelog**: https://github.com/test-owner/test-repo/compare/test-pkg@1.5.0...test-pkg@2.0.0',
+        ),
+      }),
+    );
+  });
+
+  test('works without comparison link when no previous version exists', async () => {
+    const pkg = {
+      dir: '/packages/test-pkg',
+      packageJson: {
+        name: 'test-pkg',
+        version: '1.0.0',
+        private: false,
+      },
+    };
+
+    const changelogContent = `# Changelog
+
+## 1.0.0
+
+### Major Changes
+
+- Initial release
+`;
+
+    mockFs.readFile.mockResolvedValue(changelogContent);
+
+    await createRelease(mockOctokit, {
+      pkg,
+      tagName: 'test-pkg@1.0.0',
+      owner: 'test-owner',
+      repo: 'test-repo',
+    });
+
+    expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.not.stringContaining('**Full Changelog**'),
+      }),
+    );
   });
 });

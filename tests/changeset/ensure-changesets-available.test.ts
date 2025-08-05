@@ -1,23 +1,35 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 let execSyncMock: any;
 let infoMock: any;
 
-vi.mock('child_process', () => {
+// Use doMock to scope mocks to this file and avoid global pollution
+const mockChildProcess = () => {
   execSyncMock = vi.fn();
-  return {
+  vi.doMock('child_process', () => ({
     execSync: execSyncMock,
-  };
-});
+  }));
+};
 
-vi.mock('@actions/core', () => {
+const mockActionsCore = () => {
   infoMock = vi.fn();
-  return {
+  vi.doMock('@actions/core', () => ({
     info: infoMock,
-  };
-});
+  }));
+};
 
 describe('ensureChangesetsAvailable', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockChildProcess();
+    mockActionsCore();
+  });
+  afterEach(() => {
+    vi.unmock('child_process');
+    vi.unmock('@actions/core');
+  });
+
   it('should log when changesets CLI is available', async () => {
     const { ensureChangesetsAvailable } = await import(
       '../../src/changeset/ensure-changesets-available'

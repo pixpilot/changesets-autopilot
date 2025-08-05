@@ -3,7 +3,7 @@ import path from 'path';
 
 import * as core from '@actions/core';
 
-const requiredPackages = ['@changesets/changelog-github', '@changesets/cli'];
+const requiredPackages = ['@changesets/cli'];
 
 interface PackageJson {
   dependencies?: Record<string, string>;

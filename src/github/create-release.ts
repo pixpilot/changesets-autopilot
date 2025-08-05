@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import * as core from '@actions/core';
 import type { Octokit } from '@octokit/rest';
 
 export interface Package {
@@ -19,6 +20,30 @@ function isErrorWithCode(err: unknown, code: string) {
     'code' in err &&
     (err as { code?: string }).code === code
   );
+}
+
+function getPreviousVersion(changelog: string, currentVersion: string): string | null {
+  const lines = changelog.split('\n');
+  let foundCurrent = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('## ')) {
+      if (foundCurrent) {
+        // This is the previous version
+        const versionRegex = /## (.+?)(?:\s|$)/;
+        const versionMatch = versionRegex.exec(trimmedLine);
+        if (versionMatch) {
+          return versionMatch[1].trim();
+        }
+      } else if (trimmedLine.includes(currentVersion)) {
+        // Found the current version, next version section will be the previous one
+        foundCurrent = true;
+      }
+    }
+  }
+
+  return null;
 }
 
 function getChangelogEntry(changelog: string, version: string) {
@@ -106,24 +131,38 @@ export const createRelease = async (
     if (isErrorWithCode(err, 'ENOENT')) {
       return;
     }
-    throw err;
+    core.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
+    return;
   }
   const changelogEntry = getChangelogEntry(changelog, pkg.packageJson.version);
   if (!changelogEntry) {
-    throw new Error(
-      `Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}`,
+    core.warning(
+      `Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`,
     );
+    return;
+  }
+
+  // Create a formatted release title with version and date
+  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const releaseTitle = `${tagName} (${currentDate})`;
+
+  // Find the previous version for comparison link
+  const previousVersion = getPreviousVersion(changelog, pkg.packageJson.version);
+  let comparisonLink = '';
+  if (previousVersion) {
+    const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
+    comparisonLink = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
   }
 
   // Create a formatted release body
   const releaseBody = `## ${changelogEntry.changeLevel}
 
-${changelogEntry.content}`;
+${changelogEntry.content}${comparisonLink}`;
 
   await octokit.repos.createRelease({
     owner,
     repo,
-    name: tagName,
+    name: releaseTitle,
     tag_name: tagName,
     body: releaseBody,
     prerelease: pkg.packageJson.version.includes('-'),
