@@ -63,9 +63,9 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
-      name: expect.stringMatching(/test-pkg@1\.0\.0 \(\d{4}-\d{2}-\d{2}\)/),
+      name: 'test-pkg@1.0.0',
       tag_name: 'test-pkg@1.0.0',
-      body: expect.stringContaining('## Patch Changes'),
+      body: expect.stringContaining('## [test-pkg@1.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@0.9.0...test-pkg@1.0.0)'),
       prerelease: false,
     });
   });
@@ -163,12 +163,12 @@ describe('createRelease', () => {
 
   test('detects different change levels correctly', async () => {
     const testCases = [
-      { changeLevel: 'Major Changes', expectedBody: '## Major Changes' },
-      { changeLevel: 'Minor Changes', expectedBody: '## Minor Changes' },
-      { changeLevel: 'Patch Changes', expectedBody: '## Patch Changes' },
+      { changeLevel: 'Major Changes' },
+      { changeLevel: 'Minor Changes' },
+      { changeLevel: 'Patch Changes' },
     ];
 
-    for (const { changeLevel, expectedBody } of testCases) {
+    for (const { changeLevel } of testCases) {
       const pkg = {
         dir: '/packages/test-pkg',
         packageJson: {
@@ -204,7 +204,7 @@ describe('createRelease', () => {
 
       expect(mockOctokit.repos.createRelease).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          body: expect.stringContaining(expectedBody),
+          body: expect.stringContaining(`## [test-pkg@2.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@1.0.0...test-pkg@2.0.0)`),
         }),
       );
 
@@ -250,8 +250,15 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.stringContaining(
-          '**Full Changelog**: https://github.com/test-owner/test-repo/compare/test-pkg@1.5.0...test-pkg@2.0.0',
+          '## [test-pkg@2.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@1.5.0...test-pkg@2.0.0)',
         ),
+      }),
+    );
+
+    // Also check that the header is a clickable link
+    expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining('[test-pkg@2.0.0]'),
       }),
     );
   });
@@ -287,6 +294,13 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.not.stringContaining('**Full Changelog**'),
+      }),
+    );
+
+    // Check that it shows the release title without link when no previous version
+    expect(mockOctokit.repos.createRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining('## test-pkg@1.0.0'),
       }),
     );
   });

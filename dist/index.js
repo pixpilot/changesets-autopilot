@@ -55256,18 +55256,25 @@ const createRelease = async (octokit, { pkg, tagName, owner, repo, }) => {
     }
     // Create a formatted release title with version and date
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    const releaseTitle = `${tagName} (${currentDate})`;
+    const releaseTitle = `${tagName}`;
     // Find the previous version for comparison link
     const previousVersion = getPreviousVersion(changelog, pkg.packageJson.version);
-    let comparisonLink = '';
+    let comparisonUrl = '';
+    let releaseBodyHeader = `## ${changelogEntry.changeLevel}(${currentDate})`;
     if (previousVersion) {
         const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
-        comparisonLink = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
+        comparisonUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
+        // Make the release title a clickable link to the comparison
+        releaseBodyHeader = `## [${releaseTitle}](${comparisonUrl})`;
+    }
+    else {
+        // If no previous version, just show the release title without link
+        releaseBodyHeader = `## ${releaseTitle}`;
     }
     // Create a formatted release body
-    const releaseBody = `## ${changelogEntry.changeLevel}
+    const releaseBody = `${releaseBodyHeader}
 
-${changelogEntry.content}${comparisonLink}`;
+${changelogEntry.content}`;
     await octokit.repos.createRelease({
         owner,
         repo,
