@@ -12,7 +12,7 @@ export async function ensureChangesets(): Promise<boolean> {
   let hasChangesetFiles = checkForChangesetFiles();
 
   // if (!hasChangesetFiles) {
-  core.info('No existing changesets found. Running autopilot to create release notes...');
+  //core.info('No existing changesets found. Running autopilot to create release notes...');
   await processChanges();
 
   // After creating changesets, check for ANY changeset files (including auto-generated ones)
