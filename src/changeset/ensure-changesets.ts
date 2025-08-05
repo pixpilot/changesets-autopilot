@@ -10,7 +10,6 @@ import { processChanges } from './process-changes';
  */
 export async function ensureChangesets(): Promise<boolean> {
   let hasChangesetFiles = checkForChangesetFiles();
-  core.info(`DEBUG: Initial checkForChangesetFiles result: ${hasChangesetFiles}`);
 
   if (!hasChangesetFiles) {
     core.info(
@@ -21,10 +20,6 @@ export async function ensureChangesets(): Promise<boolean> {
     // After creating changesets, check for ANY changeset files (including auto-generated ones)
     const allFiles = getAllChangesetFiles();
     hasChangesetFiles = allFiles.length > 0;
-    core.info(
-      `DEBUG: After processChanges, getAllChangesetFiles found: ${allFiles.length} files`,
-    );
-    core.info(`DEBUG: Files found: ${allFiles.join(', ')}`);
 
     if (!hasChangesetFiles) {
       core.info('No changes detected that require versioning.');

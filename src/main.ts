@@ -42,7 +42,6 @@ export async function run(): Promise<void> {
 
     // Ensure we have changesets to work with
     const hasChangesetFiles = await ensureChangesets();
-    core.info(`DEBUG: hasChangesetFiles after ensureChangesets: ${hasChangesetFiles}`);
 
     // Manage pre-release mode based on branch configuration
     configurePrereleaseMode(branchConfig);

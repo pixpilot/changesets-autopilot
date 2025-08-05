@@ -44664,15 +44664,12 @@ async function processChanges() {
  */
 async function ensureChangesets() {
     let hasChangesetFiles = checkForChangesetFiles();
-    coreExports.info(`DEBUG: Initial checkForChangesetFiles result: ${hasChangesetFiles}`);
     if (!hasChangesetFiles) {
         coreExports.info('No existing changesets found. Running autopilot to create release notes...');
         await processChanges();
         // After creating changesets, check for ANY changeset files (including auto-generated ones)
         const allFiles = getAllChangesetFiles();
         hasChangesetFiles = allFiles.length > 0;
-        coreExports.info(`DEBUG: After processChanges, getAllChangesetFiles found: ${allFiles.length} files`);
-        coreExports.info(`DEBUG: Files found: ${allFiles.join(', ')}`);
         if (!hasChangesetFiles) {
             coreExports.info('No changes detected that require versioning.');
         }
@@ -86136,7 +86133,6 @@ async function run() {
         const git = await configureGit(botName);
         // Ensure we have changesets to work with
         const hasChangesetFiles = await ensureChangesets();
-        coreExports.info(`DEBUG: hasChangesetFiles after ensureChangesets: ${hasChangesetFiles}`);
         // Manage pre-release mode based on branch configuration
         configurePrereleaseMode(branchConfig);
         // Version and push changes if we have changesets
