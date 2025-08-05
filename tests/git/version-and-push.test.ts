@@ -6,6 +6,7 @@ import type { SimpleGit } from 'simple-git';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
 import { gitVersionAndPush } from '../../src/git/version-and-push';
+import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../../src/constants/release-commit-message';
 
 // Mock child_process
 vi.mock('child_process', () => ({
@@ -94,10 +95,10 @@ describe('gitVersionAndPush', () => {
 
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
-    const expectedCommitMessage = `chore(release): version packages [skip ci]
+    const expectedCommitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}
 
-package1: 1.0.3
-package2: 1.0.4`;
+package1@1.0.3
+package2@1.0.4`;
 
     expect(mockGit.commit).toHaveBeenCalledWith(expectedCommitMessage);
   });
@@ -135,9 +136,7 @@ package2: 1.0.4`;
 
     await gitVersionAndPush(mockGit, GITHUB_TOKEN);
 
-    expect(mockGit.commit).toHaveBeenCalledWith(
-      'chore(release): version packages [skip ci]',
-    );
+    expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
 
   test('should handle changeset version failure', async () => {

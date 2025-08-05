@@ -1,8 +1,10 @@
 import { execSync } from 'child_process';
 
 import * as core from '@actions/core';
-import { getPackages } from '@manypkg/get-packages';
 import type { SimpleGit } from 'simple-git';
+
+import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../constants/release-commit-message';
+import { getSelectedPackagesInfo } from '../utils/select-packages-info';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   try {
@@ -23,27 +25,26 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   }
 
   // Get packages information after versioning to create an appropriate commit message
-  let commitMessage = 'chore(release): version packages [skip ci]';
+  let commitMessage = DEFAULT_RELEASE_COMMIT_MESSAGE;
 
   try {
-    const { packages } = await getPackages(process.cwd());
-    const nonPrivatePackages = packages.filter((pkg) => !pkg.packageJson.private);
+    const { publishablePackages } = await getSelectedPackagesInfo();
 
-    if (nonPrivatePackages.length === 1) {
+    if (publishablePackages.length === 1) {
       // Single package - include version in title
-      const pkg = nonPrivatePackages[0];
+      const pkg = publishablePackages[0];
       commitMessage = `chore(release): ${pkg.packageJson.version} [skip ci]`;
       core.info(
         `Creating commit message for single package: ${pkg.packageJson.name}@${pkg.packageJson.version}`,
       );
-    } else if (nonPrivatePackages.length > 1) {
+    } else if (publishablePackages.length > 1) {
       // Multiple packages - add versions to commit body
-      const packageVersions = nonPrivatePackages
-        .map((pkg) => `${pkg.packageJson.name}: ${pkg.packageJson.version}`)
+      const packageVersions = publishablePackages
+        .map((pkg) => `${pkg.packageJson.name}@${pkg.packageJson.version}`)
         .join('\n');
 
-      commitMessage = `chore(release): version packages [skip ci]\n\n${packageVersions}`;
-      core.info(`Creating commit message for ${nonPrivatePackages.length} packages`);
+      commitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}\n\n${packageVersions}`;
+      core.info(`Creating commit message for ${publishablePackages.length} packages`);
     }
   } catch (error) {
     core.warning(

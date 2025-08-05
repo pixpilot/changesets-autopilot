@@ -1,29 +1,19 @@
 import path from 'path';
 
 import * as core from '@actions/core';
-import { getPackages } from '@manypkg/get-packages';
 import simpleGit from 'simple-git';
 
 import type { ChangesMap, PackageChange, Commit } from '../../types/changes';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
+import { getSelectedPackagesInfo } from '../utils/select-packages-info';
 
 export async function getChangesSinceLastCommit() {
+  const { publishablePackages, privatePackages, isMonorepo } =
+    await getSelectedPackagesInfo();
+
   const git = simpleGit();
-  const { packages } = await getPackages(process.cwd());
 
-  // For single-package repos (GitHub Actions, etc.), we still want to process the root package
-  // even if it's marked as private, since that's the package we want to version
-  const isSinglePackageRepo = packages.length === 1 && packages[0].relativeDir === '.';
-
-  // Filter out private packages, but keep the root package for single-package repos
-  const publicPackages = packages.filter(
-    (pkg) => !pkg.packageJson.private || (isSinglePackageRepo && pkg.relativeDir === '.'),
-  );
-  const privatePackages = packages.filter(
-    (pkg) => pkg.packageJson.private && !(isSinglePackageRepo && pkg.relativeDir === '.'),
-  );
-
-  if (isSinglePackageRepo) {
+  if (!isMonorepo) {
     core.info('Detected single-package repository');
   }
 
@@ -85,7 +75,7 @@ export async function getChangesSinceLastCommit() {
     const changes: ChangesMap = {};
 
     // Only process public packages that have actual changes
-    publicPackages.forEach((pkg) => {
+    publishablePackages.forEach((pkg) => {
       const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
       const pkgChangedFiles = changedFiles.filter(
         (file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`,
