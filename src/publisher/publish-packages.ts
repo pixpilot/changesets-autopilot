@@ -14,43 +14,13 @@ export async function publishPackages(
   branchConfig: ResolvedBranchConfig,
   npmToken: string,
 ): Promise<Package[]> {
-  // Debug logging for environment and paths
-  core.info(`DEBUG: Current working0 directory: ${process.cwd()}`);
-  core.info(`DEBUG: changesetDir: ${changesetDir}`);
-
-  // Debug logging for branch configuration
-  core.info(
-    `DEBUG: Branch config - name: ${branchConfig.name}, prerelease: ${branchConfig.prerelease}, channel: ${branchConfig.channel}, isMatch: ${branchConfig.isMatch}`,
-  );
-
-  // Check if we're in prerelease mode
   const preJsonPath = path.join(changesetDir, 'pre.json');
-  core.info(`DEBUG: Checking for pre.json at path: ${preJsonPath}`);
-
   const isInPrereleaseMode = fs.existsSync(preJsonPath);
-  core.info(`DEBUG: Is in prerelease mode: ${isInPrereleaseMode}`);
 
-  if (isInPrereleaseMode) {
-    // Read and log the contents of pre.json for debugging
-    try {
-      const preJsonContent = fs.readFileSync(preJsonPath, 'utf8');
-      core.info(`DEBUG: pre.json contents: ${preJsonContent}`);
-    } catch (error) {
-      core.info(`DEBUG: Error reading pre.json: ${String(error)}`);
-    }
-  }
-
-  // In prerelease mode, changeset handles the tag automatically, so we shouldn't use --tag
-  // In normal mode with a channel, we use --tag to specify the dist-tag
   const publishCommand =
     !isInPrereleaseMode && branchConfig.channel
       ? `npx changeset publish --tag ${branchConfig.channel}`
       : 'npx changeset publish';
-
-  core.info(
-    `DEBUG: Logic check - !isInPrereleaseMode: ${!isInPrereleaseMode}, branchConfig.channel: ${branchConfig.channel}`,
-  );
-  core.info(`DEBUG: Will use --tag: ${!isInPrereleaseMode && branchConfig.channel}`);
 
   if (isInPrereleaseMode) {
     core.info('In prerelease mode - changeset will handle dist-tag automatically');
@@ -60,22 +30,19 @@ export async function publishPackages(
 
   core.info(`Publishing packages: ${publishCommand}`);
 
-  // Capture the output from changeset publish to detect which packages were published
   const publishOutput = execSync(publishCommand, {
     encoding: 'utf8',
     cwd: process.cwd(),
     env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
   });
 
-  core.info(publishOutput); // Display the full output in the logs
+  core.info(publishOutput);
 
-  // Use utility to parse published package names
   const publishedPackageNames = parsePublishedPackageNames(publishOutput);
   for (const pkgName of publishedPackageNames) {
     core.info(`Detected published package from tag: ${pkgName}`);
   }
 
-  // Get current packages info and filter to only published ones
   const { packages } = await getPackages(process.cwd());
   const releasedPackages: Package[] = [];
 
