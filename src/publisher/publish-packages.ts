@@ -15,7 +15,7 @@ export async function publishPackages(
   npmToken: string,
 ): Promise<Package[]> {
   // Debug logging for environment and paths
-  core.info(`DEBUG: Current working directory: ${process.cwd()}`);
+  core.info(`DEBUG: Current working0 directory: ${process.cwd()}`);
   core.info(`DEBUG: changesetDir: ${changesetDir}`);
 
   // Debug logging for branch configuration

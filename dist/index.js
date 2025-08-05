@@ -86052,7 +86052,7 @@ function parsePublishedPackageNames(publishOutput) {
 
 async function publishPackages(branchConfig, npmToken) {
     // Debug logging for environment and paths
-    coreExports.info(`DEBUG: Current working directory: ${process.cwd()}`);
+    coreExports.info(`DEBUG: Current working0 directory: ${process.cwd()}`);
     coreExports.info(`DEBUG: changesetDir: ${changesetDir}`);
     // Debug logging for branch configuration
     coreExports.info(`DEBUG: Branch config - name: ${branchConfig.name}, prerelease: ${branchConfig.prerelease}, channel: ${branchConfig.channel}, isMatch: ${branchConfig.isMatch}`);
