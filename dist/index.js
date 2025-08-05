@@ -34614,16 +34614,22 @@ function getChangeTypeAndDescription(message) {
  */
 function isVersionOrReleaseCommit(message) {
     const trimmedMessage = message.trim();
-    // Single package release: "chore(release): 1.2.3 [skip ci]"
-    if (/^chore\(release\):\s+\d+\.\d+\.\d+(-\w+(\.\d+)?)?\s+\[skip ci\]$/i.test(trimmedMessage)) {
+    // Only allow spaces (not tabs/newlines) between parts
+    const space = ' ';
+    const pkgPattern = '((@[-a-zA-Z0-9_.]+/)?[-a-zA-Z0-9_.]+@)?';
+    const versionPattern = '[0-9]+\\.[0-9]+\\.[0-9]+';
+    const prereleasePattern = '(-[a-zA-Z0-9_.]+(\\.[a-zA-Z0-9_.]+)*)?';
+    const skipCiPattern = '\\[skip ci\\]';
+    const fullPattern = `^chore\\(release\\):${space}+${pkgPattern}${versionPattern}${prereleasePattern}${space}+${skipCiPattern}$`;
+    if (new RegExp(fullPattern, 'i').test(trimmedMessage)) {
         return true;
     }
     // Multi-package release: "chore(release): bump package versions [skip ci]"
-    if (trimmedMessage === 'chore(release): bump package versions [skip ci]') {
+    if (/^chore\(release\): +bump package versions +\[skip ci\]$/i.test(trimmedMessage)) {
         return true;
     }
     // Legacy pattern (for backward compatibility): "chore(release): version packages [skip ci]"
-    if (trimmedMessage === 'chore(release): version packages [skip ci]') {
+    if (/^chore\(release\): +version packages +\[skip ci\]$/i.test(trimmedMessage)) {
         return true;
     }
     return false;
@@ -44695,6 +44701,33 @@ function ensurePackagesAvailable(packages) {
 }
 function ensureChangesetsAvailable() {
     ensurePackagesAvailable(requiredPackages);
+}
+
+/**
+ * Runs the 'changeset version' command to apply version updates based on changeset files.
+ * This is typically used in release automation workflows to version packages before publishing.
+ * The function logs output and errors using GitHub Actions core logging.
+ *
+ * @param githubToken - GitHub token for authentication in CI environments
+ */
+function runChangesetVersion(githubToken) {
+    try {
+        coreExports.info('Running changeset version command...');
+        const versionOutput = execSync('npx changeset version', {
+            encoding: 'utf8',
+            cwd: process.cwd(),
+            env: {
+                ...process.env,
+                GITHUB_TOKEN: githubToken,
+            },
+        });
+        coreExports.info(versionOutput);
+        coreExports.info('Changeset version completed successfully');
+    }
+    catch (error) {
+        coreExports.info(`Error message: ${error.message}`);
+        return;
+    }
 }
 
 const ALIAS = Symbol.for('yaml.alias');
@@ -82157,23 +82190,6 @@ async function getPackagesToRelease() {
 async function gitVersionAndPush(git, githubToken) {
     let packagesToRelease = [];
     try {
-        coreExports.info('Running changeset version command...');
-        const versionOutput = execSync('npx changeset version', {
-            encoding: 'utf8',
-            cwd: process.cwd(),
-            env: {
-                ...process.env,
-                GITHUB_TOKEN: githubToken,
-            },
-        });
-        coreExports.info(versionOutput);
-        coreExports.info('Changeset version completed successfully');
-    }
-    catch (error) {
-        coreExports.info(`Error message: ${error.message}`);
-        return;
-    }
-    try {
         // Get packages that will be released BEFORE running changeset version
         // because changeset version consumes the changeset files
         packagesToRelease = await getPackagesToRelease();
@@ -86071,6 +86087,7 @@ async function run() {
         // Version and push changes if we have changesets
         if (hasChangesetFiles) {
             coreExports.info('Processing versioning and git operations...');
+            runChangesetVersion(githubToken);
             await gitVersionAndPush(git, githubToken);
             // Publish to npm if token is provided
             if (npmToken) {

@@ -4,22 +4,25 @@
 export function isVersionOrReleaseCommit(message: string): boolean {
   const trimmedMessage = message.trim();
 
-  // Single package release: "chore(release): 1.2.3 [skip ci]"
-  if (
-    /^chore\(release\):\s+\d+\.\d+\.\d+(-\w+(\.\d+)?)?\s+\[skip ci\]$/i.test(
-      trimmedMessage,
-    )
-  ) {
+  // Only allow spaces (not tabs/newlines) between parts
+  const space = ' ';
+  const pkgPattern = '((@[-a-zA-Z0-9_.]+/)?[-a-zA-Z0-9_.]+@)?';
+  const versionPattern = '[0-9]+\\.[0-9]+\\.[0-9]+';
+  const prereleasePattern = '(-[a-zA-Z0-9_.]+(\\.[a-zA-Z0-9_.]+)*)?';
+  const skipCiPattern = '\\[skip ci\\]';
+  const fullPattern = `^chore\\(release\\):${space}+${pkgPattern}${versionPattern}${prereleasePattern}${space}+${skipCiPattern}$`;
+
+  if (new RegExp(fullPattern, 'i').test(trimmedMessage)) {
     return true;
   }
 
   // Multi-package release: "chore(release): bump package versions [skip ci]"
-  if (trimmedMessage === 'chore(release): bump package versions [skip ci]') {
+  if (/^chore\(release\): +bump package versions +\[skip ci\]$/i.test(trimmedMessage)) {
     return true;
   }
 
   // Legacy pattern (for backward compatibility): "chore(release): version packages [skip ci]"
-  if (trimmedMessage === 'chore(release): version packages [skip ci]') {
+  if (/^chore\(release\): +version packages +\[skip ci\]$/i.test(trimmedMessage)) {
     return true;
   }
 

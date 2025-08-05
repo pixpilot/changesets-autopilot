@@ -1,5 +1,3 @@
-import { execSync } from 'child_process';
-
 import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
 
@@ -8,23 +6,6 @@ import { getPackagesToRelease } from '../utils/get-release-plan';
 
 export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
   let packagesToRelease: Awaited<ReturnType<typeof getPackagesToRelease>> = [];
-
-  try {
-    core.info('Running changeset version command...');
-    const versionOutput = execSync('npx changeset version', {
-      encoding: 'utf8',
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        GITHUB_TOKEN: githubToken,
-      },
-    });
-    core.info(versionOutput);
-    core.info('Changeset version completed successfully');
-  } catch (error) {
-    core.info(`Error message: ${(error as Error).message}`);
-    return;
-  }
 
   try {
     // Get packages that will be released BEFORE running changeset version

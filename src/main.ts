@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 
 import { configurePrereleaseMode, ensureChangesets } from './changeset';
 import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
+import { runChangesetVersion } from './changeset/run-changeset-version';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
 import { configureGit, gitVersionAndPush } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
@@ -44,6 +45,9 @@ export async function run(): Promise<void> {
     // Version and push changes if we have changesets
     if (hasChangesetFiles) {
       core.info('Processing versioning and git operations...');
+
+      runChangesetVersion(githubToken);
+
       await gitVersionAndPush(git, githubToken);
 
       // Publish to npm if token is provided
