@@ -13,6 +13,10 @@ export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
     // Get packages that will be released BEFORE running changeset version
     // because changeset version consumes the changeset files
     packagesToRelease = await getPackagesToRelease();
+
+    core.info(
+      `Found "${packagesToRelease.map((x) => x.name).join(',')}" packages to be released`,
+    );
   } catch (error) {
     core.warning(`Failed to get release plan: ${String(error)}`);
     // Continue with empty array - will use default commit message

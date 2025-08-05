@@ -82160,6 +82160,7 @@ async function gitVersionAndPush(git, githubToken) {
         // Get packages that will be released BEFORE running changeset version
         // because changeset version consumes the changeset files
         packagesToRelease = await getPackagesToRelease();
+        coreExports.info(`Found "${packagesToRelease.map((x) => x.name).join(',')}" packages to be released`);
     }
     catch (error) {
         coreExports.warning(`Failed to get release plan: ${String(error)}`);
