@@ -65,7 +65,9 @@ describe('createRelease', () => {
       repo: 'test-repo',
       name: 'test-pkg@1.0.0',
       tag_name: 'test-pkg@1.0.0',
-      body: expect.stringContaining('## [test-pkg@1.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@0.9.0...test-pkg@1.0.0)'),
+      body: expect.stringContaining(
+        '## [test-pkg@1.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@0.9.0...test-pkg@1.0.0)',
+      ),
       prerelease: false,
     });
   });
@@ -204,7 +206,9 @@ describe('createRelease', () => {
 
       expect(mockOctokit.repos.createRelease).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          body: expect.stringContaining(`## [test-pkg@2.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@1.0.0...test-pkg@2.0.0)`),
+          body: expect.stringContaining(
+            `## [test-pkg@2.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@1.0.0...test-pkg@2.0.0)`,
+          ),
         }),
       );
 
