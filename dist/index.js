@@ -55213,7 +55213,7 @@ async function publishPackages(branchConfig, npmToken) {
         cwd: process.cwd(),
         env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
     });
-    coreExports.info('Publish output captured for release detection');
+    coreExports.info(publishOutput); // Display the full output in the logs
     // Parse the output to find published packages using the "New tag:" approach
     const publishedPackageNames = new Set();
     const lines = publishOutput.split('\n');

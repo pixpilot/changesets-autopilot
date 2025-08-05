@@ -23,7 +23,7 @@ export async function publishPackages(
     env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
   });
 
-  core.info('Publish output captured for release detection');
+  core.info(publishOutput); // Display the full output in the logs
 
   // Parse the output to find published packages using the "New tag:" approach
   const publishedPackageNames = new Set<string>();
