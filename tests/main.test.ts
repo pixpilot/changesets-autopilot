@@ -51,7 +51,7 @@ describe('main.js', () => {
     const configurePrereleaseModeModule = await import(
       '../src/changeset/configure-prerelease-mode'
     );
-    const gitVersionAndPushModule = await import('../src/git/version-and-push');
+    const gitVersionAndPushModule = await import('../src/git/commit-and-push');
     const publishPackagesModule = await import('../src/publisher/publish-packages');
     const createReleaseModule = await import('../src/github/create-release');
 
@@ -65,7 +65,7 @@ describe('main.js', () => {
     mockConfigurePrereleaseMode = vi.mocked(
       configurePrereleaseModeModule.configurePrereleaseMode,
     );
-    mockGitVersionAndPush = vi.mocked(gitVersionAndPushModule.gitVersionAndPush);
+    mockGitVersionAndPush = vi.mocked(gitVersionAndPushModule.commitAndPush);
     mockPublishPackages = vi.mocked(publishPackagesModule.publishPackages);
     mockCreateRelease = vi.mocked(createReleaseModule.createRelease);
 

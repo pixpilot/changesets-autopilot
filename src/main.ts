@@ -4,7 +4,7 @@ import { configurePrereleaseMode, ensureChangesets } from './changeset';
 import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
 import { runChangesetVersion } from './changeset/run-changeset-version';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
-import { configureGit, gitVersionAndPush } from './git';
+import { configureGit, commitAndPush } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
 import { publishPackages } from './publisher';
@@ -48,7 +48,7 @@ export async function run(): Promise<void> {
 
       runChangesetVersion(githubToken);
 
-      await gitVersionAndPush(git, githubToken);
+      await commitAndPush(git, githubToken);
 
       // Publish to npm if token is provided
       if (npmToken) {

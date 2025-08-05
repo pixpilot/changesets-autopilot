@@ -4,17 +4,13 @@ import type { SimpleGit } from 'simple-git';
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../constants/release-commit-message';
 import { getPackagesToRelease } from '../utils/get-release-plan';
 
-export async function gitVersionAndPush(git: SimpleGit, githubToken: string) {
+export async function commitAndPush(git: SimpleGit, githubToken: string) {
   let packagesToRelease: Awaited<ReturnType<typeof getPackagesToRelease>> = [];
 
   try {
     // Get packages that will be released BEFORE running changeset version
     // because changeset version consumes the changeset files
     packagesToRelease = await getPackagesToRelease();
-
-    core.info(
-      `Found "${packagesToRelease.map((x) => x.name).join(',')}" packages to be released`,
-    );
   } catch (error) {
     core.warning(`Failed to get release plan: ${String(error)}`);
     // Continue with empty array - will use default commit message

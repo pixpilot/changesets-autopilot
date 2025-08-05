@@ -4,7 +4,7 @@ import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
-import { gitVersionAndPush } from '../../src/git/version-and-push';
+import { commitAndPush } from '../../src/git/commit-and-push';
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../../src/constants/release-commit-message';
 
 // Mock child_process
@@ -63,7 +63,7 @@ describe('gitVersionAndPush', () => {
       },
     ]);
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.2.3 [skip ci]');
   });
@@ -84,7 +84,7 @@ describe('gitVersionAndPush', () => {
       },
     ]);
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     const expectedCommitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}
 
@@ -105,7 +105,7 @@ package2@1.0.4`;
       },
     ]);
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith('chore(release): 1.0.3 [skip ci]');
   });
@@ -116,7 +116,7 @@ package2@1.0.4`;
       new Error('Failed to get release plan'),
     );
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
@@ -126,7 +126,7 @@ package2@1.0.4`;
     const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
     vi.mocked(getPackagesToRelease).mockResolvedValue([]);
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
@@ -147,7 +147,7 @@ package2@1.0.4`;
       },
     ]);
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     const expectedCommitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}
 
@@ -162,7 +162,7 @@ package3@1.0.5`;
       throw new Error('Changeset version failed');
     });
 
-    await gitVersionAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN);
 
     expect(mockGit.add).not.toHaveBeenCalled();
     expect(mockGit.commit).not.toHaveBeenCalled();
