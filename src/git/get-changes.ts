@@ -11,9 +11,22 @@ export async function getChangesSinceLastCommit() {
   const git = simpleGit();
   const { packages } = await getPackages(process.cwd());
 
-  // Filter out private packages
-  const publicPackages = packages.filter((pkg) => !pkg.packageJson.private);
-  const privatePackages = packages.filter((pkg) => pkg.packageJson.private);
+  // For single-package repos (GitHub Actions, etc.), we still want to process the root package
+  // even if it's marked as private, since that's the package we want to version
+  const isSinglePackageRepo = packages.length === 1 && packages[0].relativeDir === '.';
+
+  // Filter out private packages, but keep the root package for single-package repos
+  const publicPackages = packages.filter(
+    (pkg) => !pkg.packageJson.private || (isSinglePackageRepo && pkg.relativeDir === '.'),
+  );
+  const privatePackages = packages.filter(
+    (pkg) => pkg.packageJson.private && !(isSinglePackageRepo && pkg.relativeDir === '.'),
+  );
+
+  if (isSinglePackageRepo) {
+    core.info('Detected single-package repository');
+  }
+
   if (privatePackages.length > 0) {
     core.info(
       'Skipped private packages: ' +
