@@ -1,8 +1,11 @@
 import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 import * as core from '@actions/core';
 import { getPackages } from '@manypkg/get-packages';
 
+import { changesetDir } from '../changeset/changesets';
 import type { ResolvedBranchConfig } from '../config/get-branch-config';
 import type { Package } from '../github/create-release';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
@@ -11,9 +14,22 @@ export async function publishPackages(
   branchConfig: ResolvedBranchConfig,
   npmToken: string,
 ): Promise<Package[]> {
-  const publishCommand = branchConfig.channel
-    ? `npx changeset publish --tag ${branchConfig.channel}`
-    : 'npx changeset publish';
+  // Check if we're in prerelease mode
+  const preJsonPath = path.join(changesetDir, 'pre.json');
+  const isInPrereleaseMode = fs.existsSync(preJsonPath);
+
+  // In prerelease mode, changeset handles the tag automatically, so we shouldn't use --tag
+  // In normal mode with a channel, we use --tag to specify the dist-tag
+  const publishCommand =
+    !isInPrereleaseMode && branchConfig.channel
+      ? `npx changeset publish --tag ${branchConfig.channel}`
+      : 'npx changeset publish';
+
+  if (isInPrereleaseMode) {
+    core.info('In prerelease mode - changeset will handle dist-tag automatically');
+  } else if (branchConfig.channel) {
+    core.info(`Using custom dist-tag: ${branchConfig.channel}`);
+  }
 
   core.info(`Publishing packages: ${publishCommand}`);
 

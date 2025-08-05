@@ -82175,7 +82175,6 @@ async function getPackagesToRelease() {
                 });
             }
         }
-        coreExports.info(`Found ${packagesToRelease.length} packages to be released:`);
         for (const pkg of packagesToRelease) {
             coreExports.info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
         }
@@ -86028,9 +86027,20 @@ function parsePublishedPackageNames(publishOutput) {
 }
 
 async function publishPackages(branchConfig, npmToken) {
-    const publishCommand = branchConfig.channel
+    // Check if we're in prerelease mode
+    const preJsonPath = path$1.join(changesetDir, 'pre.json');
+    const isInPrereleaseMode = require$$0$2.existsSync(preJsonPath);
+    // In prerelease mode, changeset handles the tag automatically, so we shouldn't use --tag
+    // In normal mode with a channel, we use --tag to specify the dist-tag
+    const publishCommand = !isInPrereleaseMode && branchConfig.channel
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
+    if (isInPrereleaseMode) {
+        coreExports.info('In prerelease mode - changeset will handle dist-tag automatically');
+    }
+    else if (branchConfig.channel) {
+        coreExports.info(`Using custom dist-tag: ${branchConfig.channel}`);
+    }
     coreExports.info(`Publishing packages: ${publishCommand}`);
     // Capture the output from changeset publish to detect which packages were published
     const publishOutput = execSync(publishCommand, {

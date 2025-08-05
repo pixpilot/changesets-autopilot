@@ -28,7 +28,6 @@ export async function getPackagesToRelease(): Promise<ReleasePackage[]> {
       }
     }
 
-    core.info(`Found ${packagesToRelease.length} packages to be released:`);
     for (const pkg of packagesToRelease) {
       core.info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
     }

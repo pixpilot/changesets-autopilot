@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import fs from 'fs';
 
 import * as core from '@actions/core';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
@@ -9,6 +10,7 @@ vi.mock('@actions/core');
 vi.mock('child_process', () => ({
   execSync: vi.fn(),
 }));
+vi.mock('fs');
 
 vi.mock('@manypkg/get-packages', () => ({
   getPackages: vi.fn(),
@@ -22,6 +24,9 @@ describe('publishPackages', () => {
     vi.clearAllMocks();
     const getPackagesModule = await import('@manypkg/get-packages');
     mockGetPackages = vi.mocked(getPackagesModule.getPackages);
+
+    // Mock fs.existsSync to return false (not in prerelease mode) by default
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
     // Default mock for getPackages - return test packages
     mockGetPackages.mockResolvedValue({
@@ -127,5 +132,36 @@ describe('publishPackages', () => {
 
     const result = await publishPackages(branchConfig, npmToken);
     expect(result).toHaveLength(0); // Private packages should be excluded
+  });
+  test('publishes without tag in prerelease mode even if channel is provided', async () => {
+    const branchConfig = {
+      name: 'next',
+      isMatch: true,
+      channel: 'next',
+      prerelease: 'rc',
+    };
+
+    // Mock fs.existsSync to return true (in prerelease mode)
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    const result = await publishPackages(branchConfig, npmToken);
+
+    expect(core.info).toHaveBeenCalledWith(
+      'In prerelease mode - changeset will handle dist-tag automatically',
+    );
+    expect(core.info).toHaveBeenCalledWith(
+      expect.stringContaining('npx changeset publish'),
+    );
+    expect(core.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('npx changeset publish --tag next'),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      'npx changeset publish',
+      expect.objectContaining({
+        encoding: 'utf8',
+        env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
+      }),
+    );
+    expect(Array.isArray(result)).toBe(true);
   });
 });
