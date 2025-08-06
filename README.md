@@ -1,14 +1,12 @@
 # Changeset Autopilot Action
 
-![Coverage](https://github.com/pixpilot/changesets-autopilot/blob/main/badges/coverage.svg)
-
 A GitHub Action that automates changeset-based releases with branch-specific configurations, similar to semantic-release. Automatically generates changesets from conventional commits, handles pre-release channels, and publishes to npm.
 
 ## Why Automate Changesets?
 
 While we love automation, changesets traditionally follow a more manual approach to package versioning. Semantic-release is renowned for its powerful automation capabilities, but it has one significant limitation: it doesn't support monorepos well out of the box.
 
-There are packages like [`semantic-release-monorepo`](https://www.npmjs.com/package/semantic-release-monorepo) that add monorepo support, but they all miss one crucial feature - **package dependency awareness**. This means they can't properly handle version bumps when packages depend on each other within the same monorepo, as [explained in the changesets documentation](https://changesets-docs.vercel.app/en/prereleases).
+There are packages like [`semantic-release-monorepo`](https://www.npmjs.com/package/semantic-release-monorepo) that add monorepo support, but they all miss one crucial feature - **package dependency awareness**. This means they can't properly handle version bumps when packages depend on each other within the same monorepo.
 
 With this action, you get the best of both worlds:
 

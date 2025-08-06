@@ -55515,6 +55515,7 @@ const createRelease = async (octokit, { pkg, tagName, owner, repo, }) => {
     const releaseBody = `${releaseBodyHeader}
 
 ${changelogEntry.content}`;
+    coreExports.info(`[DEBUG] Creating release with owner: ${owner}, repo: ${repo}, tagName: ${tagName}`);
     await octokit.repos.createRelease({
         owner,
         repo,
