@@ -22,7 +22,7 @@ describe('pushBranch', () => {
     expect(mockGit.branch).toHaveBeenCalledWith(['--show-current']);
     expect(mockGit.push).toHaveBeenCalledWith(
       'https://token@github.com/owner/repo.git',
-      'HEAD:main'
+      'HEAD:main',
     );
   });
 
@@ -31,7 +31,7 @@ describe('pushBranch', () => {
     await pushBranch(mockGit as any, 'token');
     expect(mockGit.push).toHaveBeenCalledWith(
       'https://token@github.com/owner/repo.git',
-      'HEAD:main'
+      'HEAD:main',
     );
   });
 
