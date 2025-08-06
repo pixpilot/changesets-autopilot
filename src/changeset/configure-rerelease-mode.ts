@@ -11,7 +11,7 @@ import { changesetDir } from './changesets';
 /**
  * Manages pre-release mode based on branch configuration
  */
-export function configurePrereleaseMode(branchConfig: ResolvedBranchConfig): void {
+export function configureRereleaseMode(branchConfig: ResolvedBranchConfig): void {
   const preJsonPath = path.join(changesetDir, 'pre.json');
   const isInPrereleaseMode = fs.existsSync(preJsonPath);
 

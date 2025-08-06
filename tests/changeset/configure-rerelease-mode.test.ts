@@ -5,21 +5,21 @@ vi.mock('child_process');
 vi.mock('@actions/core');
 
 const core = await import('@actions/core');
-const { configurePrereleaseMode } = await import(
-  '../../src/changeset/configure-prerelease-mode'
+const { configureRereleaseMode } = await import(
+  '../../src/changeset/configure-rerelease-mode'
 );
 
-describe('configurePrereleaseMode', () => {
+describe('configureRereleaseMode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
   });
 
   test('should be a function', async () => {
-    const { configurePrereleaseMode } = await import(
-      '../../src/changeset/configure-prerelease-mode'
+    const { configureRereleaseMode } = await import(
+      '../../src/changeset/configure-rerelease-mode'
     );
-    expect(typeof configurePrereleaseMode).toBe('function');
+    expect(typeof configureRereleaseMode).toBe('function');
   });
 
   test('enters prerelease mode if not already in prerelease mode', async () => {
@@ -29,7 +29,7 @@ describe('configurePrereleaseMode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
-    configurePrereleaseMode(branchConfig);
+    configureRereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith(
       expect.stringContaining('Entering pre-release mode'),
     );
@@ -45,7 +45,7 @@ describe('configurePrereleaseMode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
-    configurePrereleaseMode(branchConfig);
+    configureRereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith(
       'Already in pre-release mode, skipping enter.',
     );
@@ -59,7 +59,7 @@ describe('configurePrereleaseMode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', isMatch: true };
 
-    configurePrereleaseMode(branchConfig);
+    configureRereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith('Exiting pre-release mode');
     expect(child_process.execSync).toHaveBeenCalledWith('npx changeset pre exit', {
       stdio: 'inherit',
@@ -73,7 +73,7 @@ describe('configurePrereleaseMode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', isMatch: true };
 
-    configurePrereleaseMode(branchConfig);
+    configureRereleaseMode(branchConfig);
     expect(core.info).toHaveBeenCalledWith('Not in pre-release mode, skipping exit.');
     expect(child_process.execSync).not.toHaveBeenCalled();
   });

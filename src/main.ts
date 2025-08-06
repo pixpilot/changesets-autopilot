@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 
 import {
-  configurePrereleaseMode,
+  configureRereleaseMode,
   hasChangesetFiles,
   createChangesetsForRecentCommits,
 } from './changeset';
@@ -42,7 +42,7 @@ export async function run(): Promise<void> {
     const git = await configureGit(botName);
 
     // Manage pre-release mode based on branch configuration
-    configurePrereleaseMode(branchConfig);
+    configureRereleaseMode(branchConfig);
 
     if (autoChangeset) {
       await createChangesetsForRecentCommits();

@@ -31,7 +31,7 @@ describe('main.js', () => {
   let mockValidateBranchConfiguration: MockedFunction<any>;
   let mockConfigureGit: MockedFunction<any>;
   let mockEnsureChangesets: MockedFunction<any>;
-  let mockConfigurePrereleaseMode: MockedFunction<any>;
+  let mockconfigureRereleaseMode: MockedFunction<any>;
   let mockGitVersionAndPush: MockedFunction<any>;
   let mockPublishPackages: MockedFunction<any>;
   let mockCreateRelease: MockedFunction<any>;
@@ -50,8 +50,8 @@ describe('main.js', () => {
     const ensureChangesetsModule = await import(
       '../src/changeset/create-changesets-for-recent-commits'
     );
-    const configurePrereleaseModeModule = await import(
-      '../src/changeset/configure-prerelease-mode'
+    const configureRereleaseModeModule = await import(
+      '../src/changeset/configure-rerelease-mode'
     );
     const gitVersionAndPushModule = await import('../src/git/commit-and-push');
     const publishPackagesModule = await import('../src/publisher/publish-packages');
@@ -66,8 +66,8 @@ describe('main.js', () => {
     mockEnsureChangesets = vi.mocked(
       ensureChangesetsModule.createChangesetsForRecentCommits,
     );
-    mockConfigurePrereleaseMode = vi.mocked(
-      configurePrereleaseModeModule.configurePrereleaseMode,
+    mockconfigureRereleaseMode = vi.mocked(
+      configureRereleaseModeModule.configureRereleaseMode,
     );
     mockGitVersionAndPush = vi.mocked(gitVersionAndPushModule.commitAndPush);
     mockPublishPackages = vi.mocked(publishPackagesModule.publishPackages);
@@ -171,6 +171,6 @@ describe('main.js', () => {
     const { run } = await import('../src/main');
     await run();
 
-    expect(mockConfigurePrereleaseMode).toHaveBeenCalledWith(prereleaseConfig);
+    expect(mockconfigureRereleaseMode).toHaveBeenCalledWith(prereleaseConfig);
   });
 });
