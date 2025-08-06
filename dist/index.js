@@ -51646,8 +51646,16 @@ function getActionInputs() {
     const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
     const shouldGroupReleasesInput = coreExports.getInput('GROUP_RELEASES') || 'false';
     const groupReleases = shouldGroupReleasesInput.toLowerCase() === 'true';
-    const groupByInput = coreExports.getInput('GROUP_BY') || 'prefix';
-    const groupBy = groupByInput === 'directory' ? 'directory' : 'prefix';
+    const packageGroupsInput = coreExports.getInput('PACKAGE_GROUPS') || '{}';
+    let packageGroups = {};
+    try {
+        packageGroups = JSON.parse(packageGroupsInput);
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        coreExports.warning(`Failed to parse PACKAGE_GROUPS input: ${errorMessage}. Using empty groups.`);
+        packageGroups = {};
+    }
     return {
         githubToken: coreExports.getInput('GITHUB_TOKEN', { required: true }),
         npmToken: coreExports.getInput('NPM_TOKEN', { required: true }),
@@ -51657,7 +51665,7 @@ function getActionInputs() {
         pushTags,
         autoChangeset,
         groupReleases,
-        groupBy,
+        packageGroups,
     };
 }
 
@@ -55532,84 +55540,34 @@ ${changelogEntry.content}`;
 };
 
 /**
- * Groups packages by their name prefix (everything before the first slash after @scope/)
- * Example: @company/ui-button and @company/ui-input become "ui" group
- * Example: @company/api-auth and @company/api-users become "api" group
+ * Creates package groups based on the provided package groups configuration
  */
-function groupPackagesByPrefix(packages) {
+function createPackageGroups(packages, packageGroups) {
     const groups = {};
+    // Initialize groups
+    for (const [groupName] of Object.entries(packageGroups)) {
+        groups[groupName] = [];
+    }
+    // Add ungrouped packages to a default group
+    groups.misc = [];
+    // Assign packages to their groups
     for (const pkg of packages) {
-        let groupKey = 'misc';
-        if (pkg.packageJson.name.startsWith('@')) {
-            // Handle scoped packages: @scope/prefix-name -> prefix
-            const parts = pkg.packageJson.name.split('/');
-            if (parts.length > 1) {
-                const nameAfterScope = parts[1];
-                const prefixRegex = /^([a-zA-Z]+)/;
-                const prefixMatch = prefixRegex.exec(nameAfterScope);
-                if (prefixMatch) {
-                    groupKey = prefixMatch[1];
-                }
+        let assigned = false;
+        for (const [groupName, packageNames] of Object.entries(packageGroups)) {
+            if (packageNames.includes(pkg.packageJson.name)) {
+                groups[groupName].push(pkg);
+                assigned = true;
+                break;
             }
         }
-        else {
-            // Handle non-scoped packages: prefix-name -> prefix
-            const prefixRegex = /^([a-zA-Z]+)/;
-            const prefixMatch = prefixRegex.exec(pkg.packageJson.name);
-            if (prefixMatch) {
-                groupKey = prefixMatch[1];
-            }
-        }
-        if (!(groupKey in groups)) {
-            groups[groupKey] = [];
-        }
-        groups[groupKey].push(pkg);
-    }
-    return groups;
-}
-/**
- * Groups packages by their directory structure
- * Example: packages/ui/button and packages/ui/input become "ui" group
- */
-function groupPackagesByDirectory(packages) {
-    const groups = {};
-    for (const pkg of packages) {
-        let groupKey = 'misc';
-        // Extract directory name (assume packages are in packages/groupname/packagename structure)
-        const pathParts = pkg.dir.split(/[/\\]/);
-        const packagesIndex = pathParts.findIndex((part) => part === 'packages');
-        if (packagesIndex !== -1 && packagesIndex + 1 < pathParts.length) {
-            groupKey = pathParts[packagesIndex + 1];
-        }
-        if (!(groupKey in groups)) {
-            groups[groupKey] = [];
-        }
-        groups[groupKey].push(pkg);
-    }
-    return groups;
-}
-/**
- * Creates package groups based on the specified grouping strategy
- */
-function createPackageGroups(packages, groupBy) {
-    let groups;
-    if (typeof groupBy === 'function') {
-        groups = {};
-        for (const pkg of packages) {
-            const groupKey = groupBy(pkg);
-            if (!(groupKey in groups)) {
-                groups[groupKey] = [];
-            }
-            groups[groupKey].push(pkg);
+        // If package wasn't found in any group, add to misc
+        if (!assigned) {
+            groups.misc.push(pkg);
         }
     }
-    else if (groupBy === 'directory') {
-        groups = groupPackagesByDirectory(packages);
-    }
-    else {
-        groups = groupPackagesByPrefix(packages);
-    }
-    return Object.entries(groups).map(([groupName, groupPackages]) => {
+    // Remove empty groups
+    const filteredGroups = Object.entries(groups).filter(([_, pkgs]) => pkgs.length > 0);
+    return filteredGroups.map(([groupName, groupPackages]) => {
         // Sort packages by version to get the highest version for the group
         const sortedPackages = groupPackages.sort((a, b) => b.packageJson.version.localeCompare(a.packageJson.version, undefined, {
             numeric: true,
@@ -55655,43 +55613,40 @@ This is a grouped release for ${group.groupName} packages.`;
         prerelease: group.packages.some((pkg) => pkg.packageJson.version.includes('-')),
     });
 }
-async function createReleasesForPackages({ releasedPackages, githubToken, repo, owner, repoName, groupReleases = false, groupBy = 'prefix', }) {
-    coreExports.info('Creating GitHub releases for published packages...');
+async function createReleasesForPackages({ releasedPackages, githubToken, repo: _repo, owner, repoName, groupReleases = false, packageGroups, }) {
+    if (releasedPackages.length === 0) {
+        return;
+    }
     const octokit = new Octokit({ auth: githubToken });
-    const [repoOwner, repoNameLocal] = repo.split('/');
-    const finalOwner = owner ?? repoOwner;
-    const finalRepoName = repoName ?? repoNameLocal;
-    if (groupReleases) {
-        // Create grouped releases
-        coreExports.info('Creating grouped releases...');
-        const packageGroups = createPackageGroups(releasedPackages, groupBy);
-        await Promise.all(packageGroups.map(async (group) => {
+    if (groupReleases && packageGroups) {
+        coreExports.info('Creating GitHub grouped releases for published packages...');
+        const groupedPackages = createPackageGroups(releasedPackages, packageGroups);
+        for (const group of groupedPackages) {
             try {
-                await createGroupedRelease(octokit, group, finalOwner, finalRepoName);
-                coreExports.info(`Created grouped GitHub release for ${group.groupName} (${group.packages.length} packages)`);
+                await createGroupedRelease(octokit, group, owner ?? '', repoName ?? '');
+                coreExports.info(`Created GitHub grouped release for ${group.groupName} (${group.packages.length} packages)`);
             }
             catch (error) {
                 coreExports.warning(`Failed to create grouped release for ${group.groupName}: ${String(error)}`);
             }
-        }));
+        }
     }
     else {
-        // Create individual releases (original behavior)
-        await Promise.all(releasedPackages.map(async (pkg) => {
-            const tagName = `${pkg.packageJson.name}@${pkg.packageJson.version}`;
+        coreExports.info('Creating GitHub releases for published packages...');
+        for (const pkg of releasedPackages) {
             try {
                 await createRelease(octokit, {
                     pkg,
-                    tagName,
-                    owner: finalOwner,
-                    repo: finalRepoName,
+                    tagName: `${pkg.packageJson.name}@${pkg.packageJson.version}`,
+                    owner: owner ?? '',
+                    repo: repoName ?? '',
                 });
-                coreExports.info(`Created GitHub release for ${tagName}`);
+                coreExports.info(`Created GitHub release for ${pkg.packageJson.name}@${pkg.packageJson.version}`);
             }
             catch (error) {
-                coreExports.warning(`Failed to create release for ${tagName}: ${String(error)}`);
+                coreExports.warning(`Failed to create release for ${pkg.packageJson.name}@${pkg.packageJson.version}: ${String(error)}`);
             }
-        }));
+        }
     }
 }
 
@@ -86204,7 +86159,7 @@ async function run() {
         // Ensure changesets is available
         ensureChangesetsAvailable();
         // Initialize inputs and configuration
-        const { githubToken, npmToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, groupReleases, groupBy, } = getActionInputs();
+        const { githubToken, npmToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, groupReleases, packageGroups, } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
         // Validate branch configuration
         if (!validateBranchConfiguration(branchConfig)) {
@@ -86243,7 +86198,7 @@ async function run() {
                                 githubToken,
                                 repo,
                                 groupReleases,
-                                groupBy,
+                                packageGroups,
                             });
                         }
                     }

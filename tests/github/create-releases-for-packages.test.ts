@@ -83,22 +83,32 @@ describe('createReleasesForPackages', () => {
         githubToken,
         repo,
         groupReleases: true,
-        groupBy: 'prefix',
+        packageGroups: {
+          ui: ['@company/ui-button', '@company/ui-input'],
+          api: ['@company/api-auth', '@company/api-users'],
+        },
       });
 
-      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
+      expect(core.info).toHaveBeenCalledWith(
+        'Creating GitHub grouped releases for published packages...',
+      );
     });
 
-    it('should call core.info about creating grouped releases by directory', async () => {
+    it('should handle package groups with missing packages', async () => {
       await createReleasesForPackages({
         releasedPackages: groupedPackages,
         githubToken,
         repo,
         groupReleases: true,
-        groupBy: 'directory',
+        packageGroups: {
+          ui: ['@company/ui-button', '@company/ui-input'],
+          // Missing api packages - they should go to misc group
+        },
       });
 
-      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
+      expect(core.info).toHaveBeenCalledWith(
+        'Creating GitHub grouped releases for published packages...',
+      );
     });
 
     it('should handle errors in grouped releases gracefully', async () => {
@@ -108,11 +118,16 @@ describe('createReleasesForPackages', () => {
         githubToken,
         repo,
         groupReleases: true,
-        groupBy: 'prefix',
+        packageGroups: {
+          ui: ['@company/ui-button', '@company/ui-input'],
+          api: ['@company/api-auth', '@company/api-users'],
+        },
       });
 
       // Should not throw and should call core.info
-      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
+      expect(core.info).toHaveBeenCalledWith(
+        'Creating GitHub grouped releases for published packages...',
+      );
     });
   });
 });

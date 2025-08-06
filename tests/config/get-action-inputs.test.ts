@@ -36,7 +36,7 @@ describe('getActionInputs', () => {
       pushTags: true,
       autoChangeset: false,
       groupReleases: false,
-      groupBy: 'prefix',
+      packageGroups: {},
     });
   });
 
@@ -135,5 +135,34 @@ describe('getActionInputs', () => {
       'main',
       { name: 'next', prerelease: 'rc', channel: 'next' },
     ]);
+  });
+
+  test('parses valid JSON for PACKAGE_GROUPS', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'PACKAGE_GROUPS')
+        return '{"ui": ["@company/ui-button", "@company/ui-input"], "api": ["@company/api-auth"]}';
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(result.packageGroups).toStrictEqual({
+      ui: ['@company/ui-button', '@company/ui-input'],
+      api: ['@company/api-auth'],
+    });
+  });
+
+  test('handles invalid JSON for PACKAGE_GROUPS', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'PACKAGE_GROUPS') return 'invalid-json';
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to parse PACKAGE_GROUPS input'),
+    );
+    expect(result.packageGroups).toStrictEqual({});
   });
 });

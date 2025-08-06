@@ -280,7 +280,7 @@ describe('main.js', () => {
       createRelease: true,
       autoChangeset: false,
       groupReleases: false,
-      groupBy: 'prefix',
+      packageGroups: {},
     });
     mockPublishPackages.mockResolvedValue(['pkg']);
     const { run } = await import('../src/main');
@@ -290,7 +290,7 @@ describe('main.js', () => {
       githubToken: 'test-token',
       repo: 'owner/repo',
       groupReleases: false,
-      groupBy: 'prefix',
+      packageGroups: {},
     });
   });
 

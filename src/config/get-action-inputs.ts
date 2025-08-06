@@ -34,9 +34,19 @@ export function getActionInputs(): ActionInputs {
   const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
   const shouldGroupReleasesInput = core.getInput('GROUP_RELEASES') || 'false';
   const groupReleases = shouldGroupReleasesInput.toLowerCase() === 'true';
-  const groupByInput = core.getInput('GROUP_BY') || 'prefix';
-  const groupBy: 'prefix' | 'directory' =
-    groupByInput === 'directory' ? 'directory' : 'prefix';
+  const packageGroupsInput = core.getInput('PACKAGE_GROUPS') || '{}';
+  let packageGroups: Record<string, string[]> = {};
+
+  try {
+    packageGroups = JSON.parse(packageGroupsInput) as Record<string, string[]>;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    core.warning(
+      `Failed to parse PACKAGE_GROUPS input: ${errorMessage}. Using empty groups.`,
+    );
+    packageGroups = {};
+  }
+
   return {
     githubToken: core.getInput('GITHUB_TOKEN', { required: true }),
     npmToken: core.getInput('NPM_TOKEN', { required: true }),
@@ -46,6 +56,6 @@ export function getActionInputs(): ActionInputs {
     pushTags,
     autoChangeset,
     groupReleases,
-    groupBy,
+    packageGroups,
   };
 }

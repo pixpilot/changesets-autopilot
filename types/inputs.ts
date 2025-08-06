@@ -13,5 +13,5 @@ export interface ActionInputs {
   pushTags: boolean;
   autoChangeset: boolean;
   groupReleases: boolean;
-  groupBy: 'prefix' | 'directory';
+  packageGroups: Record<string, string[]>;
 }

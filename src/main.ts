@@ -32,7 +32,7 @@ export async function run(): Promise<void> {
       pushTags,
       autoChangeset,
       groupReleases,
-      groupBy,
+      packageGroups,
     } = getActionInputs();
     const branchConfig = getBranchConfig(branches);
 
@@ -83,7 +83,7 @@ export async function run(): Promise<void> {
                 githubToken,
                 repo,
                 groupReleases,
-                groupBy,
+                packageGroups,
               });
             }
           } catch (error) {

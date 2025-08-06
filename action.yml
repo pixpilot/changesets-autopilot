@@ -43,10 +43,10 @@ inputs:
     description: Enable grouping of releases by package names instead of individual releases
     required: false
     default: 'false'
-  GROUP_BY:
-    description: How to group packages for releases (prefix, directory)
+  PACKAGE_GROUPS:
+    description: JSON string mapping group names to arrays of package names
     required: false
-    default: 'prefix'
+    default: '{}'
 
 # Define your outputs here.
 outputs:

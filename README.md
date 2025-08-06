@@ -72,7 +72,7 @@ jobs:
 | `PUSH_TAGS`      | Enable or disable pushing tags to GitHub                                    | ❌       | `true`                 |
 | `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning             | ❌       | `true`                 |
 | `GROUP_RELEASES` | Enable grouping of releases by package names instead of individual releases | ❌       | `false`                |
-| `GROUP_BY`       | How to group packages for releases (`prefix`, `directory`)                  | ❌       | `prefix`               |
+| `PACKAGE_GROUPS` | JSON string mapping group names to arrays of package names                  | ❌       | `{}`                   |
 
 **Default BRANCHES configuration:**
 
@@ -120,29 +120,27 @@ By default, the action creates individual GitHub releases for each published pac
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     GROUP_RELEASES: 'true'
-    GROUP_BY: 'prefix' # or 'directory'
+    PACKAGE_GROUPS: |
+      {
+        "ui": ["@company/ui-button", "@company/ui-input"],
+        "api": ["@company/api-auth", "@company/api-users"],
+        "utils": ["@company/utils-logger", "@company/utils-parser"]
+      }
 ```
 
-### Grouping Strategies
+### Package Groups Configuration
 
-#### By Package Name Prefix (`GROUP_BY: 'prefix'`)
+The `PACKAGE_GROUPS` input expects a JSON string that maps group names to arrays of package names. Each package can only belong to one group. Packages not listed in any group will be placed in a "misc" group.
 
-Groups packages by their name prefix. This is the default and most common approach.
+**Example configuration:**
 
-Examples:
-
-- `@company/ui-button` and `@company/ui-input` → **ui** group
-- `@company/api-auth` and `@company/api-users` → **api** group
-- `@company/utils-logger` and `@company/utils-parser` → **utils** group
-
-#### By Directory Structure (`GROUP_BY: 'directory'`)
-
-Groups packages by their directory location, assuming a `packages/group/package` structure.
-
-Examples:
-
-- `packages/ui/button` and `packages/ui/input` → **ui** group
-- `packages/backend/auth` and `packages/backend/users` → **backend** group
+```json
+{
+  "ui": ["@company/ui-button", "@company/ui-input", "@company/ui-modal"],
+  "api": ["@company/api-auth", "@company/api-users", "@company/api-products"],
+  "tools": ["@company/cli", "@company/build-utils"]
+}
+```
 
 ### Example: Grouped vs Individual Releases
 
@@ -152,7 +150,7 @@ Examples:
 - Individual release: `@company/ui-input@1.3.0`
 - Individual release: `@company/api-auth@2.1.0`
 
-**With grouped releases (`GROUP_RELEASES: 'true'`):**
+**With grouped releases:**
 
 - Grouped release: `ui Release v1.3.0` (includes both button and input updates)
 - Grouped release: `api Release v2.1.0` (includes auth updates)
