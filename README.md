@@ -1,6 +1,6 @@
 # Changeset Autopilot Action
 
-![Coverage](badges/coverage.svg)
+![Coverage](https://github.com/pixpilot/changesets-autopilot/blob/main/badges/coverage.svg)
 
 A GitHub Action that automates changeset-based releases with branch-specific configurations, similar to semantic-release. Automatically generates changesets from conventional commits, handles pre-release channels, and publishes to npm.
 
