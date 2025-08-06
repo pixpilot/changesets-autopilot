@@ -173,6 +173,5 @@ ${changelogEntry.content}`;
     tag_name: tagName,
     body: releaseBody,
     prerelease: pkg.packageJson.version.includes('-'),
-    make_latest: 'true',
   });
 };
