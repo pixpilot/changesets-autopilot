@@ -166,9 +166,6 @@ export const createRelease = async (
 
 ${changelogEntry.content}`;
 
-  core.info(
-    `[DEBUG] Creating release with owner: ${owner}, repo: ${repo}, tagName: ${tagName}`,
-  );
   await octokit.repos.createRelease({
     owner,
     repo,
