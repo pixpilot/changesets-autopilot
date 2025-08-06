@@ -32,6 +32,11 @@ export function getActionInputs(): ActionInputs {
   const pushTags = shouldPushTagsInput.toLowerCase() === 'true';
   const shouldAutoChangesetInput = core.getInput('AUTO_CHANGESET') || 'false';
   const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
+  const shouldGroupReleasesInput = core.getInput('GROUP_RELEASES') || 'false';
+  const groupReleases = shouldGroupReleasesInput.toLowerCase() === 'true';
+  const groupByInput = core.getInput('GROUP_BY') || 'prefix';
+  const groupBy: 'prefix' | 'directory' =
+    groupByInput === 'directory' ? 'directory' : 'prefix';
   return {
     githubToken: core.getInput('GITHUB_TOKEN', { required: true }),
     npmToken: core.getInput('NPM_TOKEN', { required: true }),
@@ -40,5 +45,7 @@ export function getActionInputs(): ActionInputs {
     createRelease: shouldCreateRelease,
     pushTags,
     autoChangeset,
+    groupReleases,
+    groupBy,
   };
 }

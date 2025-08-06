@@ -39,6 +39,14 @@ inputs:
     description: Enable or disable automatic changeset generation and versioning
     required: false
     default: 'true'
+  GROUP_RELEASES:
+    description: Enable grouping of releases by package names instead of individual releases
+    required: false
+    default: 'false'
+  GROUP_BY:
+    description: How to group packages for releases (prefix, directory)
+    required: false
+    default: 'prefix'
 
 # Define your outputs here.
 outputs:

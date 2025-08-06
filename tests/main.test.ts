@@ -105,6 +105,11 @@ describe('main.js', () => {
       npmToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
+      createRelease: true,
+      pushTags: true,
+      autoChangeset: false,
+      groupReleases: false,
+      groupBy: 'prefix',
     });
     mockGetBranchConfig.mockReturnValue({ name: 'main', isMatch: true });
     mockValidateBranchConfiguration.mockReturnValue(true);
@@ -273,6 +278,9 @@ describe('main.js', () => {
       branches: ['main'],
       pushTags: true,
       createRelease: true,
+      autoChangeset: false,
+      groupReleases: false,
+      groupBy: 'prefix',
     });
     mockPublishPackages.mockResolvedValue(['pkg']);
     const { run } = await import('../src/main');
@@ -281,6 +289,8 @@ describe('main.js', () => {
       releasedPackages: ['pkg'],
       githubToken: 'test-token',
       repo: 'owner/repo',
+      groupReleases: false,
+      groupBy: 'prefix',
     });
   });
 

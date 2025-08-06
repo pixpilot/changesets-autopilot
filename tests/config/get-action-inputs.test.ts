@@ -35,6 +35,8 @@ describe('getActionInputs', () => {
       createRelease: true,
       pushTags: true,
       autoChangeset: false,
+      groupReleases: false,
+      groupBy: 'prefix',
     });
   });
 

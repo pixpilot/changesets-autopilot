@@ -31,6 +31,8 @@ export async function run(): Promise<void> {
       createRelease: shouldCreateRelease,
       pushTags,
       autoChangeset,
+      groupReleases,
+      groupBy,
     } = getActionInputs();
     const branchConfig = getBranchConfig(branches);
 
@@ -80,6 +82,8 @@ export async function run(): Promise<void> {
                 releasedPackages,
                 githubToken,
                 repo,
+                groupReleases,
+                groupBy,
               });
             }
           } catch (error) {

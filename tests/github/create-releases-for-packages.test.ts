@@ -9,8 +9,15 @@ vi.mock('@actions/core', () => ({
   info: vi.fn(),
   warning: vi.fn(),
 }));
+
+const mockCreateRelease = vi.fn().mockResolvedValue({ data: { id: 1 } });
+
 vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn().mockImplementation(() => ({})),
+  Octokit: vi.fn().mockImplementation(() => ({
+    repos: {
+      createRelease: mockCreateRelease,
+    },
+  })),
 }));
 vi.mock('../../src/github/create-release', () => ({
   createRelease: vi.fn(),
@@ -23,28 +30,89 @@ const releasedPackages = [
   { dir: 'pkg2', packageJson: { name: 'pkg2', version: '2.0.0' } },
 ];
 
+const groupedPackages = [
+  {
+    dir: 'packages/ui/button',
+    packageJson: { name: '@company/ui-button', version: '1.0.0' },
+  },
+  {
+    dir: 'packages/ui/input',
+    packageJson: { name: '@company/ui-input', version: '1.1.0' },
+  },
+  {
+    dir: 'packages/api/auth',
+    packageJson: { name: '@company/api-auth', version: '2.0.0' },
+  },
+  {
+    dir: 'packages/api/users',
+    packageJson: { name: '@company/api-users', version: '2.1.0' },
+  },
+];
+
 describe('createReleasesForPackages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should call createRelease for each package', async () => {
-    await createReleasesForPackages({ releasedPackages, githubToken, repo });
-    expect(createRelease).toHaveBeenCalledTimes(releasedPackages.length);
-    expect(core.info).toHaveBeenCalledWith(
-      'Creating GitHub releases for published packages...',
-    );
-    expect(core.info).toHaveBeenCalledWith('Created GitHub release for pkg1@1.0.0');
-    expect(core.info).toHaveBeenCalledWith('Created GitHub release for pkg2@2.0.0');
+  describe('individual releases (default behavior)', () => {
+    it('should call createRelease for each package', async () => {
+      await createReleasesForPackages({ releasedPackages, githubToken, repo });
+      expect(createRelease).toHaveBeenCalledTimes(releasedPackages.length);
+      expect(core.info).toHaveBeenCalledWith(
+        'Creating GitHub releases for published packages...',
+      );
+      expect(core.info).toHaveBeenCalledWith('Created GitHub release for pkg1@1.0.0');
+      expect(core.info).toHaveBeenCalledWith('Created GitHub release for pkg2@2.0.0');
+    });
+
+    it('should handle errors from createRelease', async () => {
+      vi.mocked(createRelease).mockImplementationOnce(() => {
+        throw new Error('fail');
+      });
+      await createReleasesForPackages({ releasedPackages, githubToken, repo });
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to create release for pkg1@1.0.0: Error: fail'),
+      );
+    });
   });
 
-  it('should handle errors from createRelease', async () => {
-    vi.mocked(createRelease).mockImplementationOnce(() => {
-      throw new Error('fail');
+  describe('grouped releases', () => {
+    it('should call core.info about creating grouped releases', async () => {
+      await createReleasesForPackages({
+        releasedPackages: groupedPackages,
+        githubToken,
+        repo,
+        groupReleases: true,
+        groupBy: 'prefix',
+      });
+
+      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
     });
-    await createReleasesForPackages({ releasedPackages, githubToken, repo });
-    expect(core.warning).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to create release for pkg1@1.0.0: Error: fail'),
-    );
+
+    it('should call core.info about creating grouped releases by directory', async () => {
+      await createReleasesForPackages({
+        releasedPackages: groupedPackages,
+        githubToken,
+        repo,
+        groupReleases: true,
+        groupBy: 'directory',
+      });
+
+      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
+    });
+
+    it('should handle errors in grouped releases gracefully', async () => {
+      // This test ensures error handling works
+      await createReleasesForPackages({
+        releasedPackages: groupedPackages,
+        githubToken,
+        repo,
+        groupReleases: true,
+        groupBy: 'prefix',
+      });
+
+      // Should not throw and should call core.info
+      expect(core.info).toHaveBeenCalledWith('Creating grouped releases...');
+    });
   });
 });

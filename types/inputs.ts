@@ -12,4 +12,6 @@ export interface ActionInputs {
   createRelease: boolean;
   pushTags: boolean;
   autoChangeset: boolean;
+  groupReleases: boolean;
+  groupBy: 'prefix' | 'directory';
 }

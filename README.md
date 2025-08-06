@@ -62,15 +62,17 @@ jobs:
 
 ### Inputs
 
-| Input            | Description                                                     | Required | Default                |
-| ---------------- | --------------------------------------------------------------- | -------- | ---------------------- |
-| `GITHUB_TOKEN`   | GitHub token for authentication                                 | ✅       | -                      |
-| `NPM_TOKEN`      | NPM token for publishing                                        | ✅       | -                      |
-| `BOT_NAME`       | Bot name for commits                                            | ❌       | `changesets-autopilot` |
-| `BRANCHES`       | Branch configuration (YAML array)                               | ❌       | See below              |
-| `CREATE_RELEASE` | Enable or disable GitHub release creation                       | ❌       | `true`                 |
-| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub                        | ❌       | `true`                 |
-| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning | ❌       | `true`                 |
+| Input            | Description                                                                 | Required | Default                |
+| ---------------- | --------------------------------------------------------------------------- | -------- | ---------------------- |
+| `GITHUB_TOKEN`   | GitHub token for authentication                                             | ✅       | -                      |
+| `NPM_TOKEN`      | NPM token for publishing                                                    | ✅       | -                      |
+| `BOT_NAME`       | Bot name for commits                                                        | ❌       | `changesets-autopilot` |
+| `BRANCHES`       | Branch configuration (YAML array)                                           | ❌       | See below              |
+| `CREATE_RELEASE` | Enable or disable GitHub release creation                                   | ❌       | `true`                 |
+| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub                                    | ❌       | `true`                 |
+| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning             | ❌       | `true`                 |
+| `GROUP_RELEASES` | Enable grouping of releases by package names instead of individual releases | ❌       | `false`                |
+| `GROUP_BY`       | How to group packages for releases (`prefix`, `directory`)                  | ❌       | `prefix`               |
 
 **Default BRANCHES configuration:**
 
@@ -104,6 +106,58 @@ This configuration will:
 - Release stable versions from `main` branch (e.g., `1.5.0`)
 - Release RC versions from `next` branch (e.g., `1.6.0-rc.1`) with `next` tag
 - Release beta versions from `beta` branch (e.g., `1.6.0-beta.1`) with `beta` tag
+
+## Grouped Releases
+
+By default, the action creates individual GitHub releases for each published package. For monorepos with many packages, this can result in a cluttered releases page. You can enable grouped releases to create one release per logical group of packages.
+
+### Enabling Grouped Releases
+
+```yaml
+- name: Release
+  uses: pixpilot/changesets-autopilot@v1
+  with:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    GROUP_RELEASES: 'true'
+    GROUP_BY: 'prefix' # or 'directory'
+```
+
+### Grouping Strategies
+
+#### By Package Name Prefix (`GROUP_BY: 'prefix'`)
+
+Groups packages by their name prefix. This is the default and most common approach.
+
+Examples:
+
+- `@company/ui-button` and `@company/ui-input` → **ui** group
+- `@company/api-auth` and `@company/api-users` → **api** group
+- `@company/utils-logger` and `@company/utils-parser` → **utils** group
+
+#### By Directory Structure (`GROUP_BY: 'directory'`)
+
+Groups packages by their directory location, assuming a `packages/group/package` structure.
+
+Examples:
+
+- `packages/ui/button` and `packages/ui/input` → **ui** group
+- `packages/backend/auth` and `packages/backend/users` → **backend** group
+
+### Example: Grouped vs Individual Releases
+
+**Without grouped releases (default):**
+
+- Individual release: `@company/ui-button@1.2.0`
+- Individual release: `@company/ui-input@1.3.0`
+- Individual release: `@company/api-auth@2.1.0`
+
+**With grouped releases (`GROUP_RELEASES: 'true'`):**
+
+- Grouped release: `ui Release v1.3.0` (includes both button and input updates)
+- Grouped release: `api Release v2.1.0` (includes auth updates)
+
+This results in fewer, more organized releases that group related package updates together.
 
 ## Supported Commit Types
 
