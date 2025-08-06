@@ -51669,7 +51669,40 @@ async function configureGit(botName) {
     return git;
 }
 
-const DEFAULT_RELEASE_COMMIT_MESSAGE = 'chore(release): bump package versions [skip ci]';
+const DEFAULT_RELEASE_COMMIT_MESSAGE = 'chore(release): version packages [skip ci]';
+
+/**
+ * Generates a release commit message based on the packages to release.
+ * Returns the commit message string.
+ */
+function getReleaseCommitMessage(packagesToRelease) {
+    let commitMessage = DEFAULT_RELEASE_COMMIT_MESSAGE;
+    try {
+        if (packagesToRelease.length === 1) {
+            // Single package - include version in title
+            const pkg = packagesToRelease[0];
+            commitMessage = `chore(release): ${pkg.version} [skip ci]`;
+            coreExports.info(`Creating commit message for single package: ${pkg.name}@${pkg.version}`);
+        }
+        else if (packagesToRelease.length > 1) {
+            // Multiple packages - add versions to commit body (only changed packages)
+            const packageVersions = packagesToRelease
+                .map((pkg) => `${pkg.name}@${pkg.version}`)
+                .join('\n');
+            commitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}\n\n${packageVersions}`;
+            coreExports.info(`Creating commit message for ${packagesToRelease.length} changed packages`);
+        }
+        else {
+            // No changed packages found - use default message
+            coreExports.info('No changed packages found, using default commit message');
+        }
+    }
+    catch (error) {
+        coreExports.warning(`Failed to get package information for commit message: ${String(error)}`);
+        // Fall back to default message
+    }
+    return commitMessage;
+}
 
 var bld = {};
 
@@ -82171,32 +82204,8 @@ async function commitAndPush(git, githubToken) {
         coreExports.warning(`Failed to get release plan: ${String(error)}`);
         // Continue with empty array - will use default commit message
     }
-    // Get packages information after versioning to create an appropriate commit message
-    let commitMessage = DEFAULT_RELEASE_COMMIT_MESSAGE;
-    try {
-        if (packagesToRelease.length === 1) {
-            // Single package - include version in title
-            const pkg = packagesToRelease[0];
-            commitMessage = `chore(release): ${pkg.version} [skip ci]`;
-            coreExports.info(`Creating commit message for single package: ${pkg.name}@${pkg.version}`);
-        }
-        else if (packagesToRelease.length > 1) {
-            // Multiple packages - add versions to commit body (only changed packages)
-            const packageVersions = packagesToRelease
-                .map((pkg) => `${pkg.name}@${pkg.version}`)
-                .join('\n');
-            commitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}\n\n${packageVersions}`;
-            coreExports.info(`Creating commit message for ${packagesToRelease.length} changed packages`);
-        }
-        else {
-            // No changed packages found - use default message
-            coreExports.info('No changed packages found, using default commit message');
-        }
-    }
-    catch (error) {
-        coreExports.warning(`Failed to get package information for commit message: ${String(error)}`);
-        // Fall back to default message
-    }
+    // Use utility to get commit message
+    const commitMessage = getReleaseCommitMessage(packagesToRelease);
     await git.add('.');
     try {
         await git.commit(commitMessage);
@@ -82224,6 +82233,7 @@ async function commitAndPush(git, githubToken) {
     else {
         coreExports.info('Missing repo, token, or refName for push.');
     }
+    return commitMessage;
 }
 
 function getUserAgent() {
