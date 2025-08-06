@@ -12,6 +12,7 @@ import { getActionInputs, getBranchConfig, validateBranchConfiguration } from '.
 import { configureGit, commitAndPush } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
+import { getPackagesToRelease } from './utils/get-release-plan';
 
 /**
  * The main function for the action.
@@ -55,9 +56,13 @@ export async function run(): Promise<void> {
     if (hasChangesetReleaseFiles) {
       core.info('Processing versioning and git operations...');
 
+      // Get packages that will be released BEFORE running changeset version
+      // because changeset version consumes the changeset files
+      const packagesToRelease = await getPackagesToRelease();
+
       runChangesetVersion(githubToken);
 
-      await commitAndPush(git, githubToken);
+      await commitAndPush(git, githubToken, packagesToRelease);
 
       // Publish to npm if token is provided
       if (npmToken) {

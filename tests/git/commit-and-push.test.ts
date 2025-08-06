@@ -53,54 +53,47 @@ describe('gitVersionAndPush', () => {
   });
 
   test('should call commit with correct message for single package', async () => {
-    // Mock single package scenario
-    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
-    vi.mocked(getPackagesToRelease).mockResolvedValue([
+    const packages = [
       {
         name: 'test-package',
         version: '1.2.3',
-        type: 'minor',
+        type: 'minor' as const,
       },
-    ]);
+    ];
 
-    await commitAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN, packages);
     expect(mockGit.commit).toHaveBeenCalledWith(expect.any(String));
   });
 
   test('should call commit with correct message for multiple packages', async () => {
-    // Mock multi-package scenario
-    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
-    vi.mocked(getPackagesToRelease).mockResolvedValue([
+    const packages = [
       {
         name: 'package1',
         version: '1.0.3',
-        type: 'minor',
+        type: 'minor' as const,
       },
       {
         name: 'package2',
         version: '1.0.4',
-        type: 'patch',
+        type: 'patch' as const,
       },
-    ]);
+    ];
 
-    await commitAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN, packages);
     expect(mockGit.commit).toHaveBeenCalledWith(expect.any(String));
   });
 
   test('should use default message when no packages have changes', async () => {
-    // Mock empty release plan (no packages to release)
-    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
-    vi.mocked(getPackagesToRelease).mockResolvedValue([]);
+    const packages: any[] = [];
 
-    await commitAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN, packages);
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
 
   test('should use default message if getPackagesToRelease returns empty array (error case)', async () => {
-    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
-    vi.mocked(getPackagesToRelease).mockResolvedValue([]);
+    const packages: any[] = [];
 
-    await commitAndPush(mockGit, GITHUB_TOKEN);
+    await commitAndPush(mockGit, GITHUB_TOKEN, packages);
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
 });

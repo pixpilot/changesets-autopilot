@@ -28,7 +28,7 @@ export async function publishPackages(
     core.info(`Using custom dist-tag: ${branchConfig.channel}`);
   }
 
-  core.info(`Publishing packages: ${publishCommand}`);
+  core.info(`Publishing packages...`);
 
   const publishOutput = execSync(publishCommand, {
     encoding: 'utf8',
