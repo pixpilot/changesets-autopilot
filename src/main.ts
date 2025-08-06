@@ -1,6 +1,10 @@
 import * as core from '@actions/core';
 
-import { configurePrereleaseMode, ensureChangesets } from './changeset';
+import {
+  configurePrereleaseMode,
+  hasChangesetFiles,
+  createChangesetsForRecentCommits,
+} from './changeset';
 import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
 import { runChangesetVersion } from './changeset/run-changeset-version';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
@@ -39,11 +43,13 @@ export async function run(): Promise<void> {
     // Manage pre-release mode based on branch configuration
     configurePrereleaseMode(branchConfig);
 
+    await createChangesetsForRecentCommits();
+
     // Ensure we have changesets to work with
-    const hasChangesetFiles = await ensureChangesets();
+    const hasChangesetReleaseFiles = hasChangesetFiles();
 
     // Version and push changes if we have changesets
-    if (hasChangesetFiles) {
+    if (hasChangesetReleaseFiles) {
       core.info('Processing versioning and git operations...');
 
       runChangesetVersion(githubToken);
@@ -83,8 +89,6 @@ export async function run(): Promise<void> {
     } else {
       core.info('No changesets to process. Action completed.');
     }
-
-    core.info('Changeset autopilot completed successfully!');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     core.setFailed(`Action failed: ${errorMessage}`);

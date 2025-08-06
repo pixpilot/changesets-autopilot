@@ -9,7 +9,7 @@ import { createChangesetFile } from './create-changeset-file';
  * Processes changes since last commit and creates changeset files for each package
  * with commits.
  */
-export async function processChanges(): Promise<void> {
+export async function createChangesetsForRecentCommits(): Promise<void> {
   const changes = await getChangesSinceLastCommit();
   for (const [packageName, info] of Object.entries(changes)) {
     if (info.commits.length > 0) {

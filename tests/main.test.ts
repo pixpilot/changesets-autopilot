@@ -47,7 +47,9 @@ describe('main.js', () => {
       '../src/config/validate-branch-configuration'
     );
     const configureGitModule = await import('../src/git/configure-git');
-    const ensureChangesetsModule = await import('../src/changeset/ensure-changesets');
+    const ensureChangesetsModule = await import(
+      '../src/changeset/create-changesets-for-recent-commits'
+    );
     const configurePrereleaseModeModule = await import(
       '../src/changeset/configure-prerelease-mode'
     );
@@ -61,7 +63,9 @@ describe('main.js', () => {
       validateBranchConfigurationModule.validateBranchConfiguration,
     );
     mockConfigureGit = vi.mocked(configureGitModule.configureGit);
-    mockEnsureChangesets = vi.mocked(ensureChangesetsModule.ensureChangesets);
+    mockEnsureChangesets = vi.mocked(
+      ensureChangesetsModule.createChangesetsForRecentCommits,
+    );
     mockConfigurePrereleaseMode = vi.mocked(
       configurePrereleaseModeModule.configurePrereleaseMode,
     );

@@ -28134,34 +28134,19 @@ var coreExports = requireCore$2();
 
 const changesetDir = path$1.join(process.cwd(), '.changeset');
 /**
- * Returns true if the file is a changeset markdown file (excluding README.md and auto-generated files).
- */
-function isChangesetFile(file) {
-    return (file.endsWith('.md') && file !== 'README.md' && !file.startsWith('auto-generated-at-'));
-}
-/**
  * Returns true if the file is any changeset markdown file (including auto-generated ones, excluding README.md).
  */
 function isAnyChangesetFile(file) {
     return file.endsWith('.md') && file !== 'README.md';
 }
 /**
- * Checks if there are any manual changeset markdown files (excluding README.md and auto-generated files) in the .changeset directory.
- * @returns {boolean} True if there are manual changesets, false otherwise.
+ * Checks if there are any changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
+ * @returns {boolean} True if any changeset markdown files exist, false otherwise.
  */
-function checkForChangesetFiles() {
+function hasChangesetFiles() {
     if (!fs$6.existsSync(changesetDir))
         return false;
-    return fs$6.readdirSync(changesetDir).some(isChangesetFile);
-}
-/**
- * Returns the list of all changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
- * @returns {string[]} Array of all changeset file names.
- */
-function getAllChangesetFiles() {
-    if (!fs$6.existsSync(changesetDir))
-        return [];
-    return fs$6.readdirSync(changesetDir).filter(isAnyChangesetFile);
+    return fs$6.readdirSync(changesetDir).some(isAnyChangesetFile);
 }
 
 function createChangesetFile(packageName, changeType, description) {
@@ -44615,7 +44600,7 @@ function isPublishedReleaseCommit(message) {
  * Processes changes since last commit and creates changeset files for each package
  * with commits.
  */
-async function processChanges() {
+async function createChangesetsForRecentCommits() {
     const changes = await getChangesSinceLastCommit();
     for (const [packageName, info] of Object.entries(changes)) {
         if (info.commits.length > 0) {
@@ -44626,38 +44611,6 @@ async function processChanges() {
             }
         }
     }
-}
-
-/**
- * Ensures changesets exist, creating them if necessary
- * Only considers manual changesets when determining if new ones are needed.
- * Auto-generated files from previous runs are ignored for this purpose.
- */
-async function ensureChangesets() {
-    let hasChangesetFiles = checkForChangesetFiles();
-    // if (!hasChangesetFiles) {
-    //core.info('No existing changesets found. Running autopilot to create release notes...');
-    await processChanges();
-    // After creating changesets, check for ANY changeset files (including auto-generated ones)
-    const allFiles = getAllChangesetFiles();
-    hasChangesetFiles = allFiles.length > 0;
-    // if (!hasChangesetFiles) {
-    //   core.info('No changes detected that require versioning.');
-    // }
-    // } else {
-    //   // Show all changeset files (including auto-generated ones) for transparency
-    //   const foundFiles = getAllChangesetFiles();
-    //   const autoFiles = foundFiles.filter((file) => file.startsWith('auto-generated-at-'));
-    //   core.info(
-    //     `Existing changesets found. No need to create new ones.\nList of found changeset files: ${foundFiles.length ? foundFiles.join(', ') : 'None'}`,
-    //   );
-    //   if (autoFiles.length > 0) {
-    //     core.info(
-    //       `Note: ${autoFiles.length} auto-generated files from previous runs will be cleaned up after publishing.`,
-    //     );
-    //   }
-    // }
-    return hasChangesetFiles;
 }
 
 /**
@@ -86107,10 +86060,11 @@ async function run() {
         const git = await configureGit(botName);
         // Manage pre-release mode based on branch configuration
         configurePrereleaseMode(branchConfig);
+        await createChangesetsForRecentCommits();
         // Ensure we have changesets to work with
-        const hasChangesetFiles = await ensureChangesets();
+        const hasChangesetReleaseFiles = hasChangesetFiles();
         // Version and push changes if we have changesets
-        if (hasChangesetFiles) {
+        if (hasChangesetReleaseFiles) {
             coreExports.info('Processing versioning and git operations...');
             runChangesetVersion(githubToken);
             await commitAndPush(git, githubToken);
@@ -86148,7 +86102,6 @@ async function run() {
         else {
             coreExports.info('No changesets to process. Action completed.');
         }
-        coreExports.info('Changeset autopilot completed successfully!');
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

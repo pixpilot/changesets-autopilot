@@ -1,7 +1,6 @@
 import fs from 'fs';
-
+import path from 'path';
 import { describe, test, expect } from 'vitest';
-
 import {
   checkForChangesetFiles,
   getChangesetFiles,
@@ -9,6 +8,7 @@ import {
   isChangesetFile,
   isAnyChangesetFile,
   changesetDir,
+  hasChangesetFiles,
 } from '../../src/changeset/changesets';
 
 describe('changesets', () => {
@@ -71,6 +71,54 @@ describe('changesets', () => {
         fs.renameSync(tempDir, changesetDir);
       }
     }
+  });
+
+  test('hasChangesetFiles returns false if .changeset directory does not exist', () => {
+    const tempDir = changesetDir + '_bak';
+    if (fs.existsSync(changesetDir)) {
+      fs.renameSync(changesetDir, tempDir);
+    }
+    try {
+      expect(hasChangesetFiles()).toBe(false);
+    } finally {
+      if (fs.existsSync(tempDir)) {
+        fs.renameSync(tempDir, changesetDir);
+      }
+    }
+  });
+
+  test('hasChangesetFiles returns false if only README.md exists', () => {
+    if (!fs.existsSync(changesetDir)) fs.mkdirSync(changesetDir);
+    fs.writeFileSync(path.join(changesetDir, 'README.md'), '');
+    expect(hasChangesetFiles()).toBe(false);
+    fs.unlinkSync(path.join(changesetDir, 'README.md'));
+    fs.rmdirSync(changesetDir);
+  });
+
+  test('hasChangesetFiles returns true if manual changeset file exists', () => {
+    if (!fs.existsSync(changesetDir)) fs.mkdirSync(changesetDir);
+    fs.writeFileSync(path.join(changesetDir, 'manual.md'), '');
+    expect(hasChangesetFiles()).toBe(true);
+    fs.unlinkSync(path.join(changesetDir, 'manual.md'));
+    fs.rmdirSync(changesetDir);
+  });
+
+  test('hasChangesetFiles returns true if auto-generated changeset file exists', () => {
+    if (!fs.existsSync(changesetDir)) fs.mkdirSync(changesetDir);
+    fs.writeFileSync(path.join(changesetDir, 'auto-generated-at-123.md'), '');
+    expect(hasChangesetFiles()).toBe(true);
+    fs.unlinkSync(path.join(changesetDir, 'auto-generated-at-123.md'));
+    fs.rmdirSync(changesetDir);
+  });
+
+  test('hasChangesetFiles returns true if both manual and auto-generated files exist', () => {
+    if (!fs.existsSync(changesetDir)) fs.mkdirSync(changesetDir);
+    fs.writeFileSync(path.join(changesetDir, 'manual.md'), '');
+    fs.writeFileSync(path.join(changesetDir, 'auto-generated-at-123.md'), '');
+    expect(hasChangesetFiles()).toBe(true);
+    fs.unlinkSync(path.join(changesetDir, 'manual.md'));
+    fs.unlinkSync(path.join(changesetDir, 'auto-generated-at-123.md'));
+    fs.rmdirSync(changesetDir);
   });
 });
 

@@ -29,6 +29,15 @@ export function checkForChangesetFiles(): boolean {
 }
 
 /**
+ * Checks if there are any changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
+ * @returns {boolean} True if any changeset markdown files exist, false otherwise.
+ */
+export function hasChangesetFiles(): boolean {
+  if (!fs.existsSync(changesetDir)) return false;
+  return fs.readdirSync(changesetDir).some(isAnyChangesetFile);
+}
+
+/**
  * Returns the list of manual changeset markdown files (excluding README.md and auto-generated files) in the .changeset directory.
  * @returns {string[]} Array of manual changeset file names.
  */

@@ -35,6 +35,10 @@ inputs:
     description: Enable or disable pushing tags to GitHub
     required: false
     default: 'true'
+  AUTO_CHANGESET:
+    description: Enable or disable automatic changeset generation and versioning
+    required: false
+    default: 'true'
 
 # Define your outputs here.
 outputs:

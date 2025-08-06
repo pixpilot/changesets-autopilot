@@ -1,6 +1,23 @@
 # Changeset Autopilot Action
 
+![Coverage](badges/coverage.svg)
+
 A GitHub Action that automates changeset-based releases with branch-specific configurations, similar to semantic-release. Automatically generates changesets from conventional commits, handles pre-release channels, and publishes to npm.
+
+## Why Automate Changesets?
+
+While we love automation, changesets traditionally follow a more manual approach to package versioning. Semantic-release is renowned for its powerful automation capabilities, but it has one significant limitation: it doesn't support monorepos well out of the box.
+
+There are packages like [`semantic-release-monorepo`](https://www.npmjs.com/package/semantic-release-monorepo) that add monorepo support, but they all miss one crucial feature - **package dependency awareness**. This means they can't properly handle version bumps when packages depend on each other within the same monorepo, as [explained in the changesets documentation](https://changesets-docs.vercel.app/en/prereleases).
+
+With this action, you get the best of both worlds:
+
+- The **dependency-aware versioning** that changesets provides for monorepos
+- The **automated publishing workflow** that semantic-release offers
+- **Conventional commit detection** that automatically generates changesets
+- **Seamless integration** that auto-merges changes back to your repository
+
+This bridges the gap between manual changeset management and fully automated releases, giving you powerful automation without sacrificing the intelligent dependency handling that makes changesets so valuable for monorepo projects.
 
 ## Features
 
@@ -12,7 +29,7 @@ A GitHub Action that automates changeset-based releases with branch-specific con
 
 ## Quick Start
 
-````yaml
+```yaml
 name: Release
 on:
   push:
@@ -39,25 +56,30 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-```## Configuration
+```
+
+## Configuration
 
 ### Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `GITHUB_TOKEN` | GitHub token for authentication | ✅ | - |
-| `NPM_TOKEN` | NPM token for publishing | ✅ | - |
-| `BOT_NAME` | Bot name for commits | ❌ | `changesets-autopilot` |
-| `BRANCHES` | Branch configuration (YAML array) | ❌ | See below |
-| `CREATE_RELEASE` | Enable or disable GitHub release creation | ❌ | `true` |
+| Input            | Description                                                     | Required | Default                |
+| ---------------- | --------------------------------------------------------------- | -------- | ---------------------- |
+| `GITHUB_TOKEN`   | GitHub token for authentication                                 | ✅       | -                      |
+| `NPM_TOKEN`      | NPM token for publishing                                        | ✅       | -                      |
+| `BOT_NAME`       | Bot name for commits                                            | ❌       | `changesets-autopilot` |
+| `BRANCHES`       | Branch configuration (YAML array)                               | ❌       | See below              |
+| `CREATE_RELEASE` | Enable or disable GitHub release creation                       | ❌       | `true`                 |
+| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub                        | ❌       | `true`                 |
+| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning | ❌       | `true`                 |
 
 **Default BRANCHES configuration:**
+
 ```yaml
 - main
 - name: next
   prerelease: rc
   channel: next
-````
+```
 
 ### Multi-branch Setup Example
 
@@ -117,50 +139,37 @@ This action uses [Conventional Commits](https://www.conventionalcommits.org/) to
 5. **Versions packages** using changeset tooling
 6. **Publishes to npm** with appropriate dist-tags
 
-## Versioning Examples
-
-### Single Package Repository
-
-```bash
-# Commit: feat: add new feature
-# Result: 1.2.0 -> 1.3.0
-# Release commit: "chore(release): 1.3.0 [skip ci]"
-```
-
-### Monorepo (Multiple Packages)
-
-```bash
-# Commit: feat: add dashboard to ui package
-# Result:
-#   @my-org/ui: 1.0.0 -> 1.1.0
-#   @my-org/core: unchanged
-# Release commit:
-#   "chore(release): bump package versions [skip ci]
-#
-#   @my-org/ui@1.1.0"
-```
-
 ## Requirements
 
-- Node.js 20+
+- Install @changesets/cli as a dev dependency:
+  ```bash
+  npm install --save-dev @changesets/cli
+  ```
 - Changesets initialized in your repository (`npx @changesets/cli init`)
 - NPM registry access for publishing
 
-## Development
+## Troubleshooting
 
-### Setup
+### Pre-release Branch Creation
+
+To avoid issues when creating pre-release branches (e.g., for `rc`, `beta`, or `next` releases):
+
+- **Always pull the latest changes from the main branch first.**
+- **Create your pre-release branch from the updated main branch.**
+- This ensures your branch is up-to-date and prevents merge conflicts or outdated changesets.
+
+**Recommended workflow:**
 
 ```bash
-npm install
-npm test
-npm run bundle
+# Update local main branch
+git checkout main
+git pull origin main
+
+# Create a new pre-release branch from main
+git checkout -b next
 ```
 
-### Local Testing
-
-```bash
-npx @github/local-action . src/index.ts .env
-```
+If you encounter issues with publishing or versioning, double-check that your branch is based on the latest main and that all changesets are up-to-date.
 
 ## License
 

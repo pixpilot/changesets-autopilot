@@ -1,6 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
-import { createChangesetFile, processChanges } from '../../src/changeset';
+import {
+  createChangesetFile,
+  createChangesetsForRecentCommits,
+} from '../../src/changeset';
 import { getChangesSinceLastCommit } from '../../src/git';
 
 vi.mock('../../src/changeset/create-changeset-file', () => ({
@@ -25,7 +28,7 @@ vi.mock('../../src/git/get-changes', () => ({
   getChangesSinceLastCommit: vi.fn(),
 }));
 
-describe('processChanges', () => {
+describe('createChangesetsForRecentCommits', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -76,11 +79,11 @@ describe('processChanges', () => {
   });
 
   test('should be defined', () => {
-    expect(processChanges).toBeDefined();
+    expect(createChangesetsForRecentCommits).toBeDefined();
   });
 
   test('should process changes and create changeset files for each commit', async () => {
-    await processChanges();
+    await createChangesetsForRecentCommits();
 
     expect(createChangesetFile).toHaveBeenCalledWith('pkg-a', 'minor', 'add feature');
     expect(createChangesetFile).toHaveBeenCalledWith('pkg-a', 'patch', 'bug fix');
