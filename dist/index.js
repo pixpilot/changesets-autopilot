@@ -82193,17 +82193,11 @@ async function getPackagesToRelease() {
     }
 }
 
-async function commitAndPush(git, githubToken) {
+async function commitReleaseChanges(git) {
     let packagesToRelease = [];
-    try {
-        // Get packages that will be released BEFORE running changeset version
-        // because changeset version consumes the changeset files
-        packagesToRelease = await getPackagesToRelease();
-    }
-    catch (error) {
-        coreExports.warning(`Failed to get release plan: ${String(error)}`);
-        // Continue with empty array - will use default commit message
-    }
+    // Get packages that will be released BEFORE running changeset version
+    // because changeset version consumes the changeset files
+    packagesToRelease = await getPackagesToRelease();
     // Use utility to get commit message
     const commitMessage = getReleaseCommitMessage(packagesToRelease);
     await git.add('.');
@@ -82214,6 +82208,10 @@ async function commitAndPush(git, githubToken) {
     catch (e) {
         coreExports.info(`Git commit failed: ${String(e)}`);
     }
+    return commitMessage;
+}
+
+async function pushBranch(git, githubToken) {
     const repo = process.env.GITHUB_REPOSITORY;
     const refName = process.env.GITHUB_REF_NAME;
     if (repo && githubToken && refName) {
@@ -82233,6 +82231,12 @@ async function commitAndPush(git, githubToken) {
     else {
         coreExports.info('Missing repo, token, or refName for push.');
     }
+}
+
+async function commitAndPush(git, githubToken) {
+    // Use new helper to commit release changes
+    const commitMessage = await commitReleaseChanges(git);
+    await pushBranch(git, githubToken);
     return commitMessage;
 }
 

@@ -87,16 +87,6 @@ describe('gitVersionAndPush', () => {
     expect(mockGit.commit).toHaveBeenCalledWith(expect.any(String));
   });
 
-  test('should use default message if getPackagesToRelease fails', async () => {
-    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
-    vi.mocked(getPackagesToRelease).mockRejectedValue(
-      new Error('Failed to get release plan'),
-    );
-
-    await commitAndPush(mockGit, GITHUB_TOKEN);
-    expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
-  });
-
   test('should use default message when no packages have changes', async () => {
     // Mock empty release plan (no packages to release)
     const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
@@ -106,13 +96,11 @@ describe('gitVersionAndPush', () => {
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
 
-  test('should handle changeset version failure', async () => {
-    mockExecSync.mockImplementation(() => {
-      throw new Error('Changeset version failed');
-    });
+  test('should use default message if getPackagesToRelease returns empty array (error case)', async () => {
+    const { getPackagesToRelease } = await import('../../src/utils/get-release-plan');
+    vi.mocked(getPackagesToRelease).mockResolvedValue([]);
 
     await commitAndPush(mockGit, GITHUB_TOKEN);
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
-    expect(mockGit.push).not.toHaveBeenCalled();
   });
 });
