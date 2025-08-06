@@ -73,14 +73,16 @@ export async function run(): Promise<void> {
         const repo = process.env.GITHUB_REPOSITORY;
         if (repo && githubToken && pushTags) {
           try {
-            await pushChangesetTags(git, githubToken, repo);
-            // Create GitHub releases for published packages
-            if (releasedPackages.length > 0 && shouldCreateRelease) {
-              await createReleasesForPackages({
-                releasedPackages,
-                githubToken,
-                repo,
-              });
+            if (releasedPackages.length > 0) {
+              await pushChangesetTags(git, githubToken, repo);
+              // Create GitHub releases for published packages
+              if (shouldCreateRelease) {
+                await createReleasesForPackages({
+                  releasedPackages,
+                  githubToken,
+                  repo,
+                });
+              }
             }
           } catch (error) {
             core.warning(`Failed to push tags: ${String(error)}`);
