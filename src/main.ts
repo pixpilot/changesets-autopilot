@@ -29,6 +29,7 @@ export async function run(): Promise<void> {
       branches,
       createRelease: shouldCreateRelease,
       pushTags,
+      autoChangeset,
     } = getActionInputs();
     const branchConfig = getBranchConfig(branches);
 
@@ -43,7 +44,9 @@ export async function run(): Promise<void> {
     // Manage pre-release mode based on branch configuration
     configurePrereleaseMode(branchConfig);
 
-    await createChangesetsForRecentCommits();
+    if (autoChangeset) {
+      await createChangesetsForRecentCommits();
+    }
 
     // Ensure we have changesets to work with
     const hasChangesetReleaseFiles = hasChangesetFiles();

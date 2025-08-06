@@ -34,6 +34,7 @@ describe('getActionInputs', () => {
       branches: ['main', { name: 'next', prerelease: 'rc', channel: 'next' }],
       createRelease: true,
       pushTags: true,
+      autoChangeset: false,
     });
   });
 
@@ -83,5 +84,37 @@ describe('getActionInputs', () => {
       return '';
     });
     expect(() => getActionInputs()).toThrow();
+  });
+
+  test('defaults autoChangeset to false when AUTO_CHANGESET input is not provided', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(result.autoChangeset).toBe(false);
+  });
+
+  test('sets autoChangeset to true when AUTO_CHANGESET input is true', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'AUTO_CHANGESET') return 'true';
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(result.autoChangeset).toBe(true);
+  });
+
+  test('sets autoChangeset to false when AUTO_CHANGESET input is false', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'AUTO_CHANGESET') return 'false';
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(result.autoChangeset).toBe(false);
   });
 });

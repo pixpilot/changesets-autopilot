@@ -11,4 +11,5 @@ export interface ActionInputs {
   branches: (string | BranchConfig)[];
   createRelease: boolean;
   pushTags: boolean;
+  autoChangeset: boolean;
 }

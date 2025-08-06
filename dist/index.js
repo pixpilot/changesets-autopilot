@@ -44616,7 +44616,7 @@ async function createChangesetsForRecentCommits() {
 /**
  * Manages pre-release mode based on branch configuration
  */
-function configurePrereleaseMode(branchConfig) {
+function configureRereleaseMode(branchConfig) {
     const preJsonPath = path$1.join(changesetDir, 'pre.json');
     const isInPrereleaseMode = fs$6.existsSync(preJsonPath);
     if (branchConfig.prerelease) {
@@ -51591,6 +51591,8 @@ function getActionInputs() {
     const shouldCreateRelease = shouldCreateReleaseInput.toLowerCase() === 'true';
     const shouldPushTagsInput = coreExports.getInput('PUSH_TAGS') || 'true';
     const pushTags = shouldPushTagsInput.toLowerCase() === 'true';
+    const shouldAutoChangesetInput = coreExports.getInput('AUTO_CHANGESET') || 'false';
+    const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
     return {
         githubToken: coreExports.getInput('GITHUB_TOKEN', { required: true }),
         npmToken: coreExports.getInput('NPM_TOKEN', { required: true }),
@@ -51598,6 +51600,7 @@ function getActionInputs() {
         branches,
         createRelease: shouldCreateRelease,
         pushTags,
+        autoChangeset,
     };
 }
 
@@ -86050,7 +86053,7 @@ async function run() {
         // Ensure changesets is available
         ensureChangesetsAvailable();
         // Initialize inputs and configuration
-        const { githubToken, npmToken, botName, branches, createRelease: shouldCreateRelease, pushTags, } = getActionInputs();
+        const { githubToken, npmToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
         // Validate branch configuration
         if (!validateBranchConfiguration(branchConfig)) {
@@ -86059,8 +86062,10 @@ async function run() {
         // Configure Git user
         const git = await configureGit(botName);
         // Manage pre-release mode based on branch configuration
-        configurePrereleaseMode(branchConfig);
-        await createChangesetsForRecentCommits();
+        configureRereleaseMode(branchConfig);
+        if (autoChangeset) {
+            await createChangesetsForRecentCommits();
+        }
         // Ensure we have changesets to work with
         const hasChangesetReleaseFiles = hasChangesetFiles();
         // Version and push changes if we have changesets

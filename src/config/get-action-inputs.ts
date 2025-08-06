@@ -30,6 +30,8 @@ export function getActionInputs(): ActionInputs {
   const shouldCreateRelease = shouldCreateReleaseInput.toLowerCase() === 'true';
   const shouldPushTagsInput = core.getInput('PUSH_TAGS') || 'true';
   const pushTags = shouldPushTagsInput.toLowerCase() === 'true';
+  const shouldAutoChangesetInput = core.getInput('AUTO_CHANGESET') || 'false';
+  const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
   return {
     githubToken: core.getInput('GITHUB_TOKEN', { required: true }),
     npmToken: core.getInput('NPM_TOKEN', { required: true }),
@@ -37,5 +39,6 @@ export function getActionInputs(): ActionInputs {
     branches,
     createRelease: shouldCreateRelease,
     pushTags,
+    autoChangeset,
   };
 }
