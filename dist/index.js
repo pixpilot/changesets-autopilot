@@ -86105,10 +86105,10 @@ async function run() {
         }
         // Configure Git user
         const git = await configureGit(botName);
-        // Ensure we have changesets to work with
-        const hasChangesetFiles = await ensureChangesets();
         // Manage pre-release mode based on branch configuration
         configurePrereleaseMode(branchConfig);
+        // Ensure we have changesets to work with
+        const hasChangesetFiles = await ensureChangesets();
         // Version and push changes if we have changesets
         if (hasChangesetFiles) {
             coreExports.info('Processing versioning and git operations...');
