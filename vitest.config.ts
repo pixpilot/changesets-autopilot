@@ -7,13 +7,19 @@ export default defineConfig({
     setupFiles: [],
     mockReset: true,
     include: ['tests/**/*.test.ts'],
-    // Vitest will use __mocks__ at the project root automatically for manual mocks
     coverage: {
       enabled: true,
       reportOnFailure: true,
-      reporter: ['text-summary', 'html', 'json'],
+      reporter: ['text-summary', 'html', 'json', 'json-summary'],
       include: ['src/**/*.ts'],
       exclude: ['**/*.test.ts', 'tests/**', '__mocks__/**'],
+      reportsDirectory: './coverage',
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
     },
   },
 });
