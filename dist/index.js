@@ -44641,9 +44641,9 @@ async function ensureChangesets() {
     // After creating changesets, check for ANY changeset files (including auto-generated ones)
     const allFiles = getAllChangesetFiles();
     hasChangesetFiles = allFiles.length > 0;
-    if (!hasChangesetFiles) {
-        coreExports.info('No changes detected that require versioning.');
-    }
+    // if (!hasChangesetFiles) {
+    //   core.info('No changes detected that require versioning.');
+    // }
     // } else {
     //   // Show all changeset files (including auto-generated ones) for transparency
     //   const foundFiles = getAllChangesetFiles();

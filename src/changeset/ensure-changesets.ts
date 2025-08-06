@@ -1,5 +1,3 @@
-import * as core from '@actions/core';
-
 import { checkForChangesetFiles, getAllChangesetFiles } from './changesets';
 import { processChanges } from './process-changes';
 
@@ -19,9 +17,9 @@ export async function ensureChangesets(): Promise<boolean> {
   const allFiles = getAllChangesetFiles();
   hasChangesetFiles = allFiles.length > 0;
 
-  if (!hasChangesetFiles) {
-    core.info('No changes detected that require versioning.');
-  }
+  // if (!hasChangesetFiles) {
+  //   core.info('No changes detected that require versioning.');
+  // }
   // } else {
   //   // Show all changeset files (including auto-generated ones) for transparency
   //   const foundFiles = getAllChangesetFiles();
