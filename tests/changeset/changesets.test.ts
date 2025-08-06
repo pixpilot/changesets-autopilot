@@ -92,7 +92,7 @@ describe('changesets', () => {
     fs.writeFileSync(path.join(changesetDir, 'README.md'), '');
     expect(hasChangesetFiles()).toBe(false);
     fs.unlinkSync(path.join(changesetDir, 'README.md'));
-    fs.rmdirSync(changesetDir);
+    fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 
   test('hasChangesetFiles returns true if manual changeset file exists', () => {
@@ -100,7 +100,7 @@ describe('changesets', () => {
     fs.writeFileSync(path.join(changesetDir, 'manual.md'), '');
     expect(hasChangesetFiles()).toBe(true);
     fs.unlinkSync(path.join(changesetDir, 'manual.md'));
-    fs.rmdirSync(changesetDir);
+    fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 
   test('hasChangesetFiles returns true if auto-generated changeset file exists', () => {
@@ -108,7 +108,7 @@ describe('changesets', () => {
     fs.writeFileSync(path.join(changesetDir, 'auto-generated-at-123.md'), '');
     expect(hasChangesetFiles()).toBe(true);
     fs.unlinkSync(path.join(changesetDir, 'auto-generated-at-123.md'));
-    fs.rmdirSync(changesetDir);
+    fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 
   test('hasChangesetFiles returns true if both manual and auto-generated files exist', () => {
@@ -118,7 +118,7 @@ describe('changesets', () => {
     expect(hasChangesetFiles()).toBe(true);
     fs.unlinkSync(path.join(changesetDir, 'manual.md'));
     fs.unlinkSync(path.join(changesetDir, 'auto-generated-at-123.md'));
-    fs.rmdirSync(changesetDir);
+    fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 });
 

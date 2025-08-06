@@ -1,6 +1,6 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import fs$6 from 'fs';
+import fs$6, { existsSync, readFileSync } from 'fs';
 import path$1, { posix } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
@@ -44472,6 +44472,54 @@ async function getSelectedPackagesInfo(cwd = process.cwd()) {
     };
 }
 
+/**
+ * Finds the last published commit by looking for release tags or published commits
+ */
+async function findLastPublishedCommit(git) {
+    try {
+        // First, try to find the most recent release tag
+        const tags = await git.tags(['--sort=-version:refname', '--merged']);
+        if (tags.all.length > 0) {
+            // Find the first tag that looks like a version tag
+            for (const tag of tags.all) {
+                if (/^v?\d+\.\d+\.\d+/.test(tag)) {
+                    coreExports.info(`Using last release tag as base: ${tag}`);
+                    return tag;
+                }
+            }
+        }
+        // No version tags found, try commit history
+        coreExports.info('No version tags found, searching commit history for published releases');
+        // If no version tags found, look through commit history for the last published commit
+        const log = await git.log({ maxCount: 80 });
+        // Look for commits that indicate a published release
+        for (const commit of log.all) {
+            if (isVersionOrReleaseCommit(commit.message)) {
+                coreExports.info(`Using last published release commit as base: ${commit.hash}`);
+                return commit.hash;
+            }
+        }
+        // If no published commits found, look for the last commit that would create publishable changes
+        // by finding commits that are not version/merge commits
+        for (const [index, commit] of log.all.entries()) {
+            if (!isVersionOrReleaseCommit(commit.message)) {
+                // This might be a publishable commit, but we want to find what was published before it
+                if (index < log.all.length - 1) {
+                    coreExports.info(`Using commit before last publishable commit as base: ${log.all[index + 1].hash}`);
+                    return log.all[index + 1].hash;
+                }
+            }
+        }
+        // Fallback to HEAD~1 if no clear base found
+        coreExports.info('No clear base commit found, falling back to HEAD~1');
+        return 'HEAD~1';
+    }
+    catch (error) {
+        coreExports.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
+        return 'HEAD~1';
+    }
+}
+
 async function getChangesSinceLastCommit() {
     const { publishablePackages, privatePackages, isMonorepo } = await getSelectedPackagesInfo();
     const git = esm_default();
@@ -44541,60 +44589,6 @@ async function getChangesSinceLastCommit() {
         return {};
     }
 }
-/**
- * Finds the last published commit by looking for release tags or published commits
- */
-async function findLastPublishedCommit(git) {
-    try {
-        // First, try to find the most recent release tag
-        const tags = await git.tags(['--sort=-version:refname', '--merged']);
-        if (tags.all.length > 0) {
-            // Find the first tag that looks like a version tag
-            for (const tag of tags.all) {
-                if (/^v?\d+\.\d+\.\d+/.test(tag)) {
-                    coreExports.info(`Using last release tag as base: ${tag}`);
-                    return tag;
-                }
-            }
-        }
-        // No version tags found, try commit history
-        coreExports.info('No version tags found, searching commit history for published releases');
-        // If no version tags found, look through commit history for the last published commit
-        const log = await git.log({ maxCount: 50 });
-        // Look for commits that indicate a published release
-        for (const commit of log.all) {
-            if (isPublishedReleaseCommit(commit.message)) {
-                coreExports.info(`Using last published release commit as base: ${commit.hash}`);
-                return commit.hash;
-            }
-        }
-        // If no published commits found, look for the last commit that would create publishable changes
-        // by finding commits that are not version/merge commits
-        for (const [index, commit] of log.all.entries()) {
-            if (!isVersionOrReleaseCommit(commit.message)) {
-                // This might be a publishable commit, but we want to find what was published before it
-                if (index < log.all.length - 1) {
-                    coreExports.info(`Using commit before last publishable commit as base: ${log.all[index + 1].hash}`);
-                    return log.all[index + 1].hash;
-                }
-            }
-        }
-        // Fallback to HEAD~1 if no clear base found
-        coreExports.info('No clear base commit found, falling back to HEAD~1');
-        return 'HEAD~1';
-    }
-    catch (error) {
-        coreExports.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
-        return 'HEAD~1';
-    }
-}
-/**
- * Checks if a commit message indicates a published release commit.
- * For this action, published release commits are the same as version commits.
- */
-function isPublishedReleaseCommit(message) {
-    return isVersionOrReleaseCommit(message);
-}
 
 /**
  * Processes changes since last commit and creates changeset files for each package
@@ -44640,6 +44634,63 @@ function configureRereleaseMode(branchConfig) {
     }
 }
 
+// Parses the output from changeset publish to extract published package names
+function parsePublishedPackageNames(publishOutput) {
+    const publishedPackageNames = new Set();
+    const lines = publishOutput.split('\n');
+    // Look for "New tag:" lines which indicate a package was published
+    const newTagRegex = /New tag:\s+(@[^/]+\/[^@]+|[^/]+)@([^\s]+)/;
+    for (const line of lines) {
+        const match = newTagRegex.exec(line);
+        if (match) {
+            const pkgName = match[1];
+            publishedPackageNames.add(pkgName);
+        }
+    }
+    return publishedPackageNames;
+}
+
+async function publishPackages(branchConfig, npmToken) {
+    const preJsonPath = path$1.join(changesetDir, 'pre.json');
+    const isInPrereleaseMode = fs$6.existsSync(preJsonPath);
+    const publishCommand = !isInPrereleaseMode && branchConfig.channel
+        ? `npx changeset publish --tag ${branchConfig.channel}`
+        : 'npx changeset publish';
+    if (isInPrereleaseMode) {
+        coreExports.info('In prerelease mode - changeset will handle dist-tag automatically');
+    }
+    else if (branchConfig.channel) {
+        coreExports.info(`Using custom dist-tag: ${branchConfig.channel}`);
+    }
+    coreExports.info(`Publishing packages: ${publishCommand}`);
+    const publishOutput = execSync(publishCommand, {
+        encoding: 'utf8',
+        cwd: process.cwd(),
+        env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
+    });
+    coreExports.info(publishOutput);
+    const publishedPackageNames = parsePublishedPackageNames(publishOutput);
+    for (const pkgName of publishedPackageNames) {
+        coreExports.info(`Detected published package from tag: ${pkgName}`);
+    }
+    const { packages } = await getPackages(process.cwd());
+    const releasedPackages = [];
+    for (const pkg of packages) {
+        if (!pkg.packageJson.private && publishedPackageNames.has(pkg.packageJson.name)) {
+            releasedPackages.push({
+                dir: pkg.dir,
+                packageJson: {
+                    name: pkg.packageJson.name,
+                    version: pkg.packageJson.version,
+                    private: pkg.packageJson.private,
+                },
+            });
+            coreExports.info(`Package ${pkg.packageJson.name} was published with version ${pkg.packageJson.version}`);
+        }
+    }
+    return releasedPackages;
+}
+
 const requiredPackages = ['@changesets/cli'];
 /**
  * Checks if a package exists in dependencies or devDependencies of package.json
@@ -44647,10 +44698,10 @@ const requiredPackages = ['@changesets/cli'];
 function isPackageDeclared(pkgName) {
     try {
         const pkgJsonPath = path$1.join(process.cwd(), 'package.json');
-        if (!fs$6.existsSync(pkgJsonPath)) {
+        if (!existsSync(pkgJsonPath)) {
             throw new Error('package.json not found');
         }
-        const pkgJson = JSON.parse(fs$6.readFileSync(pkgJsonPath, 'utf8'));
+        const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
         const deps = pkgJson.dependencies ?? {};
         const devDeps = pkgJson.devDependencies ?? {};
         return pkgName in deps || pkgName in devDeps;
@@ -86002,63 +86053,6 @@ async function pushChangesetTags(git, githubToken, repo) {
     coreExports.info('Tags pushed successfully');
 }
 
-// Parses the output from changeset publish to extract published package names
-function parsePublishedPackageNames(publishOutput) {
-    const publishedPackageNames = new Set();
-    const lines = publishOutput.split('\n');
-    // Look for "New tag:" lines which indicate a package was published
-    const newTagRegex = /New tag:\s+(@[^/]+\/[^@]+|[^/]+)@([^\s]+)/;
-    for (const line of lines) {
-        const match = newTagRegex.exec(line);
-        if (match) {
-            const pkgName = match[1];
-            publishedPackageNames.add(pkgName);
-        }
-    }
-    return publishedPackageNames;
-}
-
-async function publishPackages(branchConfig, npmToken) {
-    const preJsonPath = path$1.join(changesetDir, 'pre.json');
-    const isInPrereleaseMode = fs$6.existsSync(preJsonPath);
-    const publishCommand = !isInPrereleaseMode && branchConfig.channel
-        ? `npx changeset publish --tag ${branchConfig.channel}`
-        : 'npx changeset publish';
-    if (isInPrereleaseMode) {
-        coreExports.info('In prerelease mode - changeset will handle dist-tag automatically');
-    }
-    else if (branchConfig.channel) {
-        coreExports.info(`Using custom dist-tag: ${branchConfig.channel}`);
-    }
-    coreExports.info(`Publishing packages: ${publishCommand}`);
-    const publishOutput = execSync(publishCommand, {
-        encoding: 'utf8',
-        cwd: process.cwd(),
-        env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
-    });
-    coreExports.info(publishOutput);
-    const publishedPackageNames = parsePublishedPackageNames(publishOutput);
-    for (const pkgName of publishedPackageNames) {
-        coreExports.info(`Detected published package from tag: ${pkgName}`);
-    }
-    const { packages } = await getPackages(process.cwd());
-    const releasedPackages = [];
-    for (const pkg of packages) {
-        if (!pkg.packageJson.private && publishedPackageNames.has(pkg.packageJson.name)) {
-            releasedPackages.push({
-                dir: pkg.dir,
-                packageJson: {
-                    name: pkg.packageJson.name,
-                    version: pkg.packageJson.version,
-                    private: pkg.packageJson.private,
-                },
-            });
-            coreExports.info(`Package ${pkg.packageJson.name} was published with version ${pkg.packageJson.version}`);
-        }
-    }
-    return releasedPackages;
-}
-
 /**
  * The main function for the action.
  */
@@ -86091,10 +86085,6 @@ async function run() {
             if (npmToken) {
                 const releasedPackages = await publishPackages(branchConfig, npmToken);
                 coreExports.info('Packages published successfully!');
-                // Clean up auto-generated changeset files in prerelease mode
-                if (branchConfig.prerelease) {
-                    // cleanupAutoGeneratedChangesetFiles();
-                }
                 // NOW push the tags that were created by changeset publish
                 const repo = process.env.GITHUB_REPOSITORY;
                 if (repo && githubToken && pushTags) {

@@ -47,13 +47,13 @@ describe('createChangesetFile', () => {
   test('should create .changeset directory if it does not exist', () => {
     const changesetDir = '.changeset';
     if (fs.existsSync(changesetDir)) {
-      fs.rmdirSync(changesetDir, { recursive: true });
+      fs.rmSync(changesetDir, { recursive: true, force: true });
     }
     const filePath = createChangesetFile('pkg', 'minor', 'desc');
     expect(fs.existsSync(changesetDir)).toBe(true);
     expect(fs.existsSync(filePath)).toBe(true);
     fs.unlinkSync(filePath);
-    fs.rmdirSync(changesetDir, { recursive: true });
+    fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 
   test('should throw if unable to create file', () => {

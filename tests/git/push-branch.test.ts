@@ -13,6 +13,9 @@ vi.mock('@actions/core', () => ({
 describe('pushBranch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore default mock return values
+    mockGit.branch.mockResolvedValue({ current: 'main' });
+    mockGit.push.mockResolvedValue(undefined);
     process.env.GITHUB_REPOSITORY = 'owner/repo';
     process.env.GITHUB_REF_NAME = 'main';
   });

@@ -1,0 +1,6 @@
+{
+  "name": "test-package",
+  "dependencies": {
+    "@changesets/cli": "^2.0.0"
+  }
+}

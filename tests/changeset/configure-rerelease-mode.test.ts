@@ -4,6 +4,9 @@ vi.mock('fs');
 vi.mock('child_process');
 vi.mock('@actions/core');
 
+// Import mocked modules at the top level
+const fs = await import('fs');
+const child_process = await import('child_process');
 const core = await import('@actions/core');
 const { configureRereleaseMode } = await import(
   '../../src/changeset/configure-rerelease-mode'
@@ -12,20 +15,13 @@ const { configureRereleaseMode } = await import(
 describe('configureRereleaseMode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
   });
 
-  test('should be a function', async () => {
-    const { configureRereleaseMode } = await import(
-      '../../src/changeset/configure-rerelease-mode'
-    );
+  test('should be a function', () => {
     expect(typeof configureRereleaseMode).toBe('function');
   });
 
-  test('enters prerelease mode if not already in prerelease mode', async () => {
-    const fs = await import('fs');
-    const child_process = await import('child_process');
-
+  test('enters prerelease mode if not already in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
@@ -38,10 +34,7 @@ describe('configureRereleaseMode', () => {
     });
   });
 
-  test('skips enter if already in prerelease mode', async () => {
-    const fs = await import('fs');
-    const child_process = await import('child_process');
-
+  test('skips enter if already in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
@@ -52,10 +45,7 @@ describe('configureRereleaseMode', () => {
     expect(child_process.execSync).not.toHaveBeenCalled();
   });
 
-  test('exits prerelease mode if in prerelease mode', async () => {
-    const fs = await import('fs');
-    const child_process = await import('child_process');
-
+  test('exits prerelease mode if in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', isMatch: true };
 
@@ -66,10 +56,7 @@ describe('configureRereleaseMode', () => {
     });
   });
 
-  test('skips exit if not in prerelease mode', async () => {
-    const fs = await import('fs');
-    const child_process = await import('child_process');
-
+  test('skips exit if not in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', isMatch: true };
 

@@ -8,14 +8,12 @@
           "runTaskOnFileCreation": false,
           "label": "Test current file (node)",
           "command": "npm test",
-          "checkIfArgPathExist": ["--config"],
           "args": ["${relativeTargetFile}"]
         },
         {
           "runTaskOnFileCreation": true,
           "label": "Watch current file (node)",
           "command": "npm test",
-          "checkIfArgPathExist": ["--config"],
           "userInputPrompt": [
             [
               {
@@ -31,7 +29,6 @@
           "label": "Test directory (node)",
           "command": "npm test",
           "shouldSwitchToFile": false,
-          "checkIfArgPathExist": ["--config"],
           "args": ["${relativeFileDirname}"]
         }
       ],

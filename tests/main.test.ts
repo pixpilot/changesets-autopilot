@@ -19,22 +19,30 @@ vi.mock('../src/config/get-action-inputs');
 vi.mock('../src/config/get-branch-config');
 vi.mock('../src/config/validate-branch-configuration');
 vi.mock('../src/git/configure-git');
-vi.mock('../src/changeset/ensure-changesets');
-vi.mock('../src/changeset/configure-prerelease-mode');
-vi.mock('../src/git/version-and-push');
-vi.mock('../src/publisher/publish-packages');
-vi.mock('../src/github/create-release');
+vi.mock('../src/changeset/ensure-changesets-available');
+vi.mock('../src/changeset/configure-rerelease-mode');
+vi.mock('../src/changeset/create-changesets-for-recent-commits');
+vi.mock('../src/changeset/run-changeset-version');
+vi.mock('../src/changeset/changesets');
+vi.mock('../src/git/commit-and-push');
+vi.mock('../src/changeset/publish-packages');
+vi.mock('../src/github/create-releases-for-packages');
+vi.mock('../src/github/push-changeset-tags');
 
 describe('main.js', () => {
   let mockGetActionInputs: MockedFunction<any>;
   let mockGetBranchConfig: MockedFunction<any>;
   let mockValidateBranchConfiguration: MockedFunction<any>;
   let mockConfigureGit: MockedFunction<any>;
-  let mockEnsureChangesets: MockedFunction<any>;
-  let mockconfigureRereleaseMode: MockedFunction<any>;
-  let mockGitVersionAndPush: MockedFunction<any>;
+  let mockEnsureChangesetsAvailable: MockedFunction<any>;
+  let mockConfigureRereleaseMode: MockedFunction<any>;
+  let mockCreateChangesetsForRecentCommits: MockedFunction<any>;
+  let mockRunChangesetVersion: MockedFunction<any>;
+  let mockHasChangesetFiles: MockedFunction<any>;
+  let mockCommitAndPush: MockedFunction<any>;
   let mockPublishPackages: MockedFunction<any>;
-  let mockCreateRelease: MockedFunction<any>;
+  let mockCreateReleasesForPackages: MockedFunction<any>;
+  let mockPushChangesetTags: MockedFunction<any>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -47,15 +55,25 @@ describe('main.js', () => {
       '../src/config/validate-branch-configuration'
     );
     const configureGitModule = await import('../src/git/configure-git');
-    const ensureChangesetsModule = await import(
-      '../src/changeset/create-changesets-for-recent-commits'
+    const ensureChangesetsAvailableModule = await import(
+      '../src/changeset/ensure-changesets-available'
     );
     const configureRereleaseModeModule = await import(
       '../src/changeset/configure-rerelease-mode'
     );
-    const gitVersionAndPushModule = await import('../src/git/commit-and-push');
-    const publishPackagesModule = await import('../src/publisher/publish-packages');
-    const createReleaseModule = await import('../src/github/create-release');
+    const createChangesetsForRecentCommitsModule = await import(
+      '../src/changeset/create-changesets-for-recent-commits'
+    );
+    const runChangesetVersionModule = await import(
+      '../src/changeset/run-changeset-version'
+    );
+    const changesetsModule = await import('../src/changeset/changesets');
+    const commitAndPushModule = await import('../src/git/commit-and-push');
+    const publishPackagesModule = await import('../src/changeset/publish-packages');
+    const createReleasesForPackagesModule = await import(
+      '../src/github/create-releases-for-packages'
+    );
+    const pushChangesetTagsModule = await import('../src/github/push-changeset-tags');
 
     mockGetActionInputs = vi.mocked(getActionInputsModule.getActionInputs);
     mockGetBranchConfig = vi.mocked(getBranchConfigModule.getBranchConfig);
@@ -63,15 +81,23 @@ describe('main.js', () => {
       validateBranchConfigurationModule.validateBranchConfiguration,
     );
     mockConfigureGit = vi.mocked(configureGitModule.configureGit);
-    mockEnsureChangesets = vi.mocked(
-      ensureChangesetsModule.createChangesetsForRecentCommits,
+    mockEnsureChangesetsAvailable = vi.mocked(
+      ensureChangesetsAvailableModule.ensureChangesetsAvailable,
     );
-    mockconfigureRereleaseMode = vi.mocked(
+    mockConfigureRereleaseMode = vi.mocked(
       configureRereleaseModeModule.configureRereleaseMode,
     );
-    mockGitVersionAndPush = vi.mocked(gitVersionAndPushModule.commitAndPush);
+    mockCreateChangesetsForRecentCommits = vi.mocked(
+      createChangesetsForRecentCommitsModule.createChangesetsForRecentCommits,
+    );
+    mockRunChangesetVersion = vi.mocked(runChangesetVersionModule.runChangesetVersion);
+    mockHasChangesetFiles = vi.mocked(changesetsModule.hasChangesetFiles);
+    mockCommitAndPush = vi.mocked(commitAndPushModule.commitAndPush);
     mockPublishPackages = vi.mocked(publishPackagesModule.publishPackages);
-    mockCreateRelease = vi.mocked(createReleaseModule.createRelease);
+    mockCreateReleasesForPackages = vi.mocked(
+      createReleasesForPackagesModule.createReleasesForPackages,
+    );
+    mockPushChangesetTags = vi.mocked(pushChangesetTagsModule.pushChangesetTags);
 
     // Default return values
     mockGetActionInputs.mockReturnValue({
@@ -86,9 +112,15 @@ describe('main.js', () => {
       addConfig: vi.fn(),
       pushTags: vi.fn().mockResolvedValue(undefined),
     });
-    mockEnsureChangesets.mockResolvedValue(true);
+    mockEnsureChangesetsAvailable.mockReturnValue(undefined);
+    mockConfigureRereleaseMode.mockReturnValue(undefined);
+    mockCreateChangesetsForRecentCommits.mockResolvedValue(undefined);
+    mockRunChangesetVersion.mockReturnValue(undefined);
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockCommitAndPush.mockResolvedValue(undefined);
     mockPublishPackages.mockResolvedValue([]);
-    mockCreateRelease.mockResolvedValue(undefined);
+    mockCreateReleasesForPackages.mockResolvedValue(undefined);
+    mockPushChangesetTags.mockResolvedValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
     process.env.GITHUB_REPOSITORY = 'owner/repo';
@@ -106,7 +138,7 @@ describe('main.js', () => {
     await run();
 
     expect(mockValidateBranchConfiguration).toHaveBeenCalled();
-    expect(mockEnsureChangesets).not.toHaveBeenCalled();
+    expect(mockHasChangesetFiles).not.toHaveBeenCalled();
   });
 
   test('handles errors correctly', async () => {
@@ -123,22 +155,22 @@ describe('main.js', () => {
   });
 
   test('should process release with changesets and npm token', async () => {
-    mockEnsureChangesets.mockResolvedValue(true);
+    mockHasChangesetFiles.mockReturnValue(true);
 
     const { run } = await import('../src/main');
     await run();
 
-    expect(mockGitVersionAndPush).toHaveBeenCalled();
+    expect(mockCommitAndPush).toHaveBeenCalled();
     expect(mockPublishPackages).toHaveBeenCalled();
   });
 
   test('should process release with no changesets', async () => {
-    mockEnsureChangesets.mockResolvedValue(false);
+    mockHasChangesetFiles.mockReturnValue(false);
 
     const { run } = await import('../src/main');
     await run();
 
-    expect(mockGitVersionAndPush).not.toHaveBeenCalled();
+    expect(mockCommitAndPush).not.toHaveBeenCalled();
     expect(mockPublishPackages).not.toHaveBeenCalled();
   });
 
@@ -149,12 +181,12 @@ describe('main.js', () => {
       botName: 'test-bot',
       branches: ['main'],
     });
-    mockEnsureChangesets.mockResolvedValue(true);
+    mockHasChangesetFiles.mockReturnValue(true);
 
     const { run } = await import('../src/main');
     await run();
 
-    expect(mockGitVersionAndPush).toHaveBeenCalled();
+    expect(mockCommitAndPush).toHaveBeenCalled();
     expect(mockPublishPackages).not.toHaveBeenCalled();
   });
 
@@ -166,11 +198,184 @@ describe('main.js', () => {
       isMatch: true,
     };
     mockGetBranchConfig.mockReturnValue(prereleaseConfig);
-    mockEnsureChangesets.mockResolvedValue(false);
+    mockHasChangesetFiles.mockReturnValue(false);
 
     const { run } = await import('../src/main');
     await run();
 
-    expect(mockconfigureRereleaseMode).toHaveBeenCalledWith(prereleaseConfig);
+    expect(mockConfigureRereleaseMode).toHaveBeenCalledWith(prereleaseConfig);
+  });
+
+  test('should call core.setFailed if an error is thrown', async () => {
+    const coreModule = await import('@actions/core');
+    const mockSetFailed = vi.spyOn(coreModule, 'setFailed');
+    mockGetActionInputs.mockImplementation(() => {
+      throw new Error('fail');
+    });
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockSetFailed).toHaveBeenCalledWith(
+      expect.stringContaining('Action failed: fail'),
+    );
+  });
+
+  test('should log info if no changesets to process', async () => {
+    const coreModule = await import('@actions/core');
+    const mockInfo = vi.spyOn(coreModule, 'info');
+    mockHasChangesetFiles.mockReturnValue(false);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockInfo).toHaveBeenCalledWith('No changesets to process. Action completed.');
+  });
+
+  test('should log info if no npm token provided', async () => {
+    const coreModule = await import('@actions/core');
+    const mockInfo = vi.spyOn(coreModule, 'info');
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: '',
+      botName: 'test-bot',
+      branches: ['main'],
+    });
+    mockHasChangesetFiles.mockReturnValue(true);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockInfo).toHaveBeenCalledWith(
+      'No npm token provided, skipping publish step.',
+    );
+  });
+
+  test('should call core.warning if pushChangesetTags throws', async () => {
+    const coreModule = await import('@actions/core');
+    const mockWarning = vi.spyOn(coreModule, 'warning');
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    mockPushChangesetTags.mockRejectedValue(new Error('tag error'));
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockWarning).toHaveBeenCalledWith('Failed to push tags: Error: tag error');
+  });
+
+  test('should call createReleasesForPackages if releasedPackages and shouldCreateRelease', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockCreateReleasesForPackages).toHaveBeenCalledWith({
+      releasedPackages: ['pkg'],
+      githubToken: 'test-token',
+      repo: 'owner/repo',
+    });
+  });
+
+  test('should not call createReleasesForPackages if releasedPackages is empty', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue([]);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockCreateReleasesForPackages).not.toHaveBeenCalled();
+  });
+
+  test('should not call createReleasesForPackages if shouldCreateRelease is false', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: false,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockCreateReleasesForPackages).not.toHaveBeenCalled();
+  });
+
+  test('should not call pushChangesetTags if repo is missing', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    delete process.env.GITHUB_REPOSITORY;
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockPushChangesetTags).not.toHaveBeenCalled();
+  });
+
+  test('should not call pushChangesetTags if githubToken is missing', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: '',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: true,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockPushChangesetTags).not.toHaveBeenCalled();
+  });
+
+  test('should not call pushChangesetTags if pushTags is false', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      pushTags: false,
+      createRelease: true,
+    });
+    mockPublishPackages.mockResolvedValue(['pkg']);
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockPushChangesetTags).not.toHaveBeenCalled();
+  });
+
+  test('should call createChangesetsForRecentCommits if autoChangeset is true', async () => {
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetActionInputs.mockReturnValue({
+      githubToken: 'test-token',
+      npmToken: 'test-npm-token',
+      botName: 'test-bot',
+      branches: ['main'],
+      autoChangeset: true,
+    });
+    const { run } = await import('../src/main');
+    await run();
+    expect(mockCreateChangesetsForRecentCommits).toHaveBeenCalled();
   });
 });

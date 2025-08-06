@@ -117,4 +117,21 @@ describe('getActionInputs', () => {
     const result = getActionInputs();
     expect(result.autoChangeset).toBe(false);
   });
+
+  test('throws error if BRANCHES input is valid YAML but not an array', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'BRANCHES') return 'foo: bar'; // valid YAML object, not array
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return 'npm-token';
+      return '';
+    });
+    const result = getActionInputs();
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('BRANCHES input must be a YAML array'),
+    );
+    expect(result.branches).toStrictEqual([
+      'main',
+      { name: 'next', prerelease: 'rc', channel: 'next' },
+    ]);
+  });
 });

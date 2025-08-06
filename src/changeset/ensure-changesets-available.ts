@@ -1,4 +1,4 @@
-import fs from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 import * as core from '@actions/core';
@@ -18,10 +18,10 @@ interface PackageJson {
 function isPackageDeclared(pkgName: string): boolean {
   try {
     const pkgJsonPath = path.join(process.cwd(), 'package.json');
-    if (!fs.existsSync(pkgJsonPath)) {
+    if (!existsSync(pkgJsonPath)) {
       throw new Error('package.json not found');
     }
-    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
     const deps = pkgJson.dependencies ?? {};
     const devDeps = pkgJson.devDependencies ?? {};
     return pkgName in deps || pkgName in devDeps;

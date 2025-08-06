@@ -4,7 +4,7 @@ import fs from 'fs';
 import * as core from '@actions/core';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
-import { publishPackages } from '../../src/publisher/publish-packages';
+import { publishPackages } from '../../src/changeset/publish-packages';
 
 vi.mock('@actions/core');
 vi.mock('child_process', () => ({
