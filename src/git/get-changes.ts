@@ -77,8 +77,6 @@ export async function getChangesSinceLastCommit() {
 
     const changes: ChangesMap = {};
 
-    core.info(JSON.stringify(publishablePackages));
-
     // Only process public packages that have actual changes
     publishablePackages.forEach((pkg) => {
       const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
@@ -102,7 +100,7 @@ export async function getChangesSinceLastCommit() {
         } as PackageChange;
       }
     });
-    core.info(JSON.stringify(changes));
+
     return changes;
   } catch (error) {
     core.error('Error getting changes: ' + String(error));
