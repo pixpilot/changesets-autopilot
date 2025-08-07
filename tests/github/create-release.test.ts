@@ -69,6 +69,7 @@ describe('createRelease', () => {
         '## [test-pkg@1.0.0](https://github.com/test-owner/test-repo/compare/test-pkg@0.9.0...test-pkg@1.0.0)',
       ),
       prerelease: false,
+      make_latest: 'true',
     });
   });
 

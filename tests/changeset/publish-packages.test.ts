@@ -45,9 +45,8 @@ describe('publishPackages', () => {
   test('publishes with tag if channel is provided', async () => {
     const branchConfig = { name: 'next', isMatch: true, channel: 'next' };
     const result = await publishPackages(branchConfig, npmToken);
-    expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('npx changeset publish --tag next'),
-    );
+    expect(core.info).toHaveBeenCalledWith('Using custom dist-tag: next');
+    expect(core.info).toHaveBeenCalledWith('Publishing packages...');
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish --tag next',
       expect.objectContaining({
@@ -61,9 +60,7 @@ describe('publishPackages', () => {
   test('publishes without tag if channel is not provided', async () => {
     const branchConfig = { name: 'main', isMatch: true };
     const result = await publishPackages(branchConfig, npmToken);
-    expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('npx changeset publish'),
-    );
+    expect(core.info).toHaveBeenCalledWith('Publishing packages...');
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish',
       expect.objectContaining({
@@ -149,9 +146,7 @@ describe('publishPackages', () => {
     expect(core.info).toHaveBeenCalledWith(
       'In prerelease mode - changeset will handle dist-tag automatically',
     );
-    expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('npx changeset publish'),
-    );
+    expect(core.info).toHaveBeenCalledWith('Publishing packages...');
     expect(core.info).not.toHaveBeenCalledWith(
       expect.stringContaining('npx changeset publish --tag next'),
     );

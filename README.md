@@ -60,15 +60,15 @@ jobs:
 
 ### Inputs
 
-| Input            | Description                                                     | Required | Default                |
-| ---------------- | --------------------------------------------------------------- | -------- | ---------------------- |
-| `GITHUB_TOKEN`   | GitHub token for authentication                                 | ✅       | -                      |
-| `NPM_TOKEN`      | NPM token for publishing                                        | ✅       | -                      |
-| `BOT_NAME`       | Bot name for commits                                            | ❌       | `changesets-autopilot` |
-| `BRANCHES`       | Branch configuration (YAML array)                               | ❌       | See below              |
-| `CREATE_RELEASE` | Enable or disable GitHub release creation                       | ❌       | `true`                 |
-| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub                        | ❌       | `true`                 |
-| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning | ❌       | `true`                 |
+| Input            | Description                                                                          | Required | Default                |
+| ---------------- | ------------------------------------------------------------------------------------ | -------- | ---------------------- |
+| `GITHUB_TOKEN`   | GitHub token for authentication                                                      | ✅       | -                      |
+| `NPM_TOKEN`      | NPM token for publishing                                                             | ✅       | -                      |
+| `BOT_NAME`       | Bot name for commits                                                                 | ❌       | `changesets-autopilot` |
+| `BRANCHES`       | Branch configuration (YAML array)                                                    | ❌       | See below              |
+| `CREATE_RELEASE` | Enable or disable GitHub release creation                                            | ❌       | `true`                 |
+| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub (disabling this will also prevent releases) | ❌       | `true`                 |
+| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning                      | ❌       | `true`                 |
 
 **Default BRANCHES configuration:**
 

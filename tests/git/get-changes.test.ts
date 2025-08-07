@@ -428,8 +428,8 @@ describe('getChangesSinceLastCommit', () => {
         ],
       }),
     }));
-    vi.doMock('../../src/utils/select-packages-info', () => ({
-      getSelectedPackagesInfo: vi.fn().mockResolvedValue({
+    vi.doMock('../../src/utils/get-packages', () => ({
+      getPackages: vi.fn().mockResolvedValue({
         publishablePackages: [
           {
             dir: pkgADir,
@@ -437,6 +437,12 @@ describe('getChangesSinceLastCommit', () => {
           },
         ],
         privatePackages: [],
+        packages: [
+          {
+            dir: pkgADir,
+            packageJson: { name: 'pkg-a', version: '1.0.0', private: false },
+          },
+        ],
         isMonorepo: false,
       }),
     }));
