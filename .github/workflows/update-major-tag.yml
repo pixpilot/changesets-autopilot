@@ -1,0 +1,39 @@
+name: Update Major Version Tag
+on:
+  release:
+    types: [published]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update major version tag
+        run: |
+          # Get the latest release tag
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          echo "Release tag: $RELEASE_TAG"
+
+          # Extract major version (e.g., v1.0.2 -> v1)
+          if [[ $RELEASE_TAG =~ ^v([0-9]+)\. ]]; then
+            MAJOR_VERSION="v${BASH_REMATCH[1]}"
+            echo "Major version: $MAJOR_VERSION"
+
+            # Only update for stable releases (not pre-releases)
+            if [[ ! "${{ github.event.release.prerelease }}" == "true" ]]; then
+              echo "Updating $MAJOR_VERSION tag to point to $RELEASE_TAG"
+              git tag -f $MAJOR_VERSION $RELEASE_TAG
+              git push origin $MAJOR_VERSION --force
+            else
+              echo "Skipping pre-release version"
+            fi
+          else
+            echo "Tag format not recognized: $RELEASE_TAG"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
