@@ -77,6 +77,8 @@ export async function getChangesSinceLastCommit() {
 
     const changes: ChangesMap = {};
 
+    console.info(publishablePackages);
+
     // Only process public packages that have actual changes
     publishablePackages.forEach((pkg) => {
       const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');

@@ -44569,6 +44569,7 @@ async function getChangesSinceLastCommit() {
         }
         coreExports.info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
         const changes = {};
+        console.info(publishablePackages);
         // Only process public packages that have actual changes
         publishablePackages.forEach((pkg) => {
             const pkgPath = path$1.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
