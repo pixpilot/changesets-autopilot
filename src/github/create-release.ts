@@ -150,21 +150,47 @@ export const createRelease = async (
   const previousVersion = getPreviousVersion(changelog, pkg.packageJson.version);
   let comparisonUrl = '';
   let releaseBodyHeader = `## ${changelogEntry.changeLevel}(${currentDate})`;
+  let contributorsSection = '';
 
   if (previousVersion) {
     const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
     comparisonUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
     // Make the release title a clickable link to the comparison
     releaseBodyHeader = `## [${releaseTitle}](${comparisonUrl})`;
+
+    // Fetch contributors between previousTag and tagName
+    try {
+      const compareResult = await octokit.repos.compareCommits({
+        owner,
+        repo,
+        base: previousTag,
+        head: tagName,
+      });
+      const commits = compareResult.data.commits;
+      const contributorsMap = new Map<string, { login: string; html_url: string }>();
+      for (const commit of commits) {
+        const login = commit.author?.login;
+        const html_url = commit.author?.html_url;
+        if (login && html_url) {
+          contributorsMap.set(login, { login, html_url });
+        }
+      }
+      if (contributorsMap.size > 0) {
+        contributorsSection = `\n\n### Contributors\n` +
+          Array.from(contributorsMap.values())
+            .map((c) => `- [@${c.login}](${c.html_url})`)
+            .join('\n');
+      }
+    } catch (err) {
+      core.warning(`Failed to fetch contributors for ${pkg.packageJson.name}: ${String(err)}`);
+    }
   } else {
     // If no previous version, just show the release title without link
     releaseBodyHeader = `## ${releaseTitle}`;
   }
 
   // Create a formatted release body
-  const releaseBody = `${releaseBodyHeader}
-
-${changelogEntry.content}`;
+  const releaseBody = `${releaseBodyHeader}\n\n${changelogEntry.content}${contributorsSection}`;
 
   await octokit.repos.createRelease({
     owner,
@@ -174,6 +200,6 @@ ${changelogEntry.content}`;
     body: releaseBody,
     prerelease: pkg.packageJson.version.includes('-'),
     generate_release_notes: true,
-    make_latest: 'false',
+    make_latest: 'true',
   });
 };
