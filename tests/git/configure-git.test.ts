@@ -17,7 +17,7 @@ describe('configureGit', () => {
   test('should configure git user and email', async () => {
     const botName = 'pixpilot';
     const expectedName = `${botName}[bot]`;
-    const expectedEmail = `${botName}[bot]@users.noreply.github.com`;
+    const expectedEmail = `41898282+${botName}[bot]@users.noreply.github.com`;
 
     const git = await configureGit(botName);
 

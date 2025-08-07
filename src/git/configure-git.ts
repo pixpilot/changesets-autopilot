@@ -17,7 +17,10 @@ export async function configureGit(botName: string): Promise<SimpleGit> {
     fs.unlinkSync(configLockPath);
   }
   const git = simpleGit();
+
+  // Use GitHub's recognized bot user ID and email format for proper bot avatar
+  // The user ID 41898282 is GitHub's standard bot user ID that ensures proper bot icon display
   await git.addConfig('user.name', `${botName}[bot]`);
-  await git.addConfig('user.email', `${botName}[bot]@users.noreply.github.com`);
+  await git.addConfig('user.email', `41898282+${botName}[bot]@users.noreply.github.com`);
   return git;
 }
