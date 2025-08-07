@@ -132,7 +132,7 @@ This action uses [Conventional Commits](https://www.conventionalcommits.org/) to
 
 1. **Detects branch** and matches against configuration
 2. **Analyzes commits** since last release using conventional commit format
-3. **Generates changesets** automatically if none exist
+3. **Generates changesets** automatically
 4. **Manages pre-release mode** based on branch settings
 5. **Versions packages** using changeset tooling
 6. **Publishes to npm** with appropriate dist-tags
