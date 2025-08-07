@@ -44569,10 +44569,18 @@ async function getChangesSinceLastCommit() {
         }
         coreExports.info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
         const changes = {};
+        coreExports.info(JSON.stringify(publishablePackages));
         // Only process public packages that have actual changes
         publishablePackages.forEach((pkg) => {
             const pkgPath = path$1.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
-            const pkgChangedFiles = changedFiles.filter((file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`);
+            let pkgChangedFiles;
+            // If single-package repo (pkgPath is '.' or ''), assign all changed files
+            if (!isMonorepo && (pkgPath === '.' || pkgPath === '')) {
+                pkgChangedFiles = changedFiles;
+            }
+            else {
+                pkgChangedFiles = changedFiles.filter((file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`);
+            }
             if (pkgChangedFiles.length > 0) {
                 changes[pkg.packageJson.name] = {
                     files: pkgChangedFiles,
@@ -44582,7 +44590,7 @@ async function getChangesSinceLastCommit() {
                 };
             }
         });
-        console.info(changes);
+        coreExports.info(JSON.stringify(changes));
         return changes;
     }
     catch (error) {

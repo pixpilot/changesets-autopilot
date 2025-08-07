@@ -77,12 +77,21 @@ export async function getChangesSinceLastCommit() {
 
     const changes: ChangesMap = {};
 
+    core.info(JSON.stringify(publishablePackages));
+
     // Only process public packages that have actual changes
     publishablePackages.forEach((pkg) => {
       const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
-      const pkgChangedFiles = changedFiles.filter(
-        (file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`,
-      );
+      let pkgChangedFiles: string[];
+
+      // If single-package repo (pkgPath is '.' or ''), assign all changed files
+      if (!isMonorepo && (pkgPath === '.' || pkgPath === '')) {
+        pkgChangedFiles = changedFiles;
+      } else {
+        pkgChangedFiles = changedFiles.filter(
+          (file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`,
+        );
+      }
 
       if (pkgChangedFiles.length > 0) {
         changes[pkg.packageJson.name] = {
@@ -93,7 +102,7 @@ export async function getChangesSinceLastCommit() {
         } as PackageChange;
       }
     });
-    console.info(changes);
+    core.info(JSON.stringify(changes));
     return changes;
   } catch (error) {
     core.error('Error getting changes: ' + String(error));
