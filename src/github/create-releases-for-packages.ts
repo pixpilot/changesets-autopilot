@@ -27,7 +27,7 @@ export async function createReleasesForPackages({
 
   await Promise.all(
     releasedPackages.map(async (pkg) => {
-      const tagName = `${pkg.packageJson.name}@${pkg.packageJson.version}`;
+      const tagName = `${pkg.packageJson.name}-v${pkg.packageJson.version}`;
       try {
         await createRelease(octokit, {
           pkg,
