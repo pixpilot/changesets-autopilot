@@ -44434,7 +44434,7 @@ class PackageJsonMissingNameError extends Error {
  * caller can provide a list of desired tools to restrict the types of monorepos discovered,
  * or to provide a custom tool implementation.
  */
-async function getPackages(dir, options) {
+async function getPackages$1(dir, options) {
   const monorepoRoot = await findRoot$4(dir, options);
   const tools = DEFAULT_TOOLS;
   const tool = tools.find(t => t.type === monorepoRoot.tool);
@@ -44456,8 +44456,8 @@ function validatePackages(packages) {
   }
 }
 
-async function getSelectedPackagesInfo(cwd = process.cwd()) {
-    const { packages } = await getPackages(cwd);
+async function getPackages(cwd = process.cwd()) {
+    const { packages } = await getPackages$1(cwd);
     // For single-package repos (GitHub Actions, etc.), we still want to process the root package
     // even if it's marked as private, since that's the package we want to version
     const isSinglePackageRepo = packages.length === 1 && packages[0].relativeDir === '.';
@@ -44521,7 +44521,7 @@ async function findLastPublishedCommit(git) {
 }
 
 async function getChangesSinceLastCommit() {
-    const { publishablePackages, privatePackages, isMonorepo } = await getSelectedPackagesInfo();
+    const { publishablePackages, privatePackages, isMonorepo } = await getPackages();
     const git = esm_default();
     if (!isMonorepo) {
         coreExports.info('Detected single-package repository');
@@ -44699,7 +44699,7 @@ async function publishPackages(branchConfig, npmToken) {
     for (const pkgName of publishedPackageNames) {
         coreExports.info(`Detected published package from tag: ${pkgName}`);
     }
-    const { packages } = await getPackages(process.cwd());
+    const { packages } = await getPackages$1(process.cwd());
     const releasedPackages = [];
     for (const pkg of packages) {
         if (!pkg.packageJson.private && publishedPackageNames.has(pkg.packageJson.name)) {
@@ -55411,181 +55411,6 @@ const Octokit = Octokit$1.plugin(requestLog, legacyRestEndpointMethods, paginate
     userAgent: `octokit-rest.js/${VERSION}`
   }
 );
-
-function isErrorWithCode(err, code) {
-    return (typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        err.code === code);
-}
-function getPreviousVersion(changelog, currentVersion) {
-    const lines = changelog.split('\n');
-    let foundCurrent = false;
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine.startsWith('## ')) {
-            if (foundCurrent) {
-                // This is the previous version
-                const versionRegex = /## (.+?)(?:\s|$)/;
-                const versionMatch = versionRegex.exec(trimmedLine);
-                if (versionMatch) {
-                    return versionMatch[1].trim();
-                }
-            }
-            else if (trimmedLine.includes(currentVersion)) {
-                // Found the current version, next version section will be the previous one
-                foundCurrent = true;
-            }
-        }
-    }
-    return null;
-}
-function getChangelogEntry(changelog, version) {
-    const lines = changelog.split('\n');
-    let start = -1;
-    let end = lines.length;
-    let changeLevel = 'Unknown';
-    // Find the version section
-    for (let i = 0; i < lines.length; i++) {
-        const trimmedLine = lines[i].trim();
-        if (trimmedLine.startsWith('## ') && trimmedLine.includes(version)) {
-            start = i;
-            // Look for the next version section to determine the end
-            for (let j = i + 1; j < lines.length; j++) {
-                const nextTrimmedLine = lines[j].trim();
-                if (nextTrimmedLine.startsWith('## ')) {
-                    end = j;
-                    break;
-                }
-            }
-            // Detect the change level (Major, Minor, Patch Changes)
-            for (let k = i + 1; k < end; k++) {
-                const line = lines[k].trim();
-                if (line.startsWith('### ')) {
-                    if (line.includes('Major Changes')) {
-                        changeLevel = 'Major Changes';
-                    }
-                    else if (line.includes('Minor Changes')) {
-                        changeLevel = 'Minor Changes';
-                    }
-                    else if (line.includes('Patch Changes')) {
-                        changeLevel = 'Patch Changes';
-                    }
-                    break;
-                }
-            }
-            break;
-        }
-    }
-    if (start === -1)
-        return null;
-    // Extract content starting from after the version header
-    const contentLines = lines.slice(start + 1, end);
-    // Remove empty lines at the beginning
-    while (contentLines.length > 0 && contentLines[0].trim() === '') {
-        contentLines.shift();
-    }
-    // Remove empty lines at the end
-    while (contentLines.length > 0 && contentLines[contentLines.length - 1].trim() === '') {
-        contentLines.pop();
-    }
-    return {
-        content: contentLines.join('\n'),
-        changeLevel,
-        highestLevel: 0,
-    };
-}
-/**
- * Creates a GitHub release for a given package and tag.
- * @param octokit - Authenticated Octokit instance
- * @param pkg - The package object
- * @param tagName - The tag name for the release
- * @param owner - GitHub repo owner
- * @param repo - GitHub repo name
- */
-const createRelease = async (octokit, { pkg, tagName, owner, repo, }) => {
-    let changelog;
-    try {
-        changelog = await fsp__default__default.readFile(path__default__default.join(pkg.dir, 'CHANGELOG.md'), 'utf8');
-    }
-    catch (err) {
-        if (isErrorWithCode(err, 'ENOENT')) {
-            return;
-        }
-        coreExports.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
-        return;
-    }
-    const changelogEntry = getChangelogEntry(changelog, pkg.packageJson.version);
-    if (!changelogEntry) {
-        coreExports.warning(`Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`);
-        return;
-    }
-    // Create a formatted release title with version and date
-    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    const releaseTitle = `${tagName}`;
-    // Find the previous version for comparison link
-    const previousVersion = getPreviousVersion(changelog, pkg.packageJson.version);
-    let comparisonUrl = '';
-    let releaseBodyHeader = `## ${changelogEntry.changeLevel}(${currentDate})`;
-    if (previousVersion) {
-        const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
-        comparisonUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
-        // Make the release title a clickable link to the comparison
-        releaseBodyHeader = `## [${releaseTitle}](${comparisonUrl})`;
-    }
-    else {
-        // If no previous version, just show the release title without link
-        releaseBodyHeader = `## ${releaseTitle}`;
-    }
-    // Create a formatted release body
-    const releaseBody = `${releaseBodyHeader}
-
-${changelogEntry.content}`;
-    await octokit.repos.createRelease({
-        owner,
-        repo,
-        name: releaseTitle,
-        tag_name: tagName,
-        body: releaseBody,
-        prerelease: pkg.packageJson.version.includes('-'),
-        make_latest: 'true',
-    });
-};
-
-async function createReleasesForPackages({ releasedPackages, githubToken, repo, owner, repoName, }) {
-    coreExports.info('Creating GitHub releases for published packages...');
-    const octokit = new Octokit({ auth: githubToken });
-    const [repoOwner, repoNameLocal] = repo.split('/');
-    const finalOwner = owner ?? repoOwner;
-    const finalRepoName = repoName ?? repoNameLocal;
-    await Promise.all(releasedPackages.map(async (pkg) => {
-        const tagName = `v${pkg.packageJson.version}`;
-        try {
-            await createRelease(octokit, {
-                pkg,
-                tagName,
-                owner: finalOwner,
-                repo: finalRepoName,
-            });
-            coreExports.info(`Created GitHub release for ${tagName}`);
-        }
-        catch (error) {
-            coreExports.warning(`Failed to create release for ${tagName}: ${String(error)}`);
-        }
-    }));
-}
-
-/**
- * Pushes tags created by changeset publish to GitHub.
- * @param git - The configured SimpleGit instance
- * @param githubToken - The GitHub token
- * @param repo - The repository name (owner/repo)
- */
-async function pushChangesetTags(git, githubToken, repo) {
-    coreExports.info('Pushing tags created by changeset publish to GitHub...');
-    await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-    coreExports.info('Tags pushed successfully');
-}
 
 var bld = {};
 
@@ -86074,6 +85899,184 @@ async function getPackagesToRelease() {
         coreExports.warning(`Failed to get release plan: ${String(error)}`);
         return [];
     }
+}
+
+function isErrorWithCode(err, code) {
+    return (typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        err.code === code);
+}
+function getPreviousVersion(changelog, currentVersion) {
+    const lines = changelog.split('\n');
+    let foundCurrent = false;
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('## ')) {
+            if (foundCurrent) {
+                // This is the previous version
+                const versionRegex = /## (.+?)(?:\s|$)/;
+                const versionMatch = versionRegex.exec(trimmedLine);
+                if (versionMatch) {
+                    return versionMatch[1].trim();
+                }
+            }
+            else if (trimmedLine.includes(currentVersion)) {
+                // Found the current version, next version section will be the previous one
+                foundCurrent = true;
+            }
+        }
+    }
+    return null;
+}
+function getChangelogEntry(changelog, version) {
+    const lines = changelog.split('\n');
+    let start = -1;
+    let end = lines.length;
+    let changeLevel = 'Unknown';
+    // Find the version section
+    for (let i = 0; i < lines.length; i++) {
+        const trimmedLine = lines[i].trim();
+        if (trimmedLine.startsWith('## ') && trimmedLine.includes(version)) {
+            start = i;
+            // Look for the next version section to determine the end
+            for (let j = i + 1; j < lines.length; j++) {
+                const nextTrimmedLine = lines[j].trim();
+                if (nextTrimmedLine.startsWith('## ')) {
+                    end = j;
+                    break;
+                }
+            }
+            // Detect the change level (Major, Minor, Patch Changes)
+            for (let k = i + 1; k < end; k++) {
+                const line = lines[k].trim();
+                if (line.startsWith('### ')) {
+                    if (line.includes('Major Changes')) {
+                        changeLevel = 'Major Changes';
+                    }
+                    else if (line.includes('Minor Changes')) {
+                        changeLevel = 'Minor Changes';
+                    }
+                    else if (line.includes('Patch Changes')) {
+                        changeLevel = 'Patch Changes';
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if (start === -1)
+        return null;
+    // Extract content starting from after the version header
+    const contentLines = lines.slice(start + 1, end);
+    // Remove empty lines at the beginning
+    while (contentLines.length > 0 && contentLines[0].trim() === '') {
+        contentLines.shift();
+    }
+    // Remove empty lines at the end
+    while (contentLines.length > 0 && contentLines[contentLines.length - 1].trim() === '') {
+        contentLines.pop();
+    }
+    return {
+        content: contentLines.join('\n'),
+        changeLevel,
+        highestLevel: 0,
+    };
+}
+/**
+ * Creates a GitHub release for a given package and tag.
+ * @param octokit - Authenticated Octokit instance
+ * @param pkg - The package object
+ * @param tagName - The tag name for the release
+ * @param owner - GitHub repo owner
+ * @param repo - GitHub repo name
+ */
+const createRelease = async (octokit, { pkg, tagName, owner, repo, }) => {
+    let changelog;
+    try {
+        changelog = await fsp__default__default.readFile(path__default__default.join(pkg.dir, 'CHANGELOG.md'), 'utf8');
+    }
+    catch (err) {
+        if (isErrorWithCode(err, 'ENOENT')) {
+            return;
+        }
+        coreExports.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
+        return;
+    }
+    const changelogEntry = getChangelogEntry(changelog, pkg.packageJson.version);
+    if (!changelogEntry) {
+        coreExports.warning(`Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`);
+        return;
+    }
+    // Create a formatted release title with version and date
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const releaseTitle = `${tagName}`;
+    // Find the previous version for comparison link
+    const previousVersion = getPreviousVersion(changelog, pkg.packageJson.version);
+    let comparisonUrl = '';
+    let releaseBodyHeader = `## ${changelogEntry.changeLevel}(${currentDate})`;
+    if (previousVersion) {
+        const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
+        comparisonUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
+        // Make the release title a clickable link to the comparison
+        releaseBodyHeader = `## [${releaseTitle}](${comparisonUrl})`;
+    }
+    else {
+        // If no previous version, just show the release title without link
+        releaseBodyHeader = `## ${releaseTitle}`;
+    }
+    // Create a formatted release body
+    const releaseBody = `${releaseBodyHeader}
+
+${changelogEntry.content}`;
+    await octokit.repos.createRelease({
+        owner,
+        repo,
+        name: releaseTitle,
+        tag_name: tagName,
+        body: releaseBody,
+        prerelease: pkg.packageJson.version.includes('-'),
+        make_latest: 'true',
+    });
+};
+
+async function createReleasesForPackages({ releasedPackages, githubToken, repo, owner, repoName, }) {
+    const { isMonorepo } = await getPackages();
+    coreExports.info('Creating GitHub releases for published packages...');
+    const octokit = new Octokit({ auth: githubToken });
+    const [repoOwner, repoNameLocal] = repo.split('/');
+    const finalOwner = owner ?? repoOwner;
+    const finalRepoName = repoName ?? repoNameLocal;
+    await Promise.all(releasedPackages.map(async (pkg) => {
+        const tagName = isMonorepo
+            ? `${pkg.packageJson.name}@${pkg.packageJson.version}`
+            : `v${pkg.packageJson.version}`;
+        try {
+            await createRelease(octokit, {
+                pkg,
+                tagName,
+                owner: finalOwner,
+                repo: finalRepoName,
+            });
+            coreExports.info(`Created GitHub release for ${tagName}`);
+        }
+        catch (error) {
+            coreExports.warning(`Failed to create release for ${tagName}: ${String(error)}`);
+        }
+    }));
+}
+
+/**
+ * Pushes tags created by changeset publish to GitHub.
+ * @param git - The configured SimpleGit instance
+ * @param githubToken - The GitHub token
+ * @param repo - The repository name (owner/repo)
+ */
+async function pushChangesetTags(git, githubToken, repo) {
+    coreExports.info('Pushing tags created by changeset publish to GitHub...');
+    await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
+    coreExports.info('Tags pushed successfully');
 }
 
 /**

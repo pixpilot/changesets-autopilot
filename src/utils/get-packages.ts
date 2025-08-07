@@ -1,6 +1,6 @@
 // Utility to extract selected package info and monorepo status
 import type { Package } from '@manypkg/get-packages';
-import { getPackages } from '@manypkg/get-packages';
+import { getPackages as manypkg } from '@manypkg/get-packages';
 
 export interface PackageSelection {
   name: string;
@@ -15,10 +15,8 @@ export interface SelectionResult {
   isMonorepo: boolean;
 }
 
-export async function getSelectedPackagesInfo(
-  cwd: string = process.cwd(),
-): Promise<SelectionResult> {
-  const { packages } = await getPackages(cwd);
+export async function getPackages(cwd: string = process.cwd()): Promise<SelectionResult> {
+  const { packages } = await manypkg(cwd);
 
   // For single-package repos (GitHub Actions, etc.), we still want to process the root package
   // even if it's marked as private, since that's the package we want to version

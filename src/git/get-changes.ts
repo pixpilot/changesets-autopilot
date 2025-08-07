@@ -6,13 +6,12 @@ import simpleGit from 'simple-git';
 import type { ChangesMap, PackageChange, Commit } from '../../types/changes';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
-import { getSelectedPackagesInfo } from '../utils/select-packages-info';
+import { getPackages } from '../utils/get-packages';
 
 import { findLastPublishedCommit } from './find-last-published-commit';
 
 export async function getChangesSinceLastCommit() {
-  const { publishablePackages, privatePackages, isMonorepo } =
-    await getSelectedPackagesInfo();
+  const { publishablePackages, privatePackages, isMonorepo } = await getPackages();
 
   const git = simpleGit();
 

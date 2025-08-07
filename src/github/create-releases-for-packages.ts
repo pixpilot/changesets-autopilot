@@ -1,6 +1,8 @@
 import * as core from '@actions/core';
 import { Octokit } from '@octokit/rest';
 
+import { getPackages } from '../utils';
+
 import { createRelease } from './create-release';
 import type { Package } from './create-release';
 
@@ -19,6 +21,8 @@ export async function createReleasesForPackages({
   owner,
   repoName,
 }: CreateReleasesOptions): Promise<void> {
+  const { isMonorepo } = await getPackages();
+
   core.info('Creating GitHub releases for published packages...');
   const octokit = new Octokit({ auth: githubToken });
   const [repoOwner, repoNameLocal] = repo.split('/');
@@ -27,7 +31,9 @@ export async function createReleasesForPackages({
 
   await Promise.all(
     releasedPackages.map(async (pkg) => {
-      const tagName = `v${pkg.packageJson.version}`;
+      const tagName = isMonorepo
+        ? `${pkg.packageJson.name}@${pkg.packageJson.version}`
+        : `v${pkg.packageJson.version}`;
       try {
         await createRelease(octokit, {
           pkg,
