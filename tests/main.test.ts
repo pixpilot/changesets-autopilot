@@ -378,4 +378,101 @@ describe('main.js', () => {
     await run();
     expect(mockCreateChangesetsForRecentCommits).toHaveBeenCalled();
   });
+
+  describe('published output', () => {
+    test('should set published output to "true" when packages are published', async () => {
+      const coreModule = await import('@actions/core');
+      const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+      
+      mockHasChangesetFiles.mockReturnValue(true);
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        npmToken: 'test-npm-token',
+        botName: 'test-bot',
+        branches: ['main'],
+        pushTags: true,
+        createRelease: true,
+      });
+      mockPublishPackages.mockResolvedValue([
+        {
+          dir: '/path/to/package',
+          packageJson: { name: 'test-package', version: '1.0.0', private: false },
+        },
+      ]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockSetOutput).toHaveBeenCalledWith('published', 'true');
+    });
+
+    test('should set published output to "false" when no packages are published', async () => {
+      const coreModule = await import('@actions/core');
+      const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+      
+      mockHasChangesetFiles.mockReturnValue(true);
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        npmToken: 'test-npm-token',
+        botName: 'test-bot',
+        branches: ['main'],
+      });
+      mockPublishPackages.mockResolvedValue([]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    });
+
+    test('should set published output to "false" when no npm token is provided', async () => {
+      const coreModule = await import('@actions/core');
+      const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+      
+      mockHasChangesetFiles.mockReturnValue(true);
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        npmToken: '',
+        botName: 'test-bot',
+        branches: ['main'],
+      });
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    });
+
+    test('should set published output to "false" when no changesets to process', async () => {
+      const coreModule = await import('@actions/core');
+      const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+      
+      mockHasChangesetFiles.mockReturnValue(false);
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        npmToken: 'test-npm-token',
+        botName: 'test-bot',
+        branches: ['main'],
+      });
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    });
+
+    test('should set published output to "false" on error', async () => {
+      const coreModule = await import('@actions/core');
+      const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+      
+      mockGetActionInputs.mockImplementation(() => {
+        throw new Error('Test error');
+      });
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    });
+  });
 });

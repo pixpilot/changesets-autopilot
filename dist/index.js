@@ -86116,6 +86116,9 @@ async function run() {
             if (npmToken) {
                 const releasedPackages = await publishPackages(branchConfig, npmToken);
                 coreExports.info('Packages published successfully!');
+                // Set published output based on whether any packages were actually released
+                const wasPublished = releasedPackages.length > 0;
+                coreExports.setOutput('published', wasPublished.toString());
                 // NOW push the tags that were created by changeset publish
                 const repo = process.env.GITHUB_REPOSITORY;
                 if (repo && githubToken && pushTags) {
@@ -86139,14 +86142,17 @@ async function run() {
             }
             else {
                 coreExports.info('No npm token provided, skipping publish step.');
+                coreExports.setOutput('published', 'false');
             }
         }
         else {
             coreExports.info('No changesets to process. Action completed.');
+            coreExports.setOutput('published', 'false');
         }
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        coreExports.setOutput('published', 'false');
         coreExports.setFailed(`Action failed: ${errorMessage}`);
     }
 }

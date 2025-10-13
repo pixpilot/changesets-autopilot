@@ -1,21 +1,22 @@
 {
-  "name": "github-action-template",
-  "description": "GitHub Actions TypeScript Template",
+  "name": "changesets-autopilot",
+  "description": "GitHub Action for automating changesets releases",
   "version": "0.0.0",
   "author": "",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/pixpilot/github-action-template#readme",
+  "homepage": "https://github.com/pixpilot/changesets-autopilot#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pixpilot/github-action-template.git"
+    "url": "git+https://github.com/pixpilot/changesets-autopilot.git"
   },
   "bugs": {
-    "url": "https://github.com/pixpilot/github-action-template/issues"
+    "url": "https://github.com/pixpilot/changesets-autopilot/issues"
   },
   "keywords": [
     "actions",
-    "typescript"
+    "typescript",
+    "changesets"
   ],
   "exports": {
     ".": "./dist/index.js"

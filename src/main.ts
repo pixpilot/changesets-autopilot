@@ -69,6 +69,10 @@ export async function run(): Promise<void> {
         const releasedPackages = await publishPackages(branchConfig, npmToken);
         core.info('Packages published successfully!');
 
+        // Set published output based on whether any packages were actually released
+        const wasPublished = releasedPackages.length > 0;
+        core.setOutput('published', wasPublished.toString());
+
         // NOW push the tags that were created by changeset publish
         const repo = process.env.GITHUB_REPOSITORY;
         if (repo && githubToken && pushTags) {
@@ -90,12 +94,15 @@ export async function run(): Promise<void> {
         }
       } else {
         core.info('No npm token provided, skipping publish step.');
+        core.setOutput('published', 'false');
       }
     } else {
       core.info('No changesets to process. Action completed.');
+      core.setOutput('published', 'false');
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    core.setOutput('published', 'false');
     core.setFailed(`Action failed: ${errorMessage}`);
   }
 }
