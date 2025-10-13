@@ -383,7 +383,7 @@ describe('main.js', () => {
     test('should set published output to "true" when packages are published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
-      
+
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
@@ -409,7 +409,7 @@ describe('main.js', () => {
     test('should set published output to "false" when no packages are published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
-      
+
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
@@ -428,7 +428,7 @@ describe('main.js', () => {
     test('should set published output to "false" when no npm token is provided', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
-      
+
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
@@ -446,7 +446,7 @@ describe('main.js', () => {
     test('should set published output to "false" when no changesets to process', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
-      
+
       mockHasChangesetFiles.mockReturnValue(false);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
@@ -464,7 +464,7 @@ describe('main.js', () => {
     test('should set published output to "false" on error', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
-      
+
       mockGetActionInputs.mockImplementation(() => {
         throw new Error('Test error');
       });

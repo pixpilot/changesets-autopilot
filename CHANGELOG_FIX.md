@@ -9,6 +9,7 @@ The action defined a `published` output in `action.yml` but never actually set i
 Added `core.setOutput('published', ...)` calls throughout `src/main.ts` to properly set the output based on the action's execution:
 
 ### Output Values:
+
 - **`"true"`**: When packages were successfully published (i.e., `releasedPackages.length > 0`)
 - **`"false"`**: In all other cases:
   - No NPM token provided
@@ -19,17 +20,20 @@ Added `core.setOutput('published', ...)` calls throughout `src/main.ts` to prope
 ### Code Changes:
 
 1. **When packages are published** (line ~73):
+
    ```typescript
    const wasPublished = releasedPackages.length > 0;
    core.setOutput('published', wasPublished.toString());
    ```
 
 2. **When no NPM token** (line ~94):
+
    ```typescript
    core.setOutput('published', 'false');
    ```
 
 3. **When no changesets** (line ~98):
+
    ```typescript
    core.setOutput('published', 'false');
    ```
@@ -42,6 +46,7 @@ Added `core.setOutput('published', ...)` calls throughout `src/main.ts` to prope
 ## Testing
 
 Added comprehensive test coverage in `tests/main.test.ts` with a new `published output` test suite covering all scenarios:
+
 - ✅ Sets `"true"` when packages are published
 - ✅ Sets `"false"` when no packages are published
 - ✅ Sets `"false"` when no NPM token provided
