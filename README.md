@@ -169,6 +169,31 @@ git checkout -b next
 
 If you encounter issues with publishing or versioning, double-check that your branch is based on the latest main and that all changesets are up-to-date.
 
+### Concurrent Push Race Condition
+
+**Problem:** When pushing multiple commits rapidly or triggering multiple workflow runs in quick succession, you may encounter errors like:
+
+```
+Package is not being published because version X.X.X is already published on npm
+```
+
+**Why this happens:** The action determines the next version by checking the last release details from the repository. If multiple workflow runs execute simultaneously or in quick succession, they may both read the same "last release" state before either has completed publishing and pushed the updated version tags back to the repository. This causes both runs to attempt publishing the same version number.
+
+**Workarounds:**
+
+- **Wait for completion**: Ensure each workflow run completes fully before pushing new commits
+- **Use concurrency controls**: Add concurrency settings to your workflow to prevent parallel runs:
+
+```yaml
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+```
+
+- **Manual intervention**: If a duplicate version error occurs, the subsequent run should detect the published version and proceed with the correct next version
+
+**Note:** This is a known timing issue that occurs when the repository state hasn't been updated before a new workflow begins. Future versions may include better synchronization mechanisms.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
