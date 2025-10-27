@@ -2,13 +2,13 @@
   "name": "changesets-autopilot",
   "description": "GitHub Action for automating changesets releases",
   "version": "0.0.0",
-  "author": "",
+  "author": "m.doaie <m.doaie@hotmail.com>",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/pixpilot/changesets-autopilot#readme",
+  "homepage": "https://github.com/pixpilot/changesets-autopilot",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pixpilot/changesets-autopilot.git"
+    "url": "https://github.com/pixpilot/changesets-autopilot.git"
   },
   "bugs": {
     "url": "https://github.com/pixpilot/changesets-autopilot/issues"
