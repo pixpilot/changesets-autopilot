@@ -48,14 +48,14 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@changesets/cli": "^2.29.5",
+    "@changesets/cli": "^2.29.7",
     "@changesets/get-release-plan": "^4.0.13",
     "@conventional-commits/parser": "^0.4.1",
     "@manypkg/get-packages": "^3.1.0",
     "@octokit/rest": "^22.0.0",
-    "conventional-commits-parser": "^6.2.0",
+    "conventional-commits-parser": "^6.2.1",
     "simple-git": "^3.28.0",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@commitlint/types": "^19.8.1",
