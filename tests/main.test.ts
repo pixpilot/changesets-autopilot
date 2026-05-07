@@ -161,7 +161,11 @@ describe('main.js', () => {
     await run();
 
     expect(mockCommitAndPush).toHaveBeenCalled();
-    expect(mockPublishPackages).toHaveBeenCalled();
+    expect(mockPublishPackages).toHaveBeenCalledWith(
+      expect.any(Object),
+      'test-npm-token',
+      false,
+    );
   });
 
   test('should process release with no changesets', async () => {
@@ -174,10 +178,10 @@ describe('main.js', () => {
     expect(mockPublishPackages).not.toHaveBeenCalled();
   });
 
-  test('should skip publish step if npm token is missing', async () => {
+  test('should use OIDC publish mode if npm token is missing', async () => {
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: '',
+      npmToken: undefined,
       botName: 'test-bot',
       branches: ['main'],
     });
@@ -187,7 +191,33 @@ describe('main.js', () => {
     await run();
 
     expect(mockCommitAndPush).toHaveBeenCalled();
-    expect(mockPublishPackages).not.toHaveBeenCalled();
+    expect(mockPublishPackages).toHaveBeenCalledWith(
+      expect.any(Object),
+      undefined,
+      false,
+    );
+  });
+
+  test('should pass provenance=true to publishPackages when provenance input is true', async () => {
+    const coreModule = await import('@actions/core');
+    const mockCoreGetInput = vi.spyOn(coreModule, 'getInput');
+    mockCoreGetInput.mockImplementation((name: string) => {
+      if (name === 'provenance') {
+        return 'true';
+      }
+      return '';
+    });
+
+    mockHasChangesetFiles.mockReturnValue(true);
+
+    const { run } = await import('../src/main');
+    await run();
+
+    expect(mockPublishPackages).toHaveBeenCalledWith(
+      expect.any(Object),
+      'test-npm-token',
+      true,
+    );
   });
 
   test('should configure prerelease mode for prerelease branch', async () => {
@@ -228,12 +258,12 @@ describe('main.js', () => {
     expect(mockInfo).toHaveBeenCalledWith('No changesets to process. Action completed.');
   });
 
-  test('should log info if no npm token provided', async () => {
+  test('should log OIDC mode info if no npm token provided', async () => {
     const coreModule = await import('@actions/core');
     const mockInfo = vi.spyOn(coreModule, 'info');
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: '',
+      npmToken: undefined,
       botName: 'test-bot',
       branches: ['main'],
     });
@@ -241,7 +271,7 @@ describe('main.js', () => {
     const { run } = await import('../src/main');
     await run();
     expect(mockInfo).toHaveBeenCalledWith(
-      'No npm token provided, skipping publish step.',
+      'Using npm authentication mode: OIDC trusted publisher mode',
     );
   });
 
@@ -425,21 +455,23 @@ describe('main.js', () => {
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
     });
 
-    test('should set published output to "false" when no npm token is provided', async () => {
+    test('should set published output to "false" when npm token is missing and nothing is published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
-        npmToken: '',
+        npmToken: undefined,
         botName: 'test-bot',
         branches: ['main'],
       });
+      mockPublishPackages.mockResolvedValue([]);
 
       const { run } = await import('../src/main');
       await run();
 
+      expect(mockPublishPackages).toHaveBeenCalled();
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
     });
 

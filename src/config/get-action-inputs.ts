@@ -34,7 +34,7 @@ export function getActionInputs(): ActionInputs {
   const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
   return {
     githubToken: core.getInput('GITHUB_TOKEN', { required: true }),
-    npmToken: core.getInput('NPM_TOKEN', { required: true }),
+    npmToken: core.getInput('NPM_TOKEN') || undefined,
     botName: core.getInput('BOT_NAME') || 'changesets-autopilot',
     branches,
     createRelease: shouldCreateRelease,

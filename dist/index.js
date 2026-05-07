@@ -43586,9 +43586,16 @@ function parsePublishedPackageNames(publishOutput) {
     return publishedPackageNames;
 }
 
-async function publishPackages(branchConfig, npmToken) {
+function getPublishErrorDetails(error) {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return String(error);
+}
+async function publishPackages(branchConfig, npmToken, provenance = false) {
     const preJsonPath = require$$1$3.join(changesetDir, 'pre.json');
     const isInPrereleaseMode = fs__default$2.existsSync(preJsonPath);
+    const isTokenMode = Boolean(npmToken);
     const publishCommand = !isInPrereleaseMode && branchConfig.channel
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
@@ -43598,12 +43605,31 @@ async function publishPackages(branchConfig, npmToken) {
     else if (branchConfig.channel) {
         coreExports.info(`Using custom dist-tag: ${branchConfig.channel}`);
     }
+    coreExports.info(`Auth mode: ${npmToken ? 'token' : 'OIDC'}`);
+    coreExports.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
     coreExports.info(`Publishing packages...`);
-    const publishOutput = execSync(publishCommand, {
-        encoding: 'utf8',
-        cwd: process.cwd(),
-        env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
-    });
+    const publishEnv = { ...process.env };
+    if (isTokenMode) {
+        publishEnv.NODE_AUTH_TOKEN = npmToken;
+    }
+    if (provenance) {
+        publishEnv.NPM_CONFIG_PROVENANCE = 'true';
+    }
+    let publishOutput = '';
+    try {
+        publishOutput = execSync(publishCommand, {
+            encoding: 'utf8',
+            cwd: process.cwd(),
+            env: publishEnv,
+        });
+    }
+    catch (error) {
+        const details = getPublishErrorDetails(error);
+        if (isTokenMode) {
+            throw new Error(`Publishing failed in token mode. Verify NPM_TOKEN has publish access. Details: ${details}`);
+        }
+        throw new Error(`Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write and npm trusted publisher is configured for this repository. Details: ${details}`);
+    }
     coreExports.info(publishOutput);
     const publishedPackageNames = parsePublishedPackageNames(publishOutput);
     for (const pkgName of publishedPackageNames) {
@@ -50582,7 +50608,7 @@ function getActionInputs() {
     const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
     return {
         githubToken: coreExports.getInput('GITHUB_TOKEN', { required: true }),
-        npmToken: coreExports.getInput('NPM_TOKEN', { required: true }),
+        npmToken: coreExports.getInput('NPM_TOKEN') || undefined,
         botName: coreExports.getInput('BOT_NAME') || 'changesets-autopilot',
         branches,
         createRelease: shouldCreateRelease,
@@ -79375,37 +79401,37 @@ async function run() {
             const packagesToRelease = await getPackagesToRelease();
             runChangesetVersion(githubToken);
             await commitAndPush(git, githubToken, packagesToRelease);
-            // Publish to npm if token is provided
             if (npmToken) {
-                const releasedPackages = await publishPackages(branchConfig, npmToken);
-                coreExports.info('Packages published successfully!');
-                // Set published output based on whether any packages were actually released
-                const wasPublished = releasedPackages.length > 0;
-                coreExports.setOutput('published', wasPublished.toString());
-                // NOW push the tags that were created by changeset publish
-                const repo = process.env.GITHUB_REPOSITORY;
-                if (repo && githubToken && pushTags) {
-                    try {
-                        if (releasedPackages.length > 0) {
-                            await pushChangesetTags(git, githubToken, repo);
-                            // Create GitHub releases for published packages
-                            if (shouldCreateRelease) {
-                                await createReleasesForPackages({
-                                    releasedPackages,
-                                    githubToken,
-                                    repo,
-                                });
-                            }
-                        }
-                    }
-                    catch (error) {
-                        coreExports.warning(`Failed to push tags: ${String(error)}`);
-                    }
-                }
+                coreExports.info('Using npm authentication mode: token mode');
             }
             else {
-                coreExports.info('No npm token provided, skipping publish step.');
-                coreExports.setOutput('published', 'false');
+                coreExports.info('Using npm authentication mode: OIDC trusted publisher mode');
+            }
+            const provenance = coreExports.getInput('provenance') === 'true';
+            const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+            coreExports.info('Packages published successfully!');
+            // Set published output based on whether any packages were actually released
+            const wasPublished = releasedPackages.length > 0;
+            coreExports.setOutput('published', wasPublished.toString());
+            // NOW push the tags that were created by changeset publish
+            const repo = process.env.GITHUB_REPOSITORY;
+            if (repo && githubToken && pushTags) {
+                try {
+                    if (releasedPackages.length > 0) {
+                        await pushChangesetTags(git, githubToken, repo);
+                        // Create GitHub releases for published packages
+                        if (shouldCreateRelease) {
+                            await createReleasesForPackages({
+                                releasedPackages,
+                                githubToken,
+                                repo,
+                            });
+                        }
+                    }
+                }
+                catch (error) {
+                    coreExports.warning(`Failed to push tags: ${String(error)}`);
+                }
             }
         }
         else {

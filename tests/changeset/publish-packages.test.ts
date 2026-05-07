@@ -46,6 +46,8 @@ describe('publishPackages', () => {
     const branchConfig = { name: 'next', isMatch: true, channel: 'next' };
     const result = await publishPackages(branchConfig, npmToken);
     expect(core.info).toHaveBeenCalledWith('Using custom dist-tag: next');
+    expect(core.info).toHaveBeenCalledWith('Auth mode: token');
+    expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
     expect(core.info).toHaveBeenCalledWith('Publishing packages...');
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish --tag next',
@@ -60,6 +62,8 @@ describe('publishPackages', () => {
   test('publishes without tag if channel is not provided', async () => {
     const branchConfig = { name: 'main', isMatch: true };
     const result = await publishPackages(branchConfig, npmToken);
+    expect(core.info).toHaveBeenCalledWith('Auth mode: token');
+    expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
     expect(core.info).toHaveBeenCalledWith('Publishing packages...');
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish',
@@ -158,5 +162,41 @@ describe('publishPackages', () => {
       }),
     );
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  test('publishes in OIDC trusted publisher mode when npm token is missing', async () => {
+    const branchConfig = { name: 'main', isMatch: true };
+
+    await publishPackages(branchConfig);
+
+    expect(core.info).toHaveBeenCalledWith('Auth mode: OIDC');
+    expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
+    expect(execSync).toHaveBeenCalledWith(
+      'npx changeset publish',
+      expect.objectContaining({
+        encoding: 'utf8',
+      }),
+    );
+
+    const execCallArgs = vi.mocked(execSync).mock.calls[0][1] as {
+      env: NodeJS.ProcessEnv;
+    };
+    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBeUndefined();
+    expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBeUndefined();
+  });
+
+  test('sets provenance env when explicit provenance flag is true', async () => {
+    const branchConfig = { name: 'main', isMatch: true };
+
+    await publishPackages(branchConfig, npmToken, true);
+
+    expect(core.info).toHaveBeenCalledWith('Auth mode: token');
+    expect(core.info).toHaveBeenCalledWith('Provenance: enabled');
+
+    const execCallArgs = vi.mocked(execSync).mock.calls[0][1] as {
+      env: NodeJS.ProcessEnv;
+    };
+    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBe(npmToken);
+    expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBe('true');
   });
 });

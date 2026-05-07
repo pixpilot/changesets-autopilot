@@ -64,37 +64,38 @@ export async function run(): Promise<void> {
 
       await commitAndPush(git, githubToken, packagesToRelease);
 
-      // Publish to npm if token is provided
       if (npmToken) {
-        const releasedPackages = await publishPackages(branchConfig, npmToken);
-        core.info('Packages published successfully!');
-
-        // Set published output based on whether any packages were actually released
-        const wasPublished = releasedPackages.length > 0;
-        core.setOutput('published', wasPublished.toString());
-
-        // NOW push the tags that were created by changeset publish
-        const repo = process.env.GITHUB_REPOSITORY;
-        if (repo && githubToken && pushTags) {
-          try {
-            if (releasedPackages.length > 0) {
-              await pushChangesetTags(git, githubToken, repo);
-              // Create GitHub releases for published packages
-              if (shouldCreateRelease) {
-                await createReleasesForPackages({
-                  releasedPackages,
-                  githubToken,
-                  repo,
-                });
-              }
-            }
-          } catch (error) {
-            core.warning(`Failed to push tags: ${String(error)}`);
-          }
-        }
+        core.info('Using npm authentication mode: token mode');
       } else {
-        core.info('No npm token provided, skipping publish step.');
-        core.setOutput('published', 'false');
+        core.info('Using npm authentication mode: OIDC trusted publisher mode');
+      }
+
+      const provenance = core.getInput('provenance') === 'true';
+      const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+      core.info('Packages published successfully!');
+
+      // Set published output based on whether any packages were actually released
+      const wasPublished = releasedPackages.length > 0;
+      core.setOutput('published', wasPublished.toString());
+
+      // NOW push the tags that were created by changeset publish
+      const repo = process.env.GITHUB_REPOSITORY;
+      if (repo && githubToken && pushTags) {
+        try {
+          if (releasedPackages.length > 0) {
+            await pushChangesetTags(git, githubToken, repo);
+            // Create GitHub releases for published packages
+            if (shouldCreateRelease) {
+              await createReleasesForPackages({
+                releasedPackages,
+                githubToken,
+                repo,
+              });
+            }
+          }
+        } catch (error) {
+          core.warning(`Failed to push tags: ${String(error)}`);
+        }
       }
     } else {
       core.info('No changesets to process. Action completed.');

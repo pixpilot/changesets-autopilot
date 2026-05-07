@@ -74,9 +74,9 @@ describe('getActionInputs', () => {
     expect(result.botName).toBe('custom-bot');
   });
 
-  test('throws if required tokens are missing', () => {
+  test('throws if required github token is missing', () => {
     getInput.mockImplementation((name: string, options?: { required?: boolean }) => {
-      if (options?.required && (name === 'GITHUB_TOKEN' || name === 'NPM_TOKEN')) {
+      if (options?.required && name === 'GITHUB_TOKEN') {
         throw new Error(`Input required and not supplied: ${name}`);
       }
       if (name === 'GITHUB_TOKEN') return '';
@@ -84,6 +84,17 @@ describe('getActionInputs', () => {
       return '';
     });
     expect(() => getActionInputs()).toThrow();
+  });
+
+  test('allows missing npm token for OIDC publishing', () => {
+    getInput.mockImplementation((name: string) => {
+      if (name === 'GITHUB_TOKEN') return 'gh-token';
+      if (name === 'NPM_TOKEN') return '';
+      return '';
+    });
+
+    const result = getActionInputs();
+    expect(result.npmToken).toBeUndefined();
   });
 
   test('defaults autoChangeset to false when AUTO_CHANGESET input is not provided', () => {

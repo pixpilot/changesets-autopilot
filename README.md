@@ -53,7 +53,6 @@ jobs:
         uses: pixpilot/changesets-autopilot@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ## Configuration
@@ -63,7 +62,8 @@ jobs:
 | Input            | Description                                                                          | Required | Default                |
 | ---------------- | ------------------------------------------------------------------------------------ | -------- | ---------------------- |
 | `GITHUB_TOKEN`   | GitHub token for authentication                                                      | ✅       | -                      |
-| `NPM_TOKEN`      | NPM token for publishing                                                             | ✅       | -                      |
+| `NPM_TOKEN`      | NPM token for publishing (optional when using npm Trusted Publisher / OIDC)          | ❌       | -                      |
+| `provenance`     | Enable npm provenance attestation                                                    | ❌       | `false`                |
 | `BOT_NAME`       | Bot name for commits                                                                 | ❌       | `changesets-autopilot` |
 | `BRANCHES`       | Branch configuration (YAML array)                                                    | ❌       | See below              |
 | `CREATE_RELEASE` | Enable or disable GitHub release creation                                            | ❌       | `true`                 |
@@ -102,6 +102,113 @@ This configuration will:
 - Release stable versions from `main` branch (e.g., `1.5.0`)
 - Release RC versions from `next` branch (e.g., `1.6.0-rc.1`) with `next` tag
 - Release beta versions from `beta` branch (e.g., `1.6.0-beta.1`) with `beta` tag
+
+### npm Trusted Publisher (OIDC) (Recommended)
+
+You can publish to npm without storing `NPM_TOKEN` by using npm Trusted Publisher with GitHub OIDC.
+
+Required workflow permissions:
+
+```yaml
+permissions:
+  contents: write
+  id-token: write
+```
+
+OIDC workflow example (no `NPM_TOKEN`):
+
+```yaml
+name: Release
+on:
+  push:
+    branches: [main, next]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Release
+        uses: pixpilot/changesets-autopilot@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          provenance: 'true'
+```
+
+Backward-compatible token workflow example:
+
+```yaml
+name: Release
+on:
+  push:
+    branches: [main, next]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Release
+        uses: pixpilot/changesets-autopilot@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          provenance: 'true'
+```
+
+### npm Provenance Attestation
+
+The `provenance` input is an explicit feature flag. It is independent from how you authenticate to npm.
+
+- `provenance: 'true'` enables npm provenance attestation
+- `provenance: 'false'` disables provenance attestation
+- You can combine it with either `NPM_TOKEN` or npm Trusted Publisher (OIDC)
+
+If you want npm provenance in your release workflow, set:
+
+```yaml
+with:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  provenance: 'true'
+```
+
+If you are using OIDC Trusted Publisher, keep the required permissions from the OIDC section and add `provenance: 'true'` in the action inputs.
+
+### Migration from `NPM_TOKEN` to OIDC
+
+1. Configure npm Trusted Publisher for your package/repository in npm settings.
+2. Add `permissions.id-token: write` to your release workflow.
+3. Remove `NPM_TOKEN` from workflow inputs and secrets.
+4. Keep `GITHUB_TOKEN` as-is.
+
+The action will automatically choose auth mode:
+
+- With `NPM_TOKEN`: token mode
+- Without `NPM_TOKEN`: OIDC trusted publisher mode
+
+The action will only enable provenance when you explicitly set `provenance: 'true'`.
 
 ## Supported Commit Types
 
@@ -144,7 +251,7 @@ This action uses [Conventional Commits](https://www.conventionalcommits.org/) to
   npm install --save-dev @changesets/cli
   ```
 - Changesets initialized in your repository (`npx @changesets/cli init`)
-- NPM registry access for publishing
+- NPM registry access for publishing (via `NPM_TOKEN` or npm Trusted Publisher)
 
 ## Troubleshooting
 

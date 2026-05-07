@@ -10,12 +10,22 @@ import type { ResolvedBranchConfig } from '../config/get-branch-config';
 import type { Package } from '../github/create-release';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
 
+function getPublishErrorDetails(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
 export async function publishPackages(
   branchConfig: ResolvedBranchConfig,
-  npmToken: string,
+  npmToken?: string,
+  provenance = false,
 ): Promise<Package[]> {
   const preJsonPath = path.join(changesetDir, 'pre.json');
   const isInPrereleaseMode = fs.existsSync(preJsonPath);
+  const isTokenMode = Boolean(npmToken);
 
   const publishCommand =
     !isInPrereleaseMode && branchConfig.channel
@@ -28,13 +38,39 @@ export async function publishPackages(
     core.info(`Using custom dist-tag: ${branchConfig.channel}`);
   }
 
+  core.info(`Auth mode: ${npmToken ? 'token' : 'OIDC'}`);
+  core.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
+
   core.info(`Publishing packages...`);
 
-  const publishOutput = execSync(publishCommand, {
-    encoding: 'utf8',
-    cwd: process.cwd(),
-    env: { ...process.env, NODE_AUTH_TOKEN: npmToken },
-  });
+  const publishEnv: NodeJS.ProcessEnv = { ...process.env };
+  if (isTokenMode) {
+    publishEnv.NODE_AUTH_TOKEN = npmToken;
+  }
+
+  if (provenance) {
+    publishEnv.NPM_CONFIG_PROVENANCE = 'true';
+  }
+
+  let publishOutput = '';
+  try {
+    publishOutput = execSync(publishCommand, {
+      encoding: 'utf8',
+      cwd: process.cwd(),
+      env: publishEnv,
+    });
+  } catch (error) {
+    const details = getPublishErrorDetails(error);
+    if (isTokenMode) {
+      throw new Error(
+        `Publishing failed in token mode. Verify NPM_TOKEN has publish access. Details: ${details}`,
+      );
+    }
+
+    throw new Error(
+      `Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write and npm trusted publisher is configured for this repository. Details: ${details}`,
+    );
+  }
 
   core.info(publishOutput);
 

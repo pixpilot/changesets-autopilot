@@ -14,7 +14,7 @@ inputs:
     required: true
   NPM_TOKEN:
     description: NPM token for publishing
-    required: true
+    required: false
   BOT_NAME:
     description: Optional bot name
     required: false
@@ -39,6 +39,10 @@ inputs:
     description: Enable or disable automatic changeset generation and versioning
     required: false
     default: 'true'
+  provenance:
+    description: 'Enable npm provenance attestation'
+    required: false
+    default: 'false'
 
 # Define your outputs here.
 outputs:

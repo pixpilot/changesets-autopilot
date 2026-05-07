@@ -80,3 +80,9 @@ Your workflow should now work correctly:
 2. Commit the changes
 3. Tag a new version (e.g., `v1.1.0`)
 4. The `published` output will now work in your workflows
+
+## Migration Note
+
+- `NPM_TOKEN` is now optional.
+- npm Trusted Publisher (OIDC) is now supported and recommended.
+- Existing token-based publishing with `NPM_TOKEN` continues to work unchanged.

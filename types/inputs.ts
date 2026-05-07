@@ -6,7 +6,7 @@ export interface BranchConfig {
 
 export interface ActionInputs {
   githubToken: string;
-  npmToken: string;
+  npmToken?: string;
   botName: string;
   branches: (string | BranchConfig)[];
   createRelease: boolean;
