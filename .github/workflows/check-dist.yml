@@ -59,9 +59,12 @@ jobs:
             ls -la ./
             exit 1
           fi
-          if [ "$(git diff --ignore-space-at-eol --text dist/ | wc -l)" -gt "0" ]; then
-            echo "Detected uncommitted changes after build. See status below:"
-            git diff --ignore-space-at-eol --text dist/
+          if ! git diff --ignore-space-at-eol --text --quiet dist/; then
+            echo "Detected uncommitted changes in dist/ after build."
+            git diff --ignore-space-at-eol --text --shortstat dist/
+            echo "Showing first 200 lines of the dist diff:"
+            git diff --ignore-space-at-eol --text dist/ | sed -n '1,200p'
+            echo "Full dist output is available in the uploaded artifact."
             exit 1
           fi
 
@@ -74,3 +77,4 @@ jobs:
         with:
           name: dist
           path: dist/
+
