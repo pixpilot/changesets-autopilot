@@ -1,9 +1,9 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('child_process');
 vi.mock('@actions/core');
 
-const child_process = await import('child_process');
+const child_process = await import('node:child_process');
 const core = await import('@actions/core');
 const { runChangesetVersion } = await import('../../src/changeset/run-changeset-version');
 
@@ -12,7 +12,7 @@ describe('runChangesetVersion', () => {
     vi.clearAllMocks();
   });
 
-  test('calls execSync with correct command and env', () => {
+  it('calls execSync with correct command and env', () => {
     const execSyncMock = child_process.execSync as unknown as ReturnType<typeof vi.fn>;
     execSyncMock.mockReturnValue('Versioned!');
     runChangesetVersion('gh-token');
@@ -27,7 +27,7 @@ describe('runChangesetVersion', () => {
     expect(core.info).toHaveBeenCalledWith('Changeset version completed successfully');
   });
 
-  test('logs error message if execSync throws', () => {
+  it('logs error message if execSync throws', () => {
     const execSyncMock = child_process.execSync as unknown as ReturnType<typeof vi.fn>;
     execSyncMock.mockImplementation(() => {
       throw new Error('fail!');

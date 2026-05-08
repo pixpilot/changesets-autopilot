@@ -1,4 +1,5 @@
 import type { BranchConfig } from '../../types';
+import process from 'node:process';
 
 export interface ResolvedBranchConfig {
   name: string;
@@ -26,15 +27,13 @@ export function getBranchConfig(
           isMatch: true,
         };
       }
-    } else {
-      if (branchConfig.name === branch) {
-        return {
-          name: branchConfig.name,
-          prerelease: branchConfig.prerelease,
-          channel: branchConfig.channel,
-          isMatch: true,
-        };
-      }
+    } else if (branchConfig.name === branch) {
+      return {
+        name: branchConfig.name,
+        prerelease: branchConfig.prerelease,
+        channel: branchConfig.channel,
+        isMatch: true,
+      };
     }
   }
   // Return default config for unmatched branches

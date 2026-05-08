@@ -22,7 +22,8 @@ interface ParsedCommit {
 }
 
 const parserOptions = {
-  headerPattern: /^(\w+)(?:\(([^)]+)\))?(!)?\s*:\s+(.+)$/,
+  headerPattern:
+    /^(?<type>\w+)(?:\((?<scope>[^)\r\n]+)\))?(?<breaking>!)?\s*:\s+(?<subject>\S[^\r\n]*)$/u,
   headerCorrespondence: ['type', 'scope', 'breaking', 'subject'],
 };
 
@@ -72,6 +73,8 @@ export function getChangeTypeAndDescription(message: string): ChangeTypeResult {
           scope: parsed.scope ?? null,
           description: parsed.subject ?? '',
         };
+      case undefined:
+      case null:
       default:
         return {
           changeType: 'none',
@@ -79,7 +82,7 @@ export function getChangeTypeAndDescription(message: string): ChangeTypeResult {
           description: message,
         };
     }
-  } catch (_error) {
+  } catch {
     return {
       changeType: 'none',
       scope: null,

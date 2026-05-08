@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getActionInputs } from '../../src/config';
 
@@ -21,11 +21,11 @@ describe('getActionInputs', () => {
     warning.mockImplementation(() => {});
   });
 
-  test('should be defined', () => {
+  it('should be defined', () => {
     expect(getActionInputs).toBeDefined();
   });
 
-  test('returns default config when BRANCHES input is empty', () => {
+  it('returns default config when BRANCHES input is empty', () => {
     const result = getActionInputs();
     expect(result).toStrictEqual({
       githubToken: 'gh-token',
@@ -38,7 +38,7 @@ describe('getActionInputs', () => {
     });
   });
 
-  test('parses valid YAML array for BRANCHES', () => {
+  it('parses valid YAML array for BRANCHES', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return '- main\n- name: dev\n  channel: dev';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
@@ -49,7 +49,7 @@ describe('getActionInputs', () => {
     expect(result.branches).toStrictEqual(['main', { name: 'dev', channel: 'dev' }]);
   });
 
-  test('falls back to default config on invalid YAML', () => {
+  it('falls back to default config on invalid YAML', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return 'not: yaml: array';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
@@ -63,7 +63,7 @@ describe('getActionInputs', () => {
     ]);
   });
 
-  test('uses BOT_NAME input if provided', () => {
+  it('uses BOT_NAME input if provided', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BOT_NAME') return 'custom-bot';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
@@ -74,7 +74,7 @@ describe('getActionInputs', () => {
     expect(result.botName).toBe('custom-bot');
   });
 
-  test('throws if required github token is missing', () => {
+  it('throws if required github token is missing', () => {
     getInput.mockImplementation((name: string, options?: { required?: boolean }) => {
       if (options?.required && name === 'GITHUB_TOKEN') {
         throw new Error(`Input required and not supplied: ${name}`);
@@ -86,7 +86,7 @@ describe('getActionInputs', () => {
     expect(() => getActionInputs()).toThrow();
   });
 
-  test('allows missing npm token for OIDC publishing', () => {
+  it('allows missing npm token for OIDC publishing', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'GITHUB_TOKEN') return 'gh-token';
       if (name === 'NPM_TOKEN') return '';
@@ -97,7 +97,7 @@ describe('getActionInputs', () => {
     expect(result.npmToken).toBeUndefined();
   });
 
-  test('defaults autoChangeset to false when AUTO_CHANGESET input is not provided', () => {
+  it('defaults autoChangeset to false when AUTO_CHANGESET input is not provided', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'GITHUB_TOKEN') return 'gh-token';
       if (name === 'NPM_TOKEN') return 'npm-token';
@@ -107,7 +107,7 @@ describe('getActionInputs', () => {
     expect(result.autoChangeset).toBe(false);
   });
 
-  test('sets autoChangeset to true when AUTO_CHANGESET input is true', () => {
+  it('sets autoChangeset to true when AUTO_CHANGESET input is true', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'AUTO_CHANGESET') return 'true';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
@@ -118,7 +118,7 @@ describe('getActionInputs', () => {
     expect(result.autoChangeset).toBe(true);
   });
 
-  test('sets autoChangeset to false when AUTO_CHANGESET input is false', () => {
+  it('sets autoChangeset to false when AUTO_CHANGESET input is false', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'AUTO_CHANGESET') return 'false';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
@@ -129,7 +129,7 @@ describe('getActionInputs', () => {
     expect(result.autoChangeset).toBe(false);
   });
 
-  test('throws error if BRANCHES input is valid YAML but not an array', () => {
+  it('throws error if BRANCHES input is valid YAML but not an array', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return 'foo: bar'; // valid YAML object, not array
       if (name === 'GITHUB_TOKEN') return 'gh-token';

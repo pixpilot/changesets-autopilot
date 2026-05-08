@@ -1,5 +1,5 @@
 import type { MockedFunction } from 'vitest';
-import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock all external dependencies
 vi.mock('@actions/core');
@@ -51,28 +51,22 @@ describe('main.js', () => {
     // Setup default mocks
     const getActionInputsModule = await import('../src/config/get-action-inputs');
     const getBranchConfigModule = await import('../src/config/get-branch-config');
-    const validateBranchConfigurationModule = await import(
-      '../src/config/validate-branch-configuration'
-    );
+    const validateBranchConfigurationModule =
+      await import('../src/config/validate-branch-configuration');
     const configureGitModule = await import('../src/git/configure-git');
-    const ensureChangesetsAvailableModule = await import(
-      '../src/changeset/ensure-changesets-available'
-    );
-    const configureRereleaseModeModule = await import(
-      '../src/changeset/configure-rerelease-mode'
-    );
-    const createChangesetsForRecentCommitsModule = await import(
-      '../src/changeset/create-changesets-for-recent-commits'
-    );
-    const runChangesetVersionModule = await import(
-      '../src/changeset/run-changeset-version'
-    );
+    const ensureChangesetsAvailableModule =
+      await import('../src/changeset/ensure-changesets-available');
+    const configureRereleaseModeModule =
+      await import('../src/changeset/configure-rerelease-mode');
+    const createChangesetsForRecentCommitsModule =
+      await import('../src/changeset/create-changesets-for-recent-commits');
+    const runChangesetVersionModule =
+      await import('../src/changeset/run-changeset-version');
     const changesetsModule = await import('../src/changeset/changesets');
     const commitAndPushModule = await import('../src/git/commit-and-push');
     const publishPackagesModule = await import('../src/changeset/publish-packages');
-    const createReleasesForPackagesModule = await import(
-      '../src/github/create-releases-for-packages'
-    );
+    const createReleasesForPackagesModule =
+      await import('../src/github/create-releases-for-packages');
     const pushChangesetTagsModule = await import('../src/github/push-changeset-tags');
 
     mockGetActionInputs = vi.mocked(getActionInputsModule.getActionInputs);
@@ -131,7 +125,7 @@ describe('main.js', () => {
     delete process.env.GITHUB_REPOSITORY;
   });
 
-  test('should skip processing for unconfigured branch', async () => {
+  it('should skip processing for unconfigured branch', async () => {
     mockValidateBranchConfiguration.mockReturnValue(false);
 
     const { run } = await import('../src/main');
@@ -141,7 +135,7 @@ describe('main.js', () => {
     expect(mockHasChangesetFiles).not.toHaveBeenCalled();
   });
 
-  test('handles errors correctly', async () => {
+  it('handles errors correctly', async () => {
     const error = new Error('Test error');
     mockGetActionInputs.mockImplementation(() => {
       throw error;
@@ -154,7 +148,7 @@ describe('main.js', () => {
     expect(mockGetActionInputs).toHaveBeenCalled();
   });
 
-  test('should process release with changesets and npm token', async () => {
+  it('should process release with changesets and npm token', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
 
     const { run } = await import('../src/main');
@@ -168,7 +162,7 @@ describe('main.js', () => {
     );
   });
 
-  test('should process release with no changesets', async () => {
+  it('should process release with no changesets', async () => {
     mockHasChangesetFiles.mockReturnValue(false);
 
     const { run } = await import('../src/main');
@@ -178,7 +172,7 @@ describe('main.js', () => {
     expect(mockPublishPackages).not.toHaveBeenCalled();
   });
 
-  test('should use OIDC publish mode if npm token is missing', async () => {
+  it('should use OIDC publish mode if npm token is missing', async () => {
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
       npmToken: undefined,
@@ -198,7 +192,7 @@ describe('main.js', () => {
     );
   });
 
-  test('should pass provenance=true to publishPackages when provenance input is true', async () => {
+  it('should pass provenance=true to publishPackages when provenance input is true', async () => {
     const coreModule = await import('@actions/core');
     const mockCoreGetInput = vi.spyOn(coreModule, 'getInput');
     mockCoreGetInput.mockImplementation((name: string) => {
@@ -220,7 +214,7 @@ describe('main.js', () => {
     );
   });
 
-  test('should configure prerelease mode for prerelease branch', async () => {
+  it('should configure prerelease mode for prerelease branch', async () => {
     const prereleaseConfig = {
       name: 'next',
       prerelease: 'rc',
@@ -236,7 +230,7 @@ describe('main.js', () => {
     expect(mockConfigureRereleaseMode).toHaveBeenCalledWith(prereleaseConfig);
   });
 
-  test('should call core.setFailed if an error is thrown', async () => {
+  it('should call core.setFailed if an error is thrown', async () => {
     const coreModule = await import('@actions/core');
     const mockSetFailed = vi.spyOn(coreModule, 'setFailed');
     mockGetActionInputs.mockImplementation(() => {
@@ -249,7 +243,7 @@ describe('main.js', () => {
     );
   });
 
-  test('should log info if no changesets to process', async () => {
+  it('should log info if no changesets to process', async () => {
     const coreModule = await import('@actions/core');
     const mockInfo = vi.spyOn(coreModule, 'info');
     mockHasChangesetFiles.mockReturnValue(false);
@@ -258,7 +252,7 @@ describe('main.js', () => {
     expect(mockInfo).toHaveBeenCalledWith('No changesets to process. Action completed.');
   });
 
-  test('should log OIDC mode info if no npm token provided', async () => {
+  it('should log OIDC mode info if no npm token provided', async () => {
     const coreModule = await import('@actions/core');
     const mockInfo = vi.spyOn(coreModule, 'info');
     mockGetActionInputs.mockReturnValue({
@@ -275,7 +269,7 @@ describe('main.js', () => {
     );
   });
 
-  test('should call core.warning if pushChangesetTags throws', async () => {
+  it('should call core.warning if pushChangesetTags throws', async () => {
     const coreModule = await import('@actions/core');
     const mockWarning = vi.spyOn(coreModule, 'warning');
     mockHasChangesetFiles.mockReturnValue(true);
@@ -294,7 +288,7 @@ describe('main.js', () => {
     expect(mockWarning).toHaveBeenCalledWith('Failed to push tags: Error: tag error');
   });
 
-  test('should call createReleasesForPackages if releasedPackages and shouldCreateRelease', async () => {
+  it('should call createReleasesForPackages if releasedPackages and shouldCreateRelease', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -314,7 +308,7 @@ describe('main.js', () => {
     });
   });
 
-  test('should not call createReleasesForPackages if releasedPackages is empty', async () => {
+  it('should not call createReleasesForPackages if releasedPackages is empty', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -330,7 +324,7 @@ describe('main.js', () => {
     expect(mockCreateReleasesForPackages).not.toHaveBeenCalled();
   });
 
-  test('should not call createReleasesForPackages if shouldCreateRelease is false', async () => {
+  it('should not call createReleasesForPackages if shouldCreateRelease is false', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -346,7 +340,7 @@ describe('main.js', () => {
     expect(mockCreateReleasesForPackages).not.toHaveBeenCalled();
   });
 
-  test('should not call pushChangesetTags if repo is missing', async () => {
+  it('should not call pushChangesetTags if repo is missing', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -363,7 +357,7 @@ describe('main.js', () => {
     expect(mockPushChangesetTags).not.toHaveBeenCalled();
   });
 
-  test('should not call pushChangesetTags if githubToken is missing', async () => {
+  it('should not call pushChangesetTags if githubToken is missing', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: '',
@@ -379,7 +373,7 @@ describe('main.js', () => {
     expect(mockPushChangesetTags).not.toHaveBeenCalled();
   });
 
-  test('should not call pushChangesetTags if pushTags is false', async () => {
+  it('should not call pushChangesetTags if pushTags is false', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -395,7 +389,7 @@ describe('main.js', () => {
     expect(mockPushChangesetTags).not.toHaveBeenCalled();
   });
 
-  test('should call createChangesetsForRecentCommits if autoChangeset is true', async () => {
+  it('should call createChangesetsForRecentCommits if autoChangeset is true', async () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -410,7 +404,7 @@ describe('main.js', () => {
   });
 
   describe('published output', () => {
-    test('should set published output to "true" when packages are published', async () => {
+    it('should set published output to "true" when packages are published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 
@@ -436,7 +430,7 @@ describe('main.js', () => {
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'true');
     });
 
-    test('should set published output to "false" when no packages are published', async () => {
+    it('should set published output to "false" when no packages are published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 
@@ -455,7 +449,7 @@ describe('main.js', () => {
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
     });
 
-    test('should set published output to "false" when npm token is missing and nothing is published', async () => {
+    it('should set published output to "false" when npm token is missing and nothing is published', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 
@@ -475,7 +469,7 @@ describe('main.js', () => {
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
     });
 
-    test('should set published output to "false" when no changesets to process', async () => {
+    it('should set published output to "false" when no changesets to process', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 
@@ -493,7 +487,7 @@ describe('main.js', () => {
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
     });
 
-    test('should set published output to "false" on error', async () => {
+    it('should set published output to "false" on error', async () => {
       const coreModule = await import('@actions/core');
       const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
 

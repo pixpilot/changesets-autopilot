@@ -1,13 +1,14 @@
-import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import type { ResolvedBranchConfig } from '../config/get-branch-config';
+import type { Package } from '../github/create-release';
+import { execSync } from 'node:child_process';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
 
 import * as core from '@actions/core';
 import { getPackages } from '@manypkg/get-packages';
-
 import { changesetDir } from '../changeset/changesets';
-import type { ResolvedBranchConfig } from '../config/get-branch-config';
-import type { Package } from '../github/create-release';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
 
 function getPublishErrorDetails(error: unknown): string {
@@ -25,20 +26,22 @@ export async function publishPackages(
 ): Promise<Package[]> {
   const preJsonPath = path.join(changesetDir, 'pre.json');
   const isInPrereleaseMode = fs.existsSync(preJsonPath);
-  const isTokenMode = Boolean(npmToken);
+  const isTokenMode = typeof npmToken === 'string' && npmToken.length > 0;
+  const hasChannel =
+    typeof branchConfig.channel === 'string' && branchConfig.channel.length > 0;
 
   const publishCommand =
-    !isInPrereleaseMode && branchConfig.channel
+    !isInPrereleaseMode && hasChannel
       ? `npx changeset publish --tag ${branchConfig.channel}`
       : 'npx changeset publish';
 
   if (isInPrereleaseMode) {
     core.info('In prerelease mode - changeset will handle dist-tag automatically');
-  } else if (branchConfig.channel) {
+  } else if (hasChannel) {
     core.info(`Using custom dist-tag: ${branchConfig.channel}`);
   }
 
-  core.info(`Auth mode: ${npmToken ? 'token' : 'OIDC'}`);
+  core.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
   core.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
 
   core.info(`Publishing packages...`);

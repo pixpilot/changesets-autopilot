@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
 
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRelease } from '../../src/github/create-release';
 
@@ -21,7 +21,7 @@ describe('createRelease', () => {
     };
   });
 
-  test('creates release with changelog content', async () => {
+  it('creates release with changelog content', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -73,7 +73,7 @@ describe('createRelease', () => {
     });
   });
 
-  test('creates prerelease for version with hyphen', async () => {
+  it('creates prerelease for version with hyphen', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -108,7 +108,7 @@ describe('createRelease', () => {
     );
   });
 
-  test('returns early if CHANGELOG.md does not exist', async () => {
+  it('returns early if CHANGELOG.md does not exist', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -132,7 +132,7 @@ describe('createRelease', () => {
     expect(mockOctokit.repos.createRelease).not.toHaveBeenCalled();
   });
 
-  test('returns early if changelog entry not found', async () => {
+  it('returns early if changelog entry not found', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -164,7 +164,7 @@ describe('createRelease', () => {
     expect(result).toBeUndefined();
   });
 
-  test('detects different change levels correctly', async () => {
+  it('detects different change levels correctly', async () => {
     const testCases = [
       { changeLevel: 'Major Changes' },
       { changeLevel: 'Minor Changes' },
@@ -218,7 +218,7 @@ describe('createRelease', () => {
     }
   });
 
-  test('includes comparison link when previous version exists', async () => {
+  it('includes comparison link when previous version exists', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {
@@ -268,7 +268,7 @@ describe('createRelease', () => {
     );
   });
 
-  test('works without comparison link when no previous version exists', async () => {
+  it('works without comparison link when no previous version exists', async () => {
     const pkg = {
       dir: '/packages/test-pkg',
       packageJson: {

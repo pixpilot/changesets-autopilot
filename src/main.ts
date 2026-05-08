@@ -1,15 +1,16 @@
+import process from 'node:process';
 import * as core from '@actions/core';
 
 import {
   configureRereleaseMode,
-  hasChangesetFiles,
   createChangesetsForRecentCommits,
+  hasChangesetFiles,
   publishPackages,
 } from './changeset';
 import { ensureChangesetsAvailable } from './changeset/ensure-changesets-available';
 import { runChangesetVersion } from './changeset/run-changeset-version';
 import { getActionInputs, getBranchConfig, validateBranchConfiguration } from './config';
-import { configureGit, commitAndPush } from './git';
+import { commitAndPush, configureGit } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
 import { getPackagesToRelease } from './utils/get-release-plan';
@@ -64,7 +65,8 @@ export async function run(): Promise<void> {
 
       await commitAndPush(git, githubToken, packagesToRelease);
 
-      if (npmToken) {
+      const hasNpmToken = typeof npmToken === 'string' && npmToken.length > 0;
+      if (hasNpmToken) {
         core.info('Using npm authentication mode: token mode');
       } else {
         core.info('Using npm authentication mode: OIDC trusted publisher mode');
@@ -80,7 +82,9 @@ export async function run(): Promise<void> {
 
       // NOW push the tags that were created by changeset publish
       const repo = process.env.GITHUB_REPOSITORY;
-      if (repo && githubToken && pushTags) {
+      const hasRepo = typeof repo === 'string' && repo.length > 0;
+      const hasGithubToken = githubToken.length > 0;
+      if (hasRepo && hasGithubToken && pushTags) {
         try {
           if (releasedPackages.length > 0) {
             await pushChangesetTags(git, githubToken, repo);

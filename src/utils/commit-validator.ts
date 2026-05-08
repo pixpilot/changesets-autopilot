@@ -3,28 +3,55 @@
  */
 export function isVersionOrReleaseCommit(message: string): boolean {
   const trimmedMessage = message.trim();
+  if (!/^chore\(release\): +/iu.test(trimmedMessage)) {
+    return false;
+  }
 
-  // Only allow spaces (not tabs/newlines) between parts
-  const space = ' ';
-  const pkgPattern = '((@[-a-zA-Z0-9_.]+/)?[-a-zA-Z0-9_.]+@)?';
-  const versionPattern = '[0-9]+\\.[0-9]+\\.[0-9]+';
-  const prereleasePattern = '(-[a-zA-Z0-9_.]+(\\.[a-zA-Z0-9_.]+)*)?';
-  const skipCiPattern = '\\[skip ci\\]';
-  const fullPattern = `^chore\\(release\\):${space}+${pkgPattern}${versionPattern}${prereleasePattern}${space}+${skipCiPattern}$`;
+  const releaseBody = trimmedMessage.replace(/^chore\(release\): +/iu, '');
+  const normalizedReleaseBody = releaseBody.toLowerCase();
 
-  if (new RegExp(fullPattern, 'i').test(trimmedMessage)) {
+  if (normalizedReleaseBody === 'bump package versions [skip ci]') {
+    return true;
+  }
+  if (normalizedReleaseBody === 'version packages [skip ci]') {
     return true;
   }
 
-  // Multi-package release: "chore(release): bump package versions [skip ci]"
-  if (/^chore\(release\): +bump package versions +\[skip ci\]$/i.test(trimmedMessage)) {
-    return true;
+  const marker = '[skip ci]';
+  if (!normalizedReleaseBody.endsWith(marker)) {
+    return false;
   }
 
-  // Legacy pattern (for backward compatibility): "chore(release): version packages [skip ci]"
-  if (/^chore\(release\): +version packages +\[skip ci\]$/i.test(trimmedMessage)) {
-    return true;
+  if (
+    normalizedReleaseBody.indexOf(marker) !==
+    normalizedReleaseBody.length - marker.length
+  ) {
+    return false;
   }
 
-  return false;
+  const packageAndVersion = releaseBody.slice(0, -marker.length).trim();
+  if (packageAndVersion.length === 0) {
+    return false;
+  }
+
+  if (/\s/u.test(packageAndVersion)) {
+    return false;
+  }
+
+  const versionSeparatorIndex = packageAndVersion.lastIndexOf('@');
+  const hasPackage = versionSeparatorIndex > 0;
+  const version = hasPackage
+    ? packageAndVersion.slice(versionSeparatorIndex + 1)
+    : packageAndVersion;
+
+  if (hasPackage) {
+    const packageName = packageAndVersion.slice(0, versionSeparatorIndex);
+    const isScopedPackage = packageName.startsWith('@');
+    const packageNamePattern = isScopedPackage ? /^@[-\w.]+\/[-\w.]+$/u : /^[-\w.]+$/u;
+    if (!packageNamePattern.test(packageName)) {
+      return false;
+    }
+  }
+
+  return /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/u.test(version);
 }

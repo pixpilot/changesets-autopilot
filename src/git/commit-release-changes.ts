@@ -1,8 +1,8 @@
-import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
-
-import { getReleaseCommitMessage } from '../utils/get-release-commit-message';
 import type { ReleasePackage } from '../utils/get-release-plan';
+
+import * as core from '@actions/core';
+import { getReleaseCommitMessage } from '../utils/get-release-commit-message';
 
 export async function commitReleaseChanges(
   git: SimpleGit,

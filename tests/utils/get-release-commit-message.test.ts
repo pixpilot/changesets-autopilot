@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { getReleaseCommitMessage } from '../../src/utils/get-release-commit-message';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../../src/constants/release-commit-message';
+import { getReleaseCommitMessage } from '../../src/utils/get-release-commit-message';
 
 describe('getReleaseCommitMessage', () => {
   it('returns correct message for single package', () => {

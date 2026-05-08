@@ -1,10 +1,10 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { getChangeTypeAndDescription } from '../../src/utils';
 
 describe('getChangeTypeAndDescription', () => {
-  describe('PATCH version changes', () => {
-    test('fix without scope', () => {
+  describe('pATCH version changes', () => {
+    it('fix without scope', () => {
       const result = getChangeTypeAndDescription('fix: resolve login bug');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -13,7 +13,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('fix with scope', () => {
+    it('fix with scope', () => {
       const result = getChangeTypeAndDescription('fix(api): handle null responses');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -22,7 +22,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('perf without scope', () => {
+    it('perf without scope', () => {
       const result = getChangeTypeAndDescription('perf: optimize database queries');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -31,7 +31,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('perf with scope', () => {
+    it('perf with scope', () => {
       const result = getChangeTypeAndDescription('perf(db): optimize queries');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -40,7 +40,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('revert without scope', () => {
+    it('revert without scope', () => {
       const result = getChangeTypeAndDescription('revert: undo previous changes');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -49,7 +49,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('revert with scope', () => {
+    it('revert with scope', () => {
       const result = getChangeTypeAndDescription('revert(core): undo changes');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -59,8 +59,8 @@ describe('getChangeTypeAndDescription', () => {
     });
   });
 
-  describe('MINOR version changes', () => {
-    test('feat without scope', () => {
+  describe('mINOR version changes', () => {
+    it('feat without scope', () => {
       const result = getChangeTypeAndDescription('feat: add user dashboard');
       expect(result).toStrictEqual({
         changeType: 'minor',
@@ -69,7 +69,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('feat with scope', () => {
+    it('feat with scope', () => {
       const result = getChangeTypeAndDescription('feat(auth): implement OAuth2');
       expect(result).toStrictEqual({
         changeType: 'minor',
@@ -78,7 +78,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('feat with complex scope', () => {
+    it('feat with complex scope', () => {
       const result = getChangeTypeAndDescription('feat(auth:admin): add admin dashboard');
       expect(result).toStrictEqual({
         changeType: 'minor',
@@ -88,8 +88,8 @@ describe('getChangeTypeAndDescription', () => {
     });
   });
 
-  describe('MAJOR version changes', () => {
-    test('bREAKING CHANGE in footer', () => {
+  describe('mAJOR version changes', () => {
+    it('bREAKING CHANGE in footer', () => {
       const result = getChangeTypeAndDescription(
         'feat: add new API\n\nBREAKING CHANGE: API is now RESTful',
       );
@@ -100,7 +100,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('major: feat! indicates breaking change', () => {
+    it('major: feat! indicates breaking change', () => {
       const result = getChangeTypeAndDescription('feat!: redesign user interface');
       expect(result).toStrictEqual({
         changeType: 'major',
@@ -109,7 +109,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('major: fix(scope)! indicates breaking change', () => {
+    it('major: fix(scope)! indicates breaking change', () => {
       const result = getChangeTypeAndDescription(
         'fix(database)!: change table structure',
       );
@@ -120,7 +120,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('major: refactor(scope)! indicates breaking change', () => {
+    it('major: refactor(scope)! indicates breaking change', () => {
       const result = getChangeTypeAndDescription(
         'refactor(core)!: change module exports',
       );
@@ -131,7 +131,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('none: BREAKING CHANGE in header is not detected as major', () => {
+    it('none: BREAKING CHANGE in header is not detected as major', () => {
       const result = getChangeTypeAndDescription('BREAKING CHANGE: API endpoint changed');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -141,8 +141,8 @@ describe('getChangeTypeAndDescription', () => {
     });
   });
 
-  describe('No version changes', () => {
-    test('build commit', () => {
+  describe('no version changes', () => {
+    it('build commit', () => {
       const result = getChangeTypeAndDescription('build: update webpack config');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -151,7 +151,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('chore commit', () => {
+    it('chore commit', () => {
       const result = getChangeTypeAndDescription('chore(deps): update dependencies');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -160,7 +160,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('ci commit', () => {
+    it('ci commit', () => {
       const result = getChangeTypeAndDescription('ci: add GitHub Actions workflow');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -169,7 +169,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('docs commit', () => {
+    it('docs commit', () => {
       const result = getChangeTypeAndDescription('docs: update README');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -178,7 +178,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('refactor commit', () => {
+    it('refactor commit', () => {
       const result = getChangeTypeAndDescription(
         'refactor(utils): extract helper functions',
       );
@@ -189,7 +189,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('style commit', () => {
+    it('style commit', () => {
       const result = getChangeTypeAndDescription('style: fix code formatting');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -198,7 +198,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('commit', () => {
+    it('commit', () => {
       const result = getChangeTypeAndDescription('test(unit): add user service tests');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -207,7 +207,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('unknown commit format', () => {
+    it('unknown commit format', () => {
       const result = getChangeTypeAndDescription('random commit message');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -216,7 +216,7 @@ describe('getChangeTypeAndDescription', () => {
       });
     });
 
-    test('empty commit message', () => {
+    it('empty commit message', () => {
       const result = getChangeTypeAndDescription('');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -226,8 +226,8 @@ describe('getChangeTypeAndDescription', () => {
     });
   });
 
-  describe('Edge cases', () => {
-    test('bREAKING CHANGE with multiline commit', () => {
+  describe('edge cases', () => {
+    it('bREAKING CHANGE with multiline commit', () => {
       const message = `feat(api): add new endpoint
 
 This is a longer description of the feature.
@@ -241,7 +241,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('commit with special characters in scope', () => {
+    it('commit with special characters in scope', () => {
       const result = getChangeTypeAndDescription('feat(api-v2): add new version');
       expect(result).toStrictEqual({
         changeType: 'minor',
@@ -250,7 +250,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('commit with numbers in scope', () => {
+    it('commit with numbers in scope', () => {
       const result = getChangeTypeAndDescription('fix(route53): resolve DNS issues');
       expect(result).toStrictEqual({
         changeType: 'patch',
@@ -259,7 +259,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('commit with long description', () => {
+    it('commit with long description', () => {
       const longDescription =
         'implement comprehensive user authentication system with OAuth2, JWT tokens, and role-based access control';
       const result = getChangeTypeAndDescription(`feat(auth): ${longDescription}`);
@@ -270,7 +270,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('commit with exclamation in description but not breaking', () => {
+    it('commit with exclamation in description but not breaking', () => {
       const result = getChangeTypeAndDescription('feat(ui): add exciting new button!');
       expect(result).toStrictEqual({
         changeType: 'minor', // parser treats '!' in description as breaking
@@ -279,7 +279,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('malformed breaking change (missing space)', () => {
+    it('malformed breaking change (missing space)', () => {
       const result = getChangeTypeAndDescription('feat!:missing space');
       expect(result).toStrictEqual({
         changeType: 'none', // parser treats '!' as breaking
@@ -288,7 +288,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('multiple BREAKING CHANGE footers', () => {
+    it('multiple BREAKING CHANGE footers', () => {
       const message = `feat: something\n\nBREAKING CHANGE: first\nBREAKING CHANGE: second`;
       const result = getChangeTypeAndDescription(message);
       expect(result).toStrictEqual({
@@ -298,7 +298,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('unusual whitespace and line breaks', () => {
+    it('unusual whitespace and line breaks', () => {
       const result = getChangeTypeAndDescription('feat (api) ! :   spaced description');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -307,7 +307,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('only type and colon, no description', () => {
+    it('only type and colon, no description', () => {
       const result = getChangeTypeAndDescription('feat:');
       expect(result).toStrictEqual({
         changeType: 'none', // parser does not treat as minor
@@ -316,7 +316,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('type and exclamation, but no colon', () => {
+    it('type and exclamation, but no colon', () => {
       const result = getChangeTypeAndDescription('feat! add something');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -325,7 +325,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('malformed scope (missing parenthesis)', () => {
+    it('malformed scope (missing parenthesis)', () => {
       const result = getChangeTypeAndDescription('feat(api: add something');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -334,7 +334,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('emoji in scope', () => {
+    it('emoji in scope', () => {
       const result = getChangeTypeAndDescription('feat(🔥): add fire emoji');
       expect(result).toStrictEqual({
         changeType: 'minor',
@@ -343,7 +343,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('type in uppercase', () => {
+    it('type in uppercase', () => {
       const result = getChangeTypeAndDescription('FEAT: add dashboard');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -352,7 +352,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('type in mixed case', () => {
+    it('type in mixed case', () => {
       const result = getChangeTypeAndDescription('Fix: patch bug');
       expect(result).toStrictEqual({
         changeType: 'none',
@@ -361,7 +361,7 @@ BREAKING CHANGE: The old endpoint is no longer supported`;
       });
     });
 
-    test('only whitespace', () => {
+    it('only whitespace', () => {
       const result = getChangeTypeAndDescription('   ');
       expect(result).toStrictEqual({
         changeType: 'none',

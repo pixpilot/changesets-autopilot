@@ -1,4 +1,6 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { configureGit } from '../../src/git/configure-git';
 
 vi.mock('simple-git', () => {
   const addConfig = vi.fn().mockResolvedValue(undefined);
@@ -7,14 +9,12 @@ vi.mock('simple-git', () => {
   return { default: simpleGit };
 });
 
-import { configureGit } from '../../src/git/configure-git';
-
 describe('configureGit', () => {
-  test('should be a function', () => {
+  it('should be a function', () => {
     expect(typeof configureGit).toBe('function');
   });
 
-  test('should configure git user and email', async () => {
+  it('should configure git user and email', async () => {
     const botName = 'pixpilot';
     const expectedName = `${botName}[bot]`;
     const expectedEmail = `41898282+${botName}[bot]@users.noreply.github.com`;

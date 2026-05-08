@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { validateBranchConfiguration } from '../../src/config/validate-branch-configuration';
 
@@ -8,11 +8,11 @@ vi.mock('@actions/core', () => ({
 }));
 
 describe('validateBranchConfiguration', () => {
-  test('should be a function', () => {
+  it('should be a function', () => {
     expect(typeof validateBranchConfiguration).toBe('function');
   });
 
-  test('should return false and log when branch is not configured for releases', () => {
+  it('should return false and log when branch is not configured for releases', () => {
     const branchConfig = { isMatch: false, name: 'feature/test' };
     const result = validateBranchConfiguration(branchConfig);
     expect(result).toBe(false);
@@ -21,14 +21,14 @@ describe('validateBranchConfiguration', () => {
     );
   });
 
-  test('should return true and log when branch is configured for releases (no prerelease)', () => {
+  it('should return true and log when branch is configured for releases (no prerelease)', () => {
     const branchConfig = { isMatch: true, name: 'main' };
     const result = validateBranchConfiguration(branchConfig);
     expect(result).toBe(true);
     expect(core.info).toHaveBeenCalledWith("Processing release for branch 'main'");
   });
 
-  test('should return true and log when branch is configured for releases (with prerelease)', () => {
+  it('should return true and log when branch is configured for releases (with prerelease)', () => {
     const branchConfig = { isMatch: true, name: 'develop', prerelease: 'beta' };
     const result = validateBranchConfiguration(branchConfig);
     expect(result).toBe(true);

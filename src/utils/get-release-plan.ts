@@ -1,3 +1,4 @@
+import process from 'node:process';
 import * as core from '@actions/core';
 import getReleasePlan from '@changesets/get-release-plan';
 

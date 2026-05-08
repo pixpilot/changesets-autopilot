@@ -1,11 +1,11 @@
-import { execSync } from 'child_process';
-
-import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
 
-import { commitAndPush } from '../../src/git/commit-and-push';
+import { execSync } from 'node:child_process';
+import * as core from '@actions/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../../src/constants/release-commit-message';
+import { commitAndPush } from '../../src/git/commit-and-push';
 
 vi.mock('@actions/core', () => ({
   info: vi.fn(),
@@ -54,10 +54,10 @@ describe('gitVersionAndPush', () => {
     process.env.GITHUB_REF_NAME = GITHUB_REF_NAME;
 
     // Default mock returns
-    mockExecSync.mockReturnValue('version output' as any);
+    mockExecSync.mockReturnValue('version output');
   });
 
-  test('should call commit with correct message for single package', async () => {
+  it('should call commit with correct message for single package', async () => {
     const packages = [
       {
         name: 'test-package',
@@ -70,7 +70,7 @@ describe('gitVersionAndPush', () => {
     expect(mockGit.commit).toHaveBeenCalledWith(expect.any(String));
   });
 
-  test('should call commit with correct message for multiple packages', async () => {
+  it('should call commit with correct message for multiple packages', async () => {
     const packages = [
       {
         name: 'package1',
@@ -88,14 +88,14 @@ describe('gitVersionAndPush', () => {
     expect(mockGit.commit).toHaveBeenCalledWith(expect.any(String));
   });
 
-  test('should use default message when no packages have changes', async () => {
+  it('should use default message when no packages have changes', async () => {
     const packages: any[] = [];
 
     await commitAndPush(mockGit, GITHUB_TOKEN, packages);
     expect(mockGit.commit).toHaveBeenCalledWith(DEFAULT_RELEASE_COMMIT_MESSAGE);
   });
 
-  test('should use default message if getPackagesToRelease returns empty array (error case)', async () => {
+  it('should use default message if getPackagesToRelease returns empty array (error case)', async () => {
     const packages: any[] = [];
 
     await commitAndPush(mockGit, GITHUB_TOKEN, packages);

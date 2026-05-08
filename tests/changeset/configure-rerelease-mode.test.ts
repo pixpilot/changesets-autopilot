@@ -1,27 +1,26 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('fs');
 vi.mock('child_process');
 vi.mock('@actions/core');
 
 // Import mocked modules at the top level
-const fs = await import('fs');
-const child_process = await import('child_process');
+const fs = await import('node:fs');
+const child_process = await import('node:child_process');
 const core = await import('@actions/core');
-const { configureRereleaseMode } = await import(
-  '../../src/changeset/configure-rerelease-mode'
-);
+const { configureRereleaseMode } =
+  await import('../../src/changeset/configure-rerelease-mode');
 
 describe('configureRereleaseMode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  test('should be a function', () => {
+  it('should be a function', () => {
     expect(typeof configureRereleaseMode).toBe('function');
   });
 
-  test('enters prerelease mode if not already in prerelease mode', () => {
+  it('enters prerelease mode if not already in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
@@ -34,7 +33,7 @@ describe('configureRereleaseMode', () => {
     });
   });
 
-  test('skips enter if already in prerelease mode', () => {
+  it('skips enter if already in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', prerelease: 'beta', isMatch: true };
 
@@ -45,7 +44,7 @@ describe('configureRereleaseMode', () => {
     expect(child_process.execSync).not.toHaveBeenCalled();
   });
 
-  test('exits prerelease mode if in prerelease mode', () => {
+  it('exits prerelease mode if in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     const branchConfig = { name: 'main', isMatch: true };
 
@@ -56,7 +55,7 @@ describe('configureRereleaseMode', () => {
     });
   });
 
-  test('skips exit if not in prerelease mode', () => {
+  it('skips exit if not in prerelease mode', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const branchConfig = { name: 'main', isMatch: true };
 

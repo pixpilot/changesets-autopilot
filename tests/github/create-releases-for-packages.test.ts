@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRelease } from '../../src/github/create-release';
 import { createReleasesForPackages } from '../../src/github/create-releases-for-packages';

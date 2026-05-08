@@ -1,9 +1,9 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { findLastPublishedCommit } from '../../src/git/find-last-published-commit';
 
 describe('findLastPublishedCommit', () => {
-  test('returns tag if version tag exists', async () => {
+  it('returns tag if version tag exists', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -17,7 +17,7 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('v1.2.3');
   });
 
-  test('returns commit hash if no version tag but published commit exists', async () => {
+  it('returns commit hash if no version tag but published commit exists', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -37,7 +37,7 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('abc123');
   });
 
-  test('returns previous commit hash if no published commit but publishable commit exists', async () => {
+  it('returns previous commit hash if no published commit but publishable commit exists', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -57,7 +57,7 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('ghi789');
   });
 
-  test('returns HEAD~1 if no tags or publishable commits found', async () => {
+  it('returns HEAD~1 if no tags or publishable commits found', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -74,7 +74,7 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('HEAD~1');
   });
 
-  test('returns HEAD~1 on error', async () => {
+  it('returns HEAD~1 on error', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -87,3 +87,5 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('HEAD~1');
   });
 });
+
+

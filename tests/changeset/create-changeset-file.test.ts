@@ -1,15 +1,15 @@
-import fs from 'fs';
+import fs from 'node:fs';
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createChangesetFile } from '../../src/changeset';
 
 describe('createChangesetFile', () => {
-  test('should be defined', () => {
+  it('should be defined', () => {
     expect(createChangesetFile).toBeDefined();
   });
 
-  test('should create a changeset file with correct content', () => {
+  it('should create a changeset file with correct content', () => {
     const packageName = 'my-package';
     const changeType = 'minor';
     const description = 'Add new feature';
@@ -22,7 +22,7 @@ describe('createChangesetFile', () => {
     fs.unlinkSync(filePath);
   });
 
-  test('should use default description if not provided', () => {
+  it('should use default description if not provided', () => {
     const packageName = 'my-package';
     const changeType = 'patch';
     const filePath = createChangesetFile(packageName, changeType);
@@ -32,7 +32,7 @@ describe('createChangesetFile', () => {
     fs.unlinkSync(filePath);
   });
 
-  test('should trim whitespace from packageName and description', () => {
+  it('should trim whitespace from packageName and description', () => {
     const packageName = '  spaced-package  ';
     const changeType = 'major';
     const description = '  spaced description  ';
@@ -44,7 +44,7 @@ describe('createChangesetFile', () => {
     fs.unlinkSync(filePath);
   });
 
-  test('should create .changeset directory if it does not exist', () => {
+  it('should create .changeset directory if it does not exist', () => {
     const changesetDir = '.changeset';
     if (fs.existsSync(changesetDir)) {
       fs.rmSync(changesetDir, { recursive: true, force: true });
@@ -56,7 +56,7 @@ describe('createChangesetFile', () => {
     fs.rmSync(changesetDir, { recursive: true, force: true });
   });
 
-  test('should throw if unable to create file', () => {
+  it('should throw if unable to create file', () => {
     const originalWriteFileSync = fs.writeFileSync;
     fs.writeFileSync = () => {
       throw new Error('FS error');
@@ -65,9 +65,9 @@ describe('createChangesetFile', () => {
     fs.writeFileSync = originalWriteFileSync;
   });
 
-  test('should return file path with expected pattern', () => {
+  it('should return file path with expected pattern', () => {
     const filePath = createChangesetFile('pkg', 'minor', 'desc');
-    expect(filePath).toMatch(/\.changeset\/auto-generated-at-\d+\.md$/);
+    expect(filePath).toMatch(/\.changeset\/auto-generated-at-\d+\.md$/u);
     fs.unlinkSync(filePath);
   });
 });

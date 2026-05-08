@@ -1,5 +1,5 @@
-import * as core from '@actions/core';
 import type simpleGit from 'simple-git';
+import * as core from '@actions/core';
 
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
 
@@ -15,7 +15,7 @@ export async function findLastPublishedCommit(
     if (tags.all.length > 0) {
       // Find the first tag that looks like a version tag
       for (const tag of tags.all) {
-        if (/^v?\d+\.\d+\.\d+/.test(tag)) {
+        if (/^v?\d+\.\d+\.\d+/u.test(tag)) {
           core.info(`Using last release tag as base: ${tag}`);
           return tag;
         }

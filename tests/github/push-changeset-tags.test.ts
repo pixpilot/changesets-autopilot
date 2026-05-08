@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
+import * as core from '@actions/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pushChangesetTags } from '../../src/github/push-changeset-tags';
 
 vi.mock('@actions/core', () => ({

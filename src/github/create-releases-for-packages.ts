@@ -1,10 +1,10 @@
+import type { Package } from './create-release';
 import * as core from '@actions/core';
+
 import { Octokit } from '@octokit/rest';
 
 import { getPackages } from '../utils';
-
 import { createRelease } from './create-release';
-import type { Package } from './create-release';
 
 export interface CreateReleasesOptions {
   releasedPackages: Package[];

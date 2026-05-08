@@ -1,7 +1,7 @@
-import * as core from '@actions/core';
-import { parse } from 'yaml';
-
 import type { ActionInputs, BranchConfig } from '../../types';
+import * as core from '@actions/core';
+
+import { parse } from 'yaml';
 
 export function getActionInputs(): ActionInputs {
   const branchesInput =
@@ -12,12 +12,11 @@ export function getActionInputs(): ActionInputs {
   channel: next`;
   let branches: (string | BranchConfig)[];
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parsed = parse(branchesInput);
+    const parsed: unknown = parse(branchesInput);
     if (Array.isArray(parsed)) {
       branches = parsed as (string | BranchConfig)[];
     } else {
-      throw new Error('BRANCHES input must be a YAML array');
+      throw new TypeError('BRANCHES input must be a YAML array');
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

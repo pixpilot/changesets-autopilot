@@ -1,4 +1,5 @@
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
+import process from 'node:process';
 
 import * as core from '@actions/core';
 
@@ -9,7 +10,7 @@ import * as core from '@actions/core';
  *
  * @param githubToken - GitHub token for authentication in CI environments
  */
-export function runChangesetVersion(githubToken: string) {
+export function runChangesetVersion(githubToken: string): void {
   try {
     core.info('Running changeset version command...');
     const versionOutput = execSync('npx changeset version', {
@@ -24,6 +25,5 @@ export function runChangesetVersion(githubToken: string) {
     core.info('Changeset version completed successfully');
   } catch (error) {
     core.info(`Error message: ${(error as Error).message}`);
-    return;
   }
 }

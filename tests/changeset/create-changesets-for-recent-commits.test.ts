@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createChangesetFile,
@@ -12,15 +12,18 @@ vi.mock('../../src/changeset/create-changeset-file', () => ({
 
 vi.mock('@actions/core');
 
-vi.mock('../../src/utils/get-change-type-and-description', () => ({
+vi.mock('../../src/utils/commit-parser', () => ({
   getChangeTypeAndDescription: vi.fn((msg: string) => {
-    if (msg === 'feat: add feature')
-      return Promise.resolve({ changeType: 'minor', description: 'add feature' });
-    if (msg === 'fix: bug fix')
-      return Promise.resolve({ changeType: 'patch', description: 'bug fix' });
-    if (msg === 'feat!: breaking change')
-      return Promise.resolve({ changeType: 'major', description: 'breaking change' });
-    return Promise.resolve({ changeType: 'none', description: msg });
+    if (msg === 'feat: add feature') {
+      return { changeType: 'minor', description: 'add feature' };
+    }
+    if (msg === 'fix: bug fix') {
+      return { changeType: 'patch', description: 'bug fix' };
+    }
+    if (msg === 'feat!: breaking change') {
+      return { changeType: 'major', description: 'breaking change' };
+    }
+    return { changeType: 'none', description: msg };
   }),
 }));
 
@@ -78,11 +81,11 @@ describe('createChangesetsForRecentCommits', () => {
     });
   });
 
-  test('should be defined', () => {
+  it('should be defined', () => {
     expect(createChangesetsForRecentCommits).toBeDefined();
   });
 
-  test('should process changes and create changeset files for each commit', async () => {
+  it('should process changes and create changeset files for each commit', async () => {
     await createChangesetsForRecentCommits();
 
     expect(createChangesetFile).toHaveBeenCalledWith('pkg-a', 'minor', 'add feature');

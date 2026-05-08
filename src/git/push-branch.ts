@@ -1,10 +1,15 @@
-import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
+import process from 'node:process';
+import * as core from '@actions/core';
 
-export async function pushBranch(git: SimpleGit, githubToken: string) {
+export async function pushBranch(git: SimpleGit, githubToken: string): Promise<void> {
   const repo = process.env.GITHUB_REPOSITORY;
   const refName = process.env.GITHUB_REF_NAME;
-  if (repo && githubToken && refName) {
+  const hasRepo = typeof repo === 'string' && repo.length > 0;
+  const hasToken = githubToken.length > 0;
+  const hasRefName = typeof refName === 'string' && refName.length > 0;
+
+  if (hasRepo && hasToken && hasRefName) {
     try {
       // Get current branch name to ensure we push to the correct branch
       const currentBranch = await git.branch(['--show-current']);

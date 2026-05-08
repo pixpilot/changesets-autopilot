@@ -1,6 +1,6 @@
-name: 'Changeset Autopilot'
-description: 'Automate changeset-based releases with branch-specific configurations'
-author: 'Pixpilot'
+name: Changeset Autopilot
+description: Automate changeset-based releases with branch-specific configurations
+author: Pixpilot
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
@@ -18,7 +18,7 @@ inputs:
   BOT_NAME:
     description: Optional bot name
     required: false
-    default: 'changesets-autopilot'
+    default: changesets-autopilot
   BRANCHES:
     description: Branch configuration for releases (YAML array)
     required: false
@@ -40,7 +40,7 @@ inputs:
     required: false
     default: 'true'
   provenance:
-    description: 'Enable npm provenance attestation'
+    description: Enable npm provenance attestation
     required: false
     default: 'false'
 

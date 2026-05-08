@@ -1,16 +1,17 @@
-import path from 'path';
+import type { ChangesMap, Commit } from '../../types/changes';
 
+import path from 'node:path';
+import process from 'node:process';
 import * as core from '@actions/core';
-import simpleGit from 'simple-git';
 
-import type { ChangesMap, PackageChange, Commit } from '../../types/changes';
+import simpleGit from 'simple-git';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
 import { getPackages } from '../utils/get-packages';
 
 import { findLastPublishedCommit } from './find-last-published-commit';
 
-export async function getChangesSinceLastCommit() {
+export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
   const { publishablePackages, privatePackages, isMonorepo } = await getPackages();
 
   const git = simpleGit();
@@ -21,8 +22,7 @@ export async function getChangesSinceLastCommit() {
 
   if (privatePackages.length > 0) {
     core.info(
-      'Skipped private packages: ' +
-        privatePackages.map((pkg) => pkg.packageJson.name).join(', '),
+      `Skipped private packages: ${privatePackages.map((pkg) => pkg.packageJson.name).join(', ')}`,
     );
   }
 
@@ -46,22 +46,20 @@ export async function getChangesSinceLastCommit() {
 
     for (const commit of log.all) {
       // Skip merge commits and version commits
-      if (isVersionOrReleaseCommit(commit.message)) {
-        continue;
-      }
-
-      // Check if this commit would result in a publishable change
-      const { changeType } = getChangeTypeAndDescription(commit.message);
-      if (changeType !== 'none') {
-        publishableCommits.push({
-          hash: commit.hash,
-          date: commit.date,
-          message: commit.message,
-          refs: commit.refs,
-          body: commit.body || '',
-          author_name: commit.author_name,
-          author_email: commit.author_email,
-        });
+      if (!isVersionOrReleaseCommit(commit.message)) {
+        // Check if this commit would result in a publishable change
+        const { changeType } = getChangeTypeAndDescription(commit.message);
+        if (changeType !== 'none') {
+          publishableCommits.push({
+            hash: commit.hash,
+            date: commit.date,
+            message: commit.message,
+            refs: commit.refs,
+            body: commit.body || '',
+            author_name: commit.author_name,
+            author_email: commit.author_email,
+          });
+        }
       }
     }
 
@@ -78,7 +76,7 @@ export async function getChangesSinceLastCommit() {
 
     // Only process public packages that have actual changes
     publishablePackages.forEach((pkg) => {
-      const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/g, '/');
+      const pkgPath = path.relative(process.cwd(), pkg.dir).replace(/\\/gu, '/');
       let pkgChangedFiles: string[];
 
       // If single-package repo (pkgPath is '.' or ''), assign all changed files
@@ -86,7 +84,7 @@ export async function getChangesSinceLastCommit() {
         pkgChangedFiles = changedFiles;
       } else {
         pkgChangedFiles = changedFiles.filter(
-          (file) => file.startsWith(pkgPath + '/') || file === `${pkgPath}/package.json`,
+          (file) => file.startsWith(`${pkgPath}/`) || file === `${pkgPath}/package.json`,
         );
       }
 
@@ -96,13 +94,13 @@ export async function getChangesSinceLastCommit() {
           commits: publishableCommits,
           version: pkg.packageJson.version,
           private: pkg.packageJson.private ?? false,
-        } as PackageChange;
+        };
       }
     });
 
     return changes;
   } catch (error) {
-    core.error('Error getting changes: ' + String(error));
+    core.error(`Error getting changes: ${String(error)}`);
     return {};
   }
 }

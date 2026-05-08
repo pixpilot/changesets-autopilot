@@ -1,8 +1,8 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
-import * as core from '@actions/core';
 import type { Octokit } from '@octokit/rest';
+import fs from 'node:fs/promises';
+
+import path from 'node:path';
+import * as core from '@actions/core';
 
 export interface Package {
   dir: string;
@@ -31,10 +31,13 @@ function getPreviousVersion(changelog: string, currentVersion: string): string |
     if (trimmedLine.startsWith('## ')) {
       if (foundCurrent) {
         // This is the previous version
-        const versionRegex = /## (.+?)(?:\s|$)/;
+        const versionRegex = /## (?<version>.+?)(?:\s|$)/u;
         const versionMatch = versionRegex.exec(trimmedLine);
-        if (versionMatch) {
-          return versionMatch[1].trim();
+        if (
+          typeof versionMatch?.groups?.version === 'string' &&
+          versionMatch.groups.version.length > 0
+        ) {
+          return versionMatch.groups.version.trim();
         }
       } else if (trimmedLine.includes(currentVersion)) {
         // Found the current version, next version section will be the previous one
@@ -110,20 +113,18 @@ function getChangelogEntry(changelog: string, version: string) {
 /**
  * Creates a GitHub release for a given package and tag.
  * @param octokit - Authenticated Octokit instance
- * @param pkg - The package object
- * @param tagName - The tag name for the release
- * @param owner - GitHub repo owner
- * @param repo - GitHub repo name
+ * @param options - Release creation options
+ * @param options.pkg - The package object
+ * @param options.tagName - The tag name for the release
+ * @param options.owner - GitHub repo owner
+ * @param options.repo - GitHub repo name
  */
-export const createRelease = async (
+export async function createRelease(
   octokit: Octokit,
-  {
-    pkg,
-    tagName,
-    owner,
-    repo,
-  }: { pkg: Package; tagName: string; owner: string; repo: string },
-) => {
+  options: { pkg: Package; tagName: string; owner: string; repo: string },
+): Promise<void> {
+  const { pkg, tagName, owner, repo } = options;
+
   let changelog;
   try {
     changelog = await fs.readFile(path.join(pkg.dir, 'CHANGELOG.md'), 'utf8');
@@ -151,7 +152,7 @@ export const createRelease = async (
   let comparisonUrl = '';
   let releaseBodyHeader = `## ${changelogEntry.changeLevel}(${currentDate})`;
 
-  if (previousVersion) {
+  if (previousVersion !== null) {
     const previousTag = tagName.replace(pkg.packageJson.version, previousVersion);
     comparisonUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${tagName}`;
     // Make the release title a clickable link to the comparison
@@ -175,4 +176,4 @@ ${changelogEntry.content}`;
     prerelease: pkg.packageJson.version.includes('-'),
     make_latest: 'true',
   });
-};
+}

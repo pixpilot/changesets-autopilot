@@ -9,7 +9,7 @@ export async function commitAndPush(
   git: SimpleGit,
   githubToken: string,
   packagesToRelease: ReleasePackage[],
-) {
+): Promise<string> {
   const commitMessage = await commitReleaseChanges(git, packagesToRelease);
 
   await pushBranch(git, githubToken);

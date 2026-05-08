@@ -1,20 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { describe, expect, test } from 'vitest';
 
 interface WorkflowDefinition {
   on?: unknown;
 }
 
 const workflowsDirectory = path.resolve(process.cwd(), '.github', 'workflows');
-const workflowFilePattern = /\.ya?ml$/;
-const skipMarkerPattern = /\[(skip ci|ci skip)\]/i;
+const workflowFilePattern = /\.ya?ml$/u;
+const skipMarkerPattern = /\[(?:skip ci|ci skip)\]/iu;
 const skipGuardPatternSkipCi =
-  /contains\(\s*(github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[skip ci\]['"]\s*\)/i;
+  /contains\(\s*(?:github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[skip ci\]['"]\s*\)/iu;
 const skipGuardPatternCiSkip =
-  /contains\(\s*(github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[ci skip\]['"]\s*\)/i;
+  /contains\(\s*(?:github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[ci skip\]['"]\s*\)/iu;
 
 function hasTrigger(eventConfig: unknown, trigger: 'push' | 'pull_request'): boolean {
   if (typeof eventConfig === 'string') {
@@ -26,7 +26,7 @@ function hasTrigger(eventConfig: unknown, trigger: 'push' | 'pull_request'): boo
   }
 
   if (eventConfig && typeof eventConfig === 'object') {
-    return Object.prototype.hasOwnProperty.call(eventConfig, trigger);
+    return Object.hasOwn(eventConfig, trigger);
   }
 
   return false;
@@ -37,7 +37,7 @@ function isPushOrPullRequestWorkflow(workflow: WorkflowDefinition): boolean {
 }
 
 describe('workflow skip-ci guards', () => {
-  test('should ensure all push/pull_request workflows include an explicit skip-ci guard', () => {
+  it('should ensure all push/pull_request workflows include an explicit skip-ci guard', () => {
     const workflowFiles = fs
       .readdirSync(workflowsDirectory)
       .filter((filename) => workflowFilePattern.test(filename));
@@ -49,17 +49,15 @@ describe('workflow skip-ci guards', () => {
       const workflowContent = fs.readFileSync(workflowPath, 'utf8');
       const workflow = parse(workflowContent) as WorkflowDefinition;
 
-      if (!isPushOrPullRequestWorkflow(workflow)) {
-        continue;
-      }
+      if (isPushOrPullRequestWorkflow(workflow)) {
+        const hasSkipMarker = skipMarkerPattern.test(workflowContent);
+        const hasSkipGuard =
+          skipGuardPatternSkipCi.test(workflowContent) &&
+          skipGuardPatternCiSkip.test(workflowContent);
 
-      const hasSkipMarker = skipMarkerPattern.test(workflowContent);
-      const hasSkipGuard =
-        skipGuardPatternSkipCi.test(workflowContent) &&
-        skipGuardPatternCiSkip.test(workflowContent);
-
-      if (!hasSkipMarker || !hasSkipGuard) {
-        missingGuard.push(workflowFile);
+        if (!hasSkipMarker || !hasSkipGuard) {
+          missingGuard.push(workflowFile);
+        }
       }
     }
 

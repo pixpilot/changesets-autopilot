@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-
-import { getBranchConfig } from '../../src/config';
 import type { BranchConfig } from '../../types';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getBranchConfig } from '../../src/config';
 
 vi.mock('@actions/core');
 
@@ -24,7 +24,7 @@ describe('getBranchConfig', () => {
     delete process.env.GITHUB_REF_NAME;
   });
 
-  test('should match a simple string branch configuration', () => {
+  it('should match a simple string branch configuration', () => {
     const config = getBranchConfig(mockBranches, 'main');
 
     expect(config).toStrictEqual({
@@ -33,7 +33,7 @@ describe('getBranchConfig', () => {
     });
   });
 
-  test('should match a complex branch configuration', () => {
+  it('should match a complex branch configuration', () => {
     const config = getBranchConfig(mockBranches, 'next');
 
     expect(config).toStrictEqual({
@@ -44,7 +44,7 @@ describe('getBranchConfig', () => {
     });
   });
 
-  test('should return no match for unconfigured branch', () => {
+  it('should return no match for unconfigured branch', () => {
     const config = getBranchConfig(mockBranches, 'feature/test');
 
     expect(config).toStrictEqual({
@@ -53,7 +53,7 @@ describe('getBranchConfig', () => {
     });
   });
 
-  test('should use GITHUB_REF_NAME environment variable when no current branch is provided', () => {
+  it('should use GITHUB_REF_NAME environment variable when no current branch is provided', () => {
     process.env.GITHUB_REF_NAME = 'beta';
     const config = getBranchConfig(mockBranches);
 
@@ -65,7 +65,7 @@ describe('getBranchConfig', () => {
     });
   });
 
-  test('should default to main when no branch is provided and GITHUB_REF_NAME is not set', () => {
+  it('should default to main when no branch is provided and GITHUB_REF_NAME is not set', () => {
     const config = getBranchConfig(mockBranches);
 
     expect(config).toStrictEqual({

@@ -1,5 +1,5 @@
-import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
+import * as core from '@actions/core';
 
 /**
  * Pushes tags created by changeset publish to GitHub.

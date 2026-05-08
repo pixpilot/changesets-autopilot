@@ -1,7 +1,7 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('getChangesSinceLastCommit', () => {
-  test('should be a function', async () => {
+  it('should be a function', async () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue(''),
@@ -18,7 +18,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should return an object', async () => {
+  it('should return an object', async () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue(''),
@@ -37,7 +37,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should handle errors gracefully', async () => {
+  it('should handle errors gracefully', async () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockRejectedValue(new Error('Mock error')),
@@ -55,9 +55,9 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  const normalizePath = (p: string) => p.replace(/\\/g, '/');
+  const normalizePath = (p: string) => p.replace(/\\/gu, '/');
 
-  test('should exclude private packages from results', async () => {
+  it('should exclude private packages from results', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
     const pkgBDir = normalizePath(`${process.cwd()}/packages/pkg-b`);
 
@@ -102,7 +102,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should include changed files for public packages', async () => {
+  it('should include changed files for public packages', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('simple-git', () => ({
@@ -142,7 +142,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should handle changed file as only package.json', async () => {
+  it('should handle changed file as only package.json', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('simple-git', () => ({
@@ -181,7 +181,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should handle public package with no changed files', async () => {
+  it('should handle public package with no changed files', async () => {
     vi.doMock('simple-git', () => ({
       default: () => ({
         diff: vi.fn().mockResolvedValue(''),
@@ -218,7 +218,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should handle package with no private field (defaults to false)', async () => {
+  it('should handle package with no private field (defaults to false)', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('simple-git', () => ({
@@ -252,7 +252,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should handle multiple public packages with different changes', async () => {
+  it('should handle multiple public packages with different changes', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
     const pkgBDir = normalizePath(`${process.cwd()}/packages/pkg-b`);
 
@@ -301,7 +301,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should skip version commits and find publishable commits', async () => {
+  it('should skip version commits and find publishable commits', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('simple-git', () => ({
@@ -342,7 +342,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should skip commits that are version or release commits', async () => {
+  it('should skip commits that are version or release commits', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('simple-git', () => ({
@@ -391,7 +391,7 @@ describe('getChangesSinceLastCommit', () => {
     vi.resetModules();
   });
 
-  test('should log single-package repository info when not monorepo', async () => {
+  it('should log single-package repository info when not monorepo', async () => {
     const pkgADir = normalizePath(`${process.cwd()}/packages/pkg-a`);
 
     vi.doMock('@actions/core', () => ({

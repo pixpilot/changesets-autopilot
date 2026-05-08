@@ -1,5 +1,6 @@
 // Utility to extract selected package info and monorepo status
 import type { Package } from '@manypkg/get-packages';
+import process from 'node:process';
 import { getPackages as manypkg } from '@manypkg/get-packages';
 
 export interface PackageSelection {

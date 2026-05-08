@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
 
 import * as core from '@actions/core';
 

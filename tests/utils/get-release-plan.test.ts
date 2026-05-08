@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as core from '@actions/core';
 import getReleasePlan from '@changesets/get-release-plan';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPackagesToRelease } from '../../src/utils/get-release-plan';
 
 vi.mock('@actions/core');

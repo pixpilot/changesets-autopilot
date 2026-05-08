@@ -1,9 +1,9 @@
-import path from 'path';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import path from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  ensurePackagesAvailable,
   ensureChangesetsAvailable,
+  ensurePackagesAvailable,
 } from '../../src/changeset/ensure-changesets-available';
 
 // Mock fs module
@@ -19,7 +19,7 @@ vi.mock('fs', async () => {
 // Mock @actions/core
 vi.mock('@actions/core');
 
-const fs = await import('fs');
+const fs = await import('node:fs');
 const core = await import('@actions/core');
 
 const existsSync = fs.existsSync as unknown as ReturnType<typeof vi.fn>;
@@ -32,7 +32,7 @@ describe('ensure-changesets-available', () => {
   });
 
   describe('ensurePackagesAvailable', () => {
-    test('should pass when required packages are in dependencies', () => {
+    it('should pass when required packages are in dependencies', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -55,7 +55,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should pass when required packages are in devDependencies', () => {
+    it('should pass when required packages are in devDependencies', () => {
       const packageJson = {
         name: 'test-package',
         devDependencies: {
@@ -72,7 +72,7 @@ describe('ensure-changesets-available', () => {
       }).not.toThrow();
     });
 
-    test('should pass when packages are in both dependencies and devDependencies', () => {
+    it('should pass when packages are in both dependencies and devDependencies', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -91,7 +91,7 @@ describe('ensure-changesets-available', () => {
       }).not.toThrow();
     });
 
-    test('should throw error when required package is missing', () => {
+    it('should throw error when required package is missing', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -109,7 +109,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should throw error when one of multiple packages is missing', () => {
+    it('should throw error when one of multiple packages is missing', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -127,7 +127,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle empty packages array', () => {
+    it('should handle empty packages array', () => {
       const packageJson = {
         name: 'test-package',
       };
@@ -140,7 +140,7 @@ describe('ensure-changesets-available', () => {
       }).not.toThrow();
     });
 
-    test('should throw error and log warning when package.json does not exist', () => {
+    it('should throw error and log warning when package.json does not exist', () => {
       existsSync.mockReturnValue(false);
 
       expect(() => {
@@ -154,7 +154,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle malformed package.json and log warning', () => {
+    it('should handle malformed package.json and log warning', () => {
       existsSync.mockReturnValue(true);
       readFileSync.mockReturnValue('invalid json');
 
@@ -169,7 +169,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle package.json without dependencies sections', () => {
+    it('should handle package.json without dependencies sections', () => {
       const packageJson = {
         name: 'test-package',
         version: '1.0.0',
@@ -185,7 +185,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle package.json with empty dependencies sections', () => {
+    it('should handle package.json with empty dependencies sections', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {},
@@ -202,7 +202,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle package.json with null dependencies', () => {
+    it('should handle package.json with null dependencies', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: null,
@@ -219,7 +219,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should ignore peerDependencies', () => {
+    it('should ignore peerDependencies', () => {
       const packageJson = {
         name: 'test-package',
         peerDependencies: {
@@ -238,7 +238,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle file read errors and log warning', () => {
+    it('should handle file read errors and log warning', () => {
       existsSync.mockReturnValue(true);
       readFileSync.mockImplementation(() => {
         throw new Error('Permission denied');
@@ -255,7 +255,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle multiple package checks with mixed results', () => {
+    it('should handle multiple package checks with mixed results', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -282,7 +282,7 @@ describe('ensure-changesets-available', () => {
   });
 
   describe('ensureChangesetsAvailable', () => {
-    test('should pass when @changesets/cli is in devDependencies', () => {
+    it('should pass when @changesets/cli is in devDependencies', () => {
       const packageJson = {
         name: 'test-package',
         devDependencies: {
@@ -298,7 +298,7 @@ describe('ensure-changesets-available', () => {
       }).not.toThrow();
     });
 
-    test('should pass when @changesets/cli is in dependencies', () => {
+    it('should pass when @changesets/cli is in dependencies', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -314,7 +314,7 @@ describe('ensure-changesets-available', () => {
       }).not.toThrow();
     });
 
-    test('should throw error when @changesets/cli is not available', () => {
+    it('should throw error when @changesets/cli is not available', () => {
       const packageJson = {
         name: 'test-package',
         dependencies: {
@@ -332,7 +332,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle package.json read errors and log warning', () => {
+    it('should handle package.json read errors and log warning', () => {
       existsSync.mockReturnValue(false);
 
       expect(() => {
@@ -346,7 +346,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should handle malformed package.json', () => {
+    it('should handle malformed package.json', () => {
       existsSync.mockReturnValue(true);
       readFileSync.mockReturnValue('{ invalid json');
 
@@ -361,7 +361,7 @@ describe('ensure-changesets-available', () => {
       );
     });
 
-    test('should work with empty package.json but fail appropriately', () => {
+    it('should work with empty package.json but fail appropriately', () => {
       const packageJson = {};
 
       existsSync.mockReturnValue(true);

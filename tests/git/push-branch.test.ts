@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import process from 'node:process';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pushBranch } from '../../src/git/push-branch';
 
 const mockGit = {

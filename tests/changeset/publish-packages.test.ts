@@ -1,8 +1,8 @@
-import { execSync } from 'child_process';
-import fs from 'fs';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 
 import * as core from '@actions/core';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { publishPackages } from '../../src/changeset/publish-packages';
 
@@ -42,7 +42,7 @@ describe('publishPackages', () => {
     vi.mocked(execSync).mockReturnValue('🦋  info Publishing complete');
   });
 
-  test('publishes with tag if channel is provided', async () => {
+  it('publishes with tag if channel is provided', async () => {
     const branchConfig = { name: 'next', isMatch: true, channel: 'next' };
     const result = await publishPackages(branchConfig, npmToken);
     expect(core.info).toHaveBeenCalledWith('Using custom dist-tag: next');
@@ -59,7 +59,7 @@ describe('publishPackages', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('publishes without tag if channel is not provided', async () => {
+  it('publishes without tag if channel is not provided', async () => {
     const branchConfig = { name: 'main', isMatch: true };
     const result = await publishPackages(branchConfig, npmToken);
     expect(core.info).toHaveBeenCalledWith('Auth mode: token');
@@ -75,7 +75,7 @@ describe('publishPackages', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('detects published packages from changeset output', async () => {
+  it('detects published packages from changeset output', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
     // Mock execSync to return changeset publish output showing published packages with "New tag:" format
@@ -109,7 +109,7 @@ describe('publishPackages', () => {
     expect(result[0].packageJson.name).toBe('@pixpilot/pkg-a');
     expect(result[0].packageJson.version).toBe('1.0.1');
   });
-  test('excludes private packages from released packages', async () => {
+  it('excludes private packages from released packages', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
     // Mock execSync to show a tag was created for a private package (shouldn't happen in reality)
@@ -134,7 +134,7 @@ describe('publishPackages', () => {
     const result = await publishPackages(branchConfig, npmToken);
     expect(result).toHaveLength(0); // Private packages should be excluded
   });
-  test('publishes without tag in prerelease mode even if channel is provided', async () => {
+  it('publishes without tag in prerelease mode even if channel is provided', async () => {
     const branchConfig = {
       name: 'next',
       isMatch: true,
@@ -164,7 +164,7 @@ describe('publishPackages', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('publishes in OIDC trusted publisher mode when npm token is missing', async () => {
+  it('publishes in OIDC trusted publisher mode when npm token is missing', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
     await publishPackages(branchConfig);
@@ -185,7 +185,7 @@ describe('publishPackages', () => {
     expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBeUndefined();
   });
 
-  test('sets provenance env when explicit provenance flag is true', async () => {
+  it('sets provenance env when explicit provenance flag is true', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
     await publishPackages(branchConfig, npmToken, true);

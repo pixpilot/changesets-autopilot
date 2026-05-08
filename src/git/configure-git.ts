@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-
-import simpleGit from 'simple-git';
 import type { SimpleGit } from 'simple-git';
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import simpleGit from 'simple-git';
 
 /**
  * Configures the Git user with the provided bot name.
