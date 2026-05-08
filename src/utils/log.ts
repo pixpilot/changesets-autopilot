@@ -1,47 +1,55 @@
 import { env } from 'node:process';
 import * as actionsCore from '@actions/core';
 
-import { prefixCoreMessage, ROBOT_MESSAGE_PREFIX } from './install-core-message-prefix';
-
-type PrefixableMethod =
-  | 'debug'
-  | 'info'
-  | 'notice'
-  | 'warning'
-  | 'error'
-  | 'setFailed'
-  | 'startGroup';
-
-const prefixableMethods = new Set<PrefixableMethod>([
-  'debug',
-  'info',
-  'notice',
-  'warning',
-  'error',
-  'setFailed',
-  'startGroup',
-]);
+export const ROBOT_MESSAGE_PREFIX = '🤖 ';
 
 const isVitestRuntime = env.VITEST === 'true';
+const coreModule = actionsCore as unknown as Record<string, unknown>;
 
-export const log = new Proxy(actionsCore, {
-  get(target, prop, receiver) {
-    const value = Reflect.get(target, prop, receiver) as unknown;
+export function prefixCoreMessage(
+  message: unknown,
+  prefix = ROBOT_MESSAGE_PREFIX,
+): string {
+  const normalized = message instanceof Error ? message.message : String(message);
 
-    if (typeof value !== 'function') {
-      return value;
-    }
+  return normalized
+    .split('\n')
+    .map((line) => {
+      if (line.length === 0 || line.startsWith(prefix)) {
+        return line;
+      }
 
-    if (typeof prop === 'string' && prefixableMethods.has(prop as PrefixableMethod)) {
-      return (message: unknown, ...args: unknown[]) => {
-        const formattedMessage = isVitestRuntime
-          ? message
-          : prefixCoreMessage(message, ROBOT_MESSAGE_PREFIX);
+      return `${prefix}${line}`;
+    })
+    .join('\n');
+}
 
-        (value as (...callArgs: unknown[]) => unknown)(formattedMessage, ...args);
-      };
-    }
+function formatMessage(message: unknown): unknown {
+  return isVitestRuntime ? message : prefixCoreMessage(message, ROBOT_MESSAGE_PREFIX);
+}
 
-    return (value as (...callArgs: unknown[]) => unknown).bind(target);
-  },
-});
+function invokeCore(methodName: string, ...args: unknown[]): unknown {
+  const method = coreModule[methodName];
+
+  if (typeof method === 'function') {
+    return (method as (...callArgs: unknown[]) => unknown)(...args);
+  }
+
+  return undefined;
+}
+
+function withPrefix(methodName: string) {
+  return (message: unknown, ...args: unknown[]) =>
+    invokeCore(methodName, formatMessage(message), ...args);
+}
+
+export const log: typeof actionsCore = {
+  ...actionsCore,
+  debug: withPrefix('debug'),
+  info: withPrefix('info'),
+  notice: withPrefix('notice'),
+  warning: withPrefix('warning'),
+  error: withPrefix('error'),
+  setFailed: withPrefix('setFailed'),
+  startGroup: withPrefix('startGroup'),
+};
