@@ -2,7 +2,7 @@ name: Auto Release Action
 
 on:
   workflow_run:
-    workflows: [ "Continuous Integration" ]
+    workflows: ['Continuous Integration']
     types:
       - completed
   workflow_dispatch:
