@@ -62,11 +62,20 @@ jobs:
         name: Commit Licenses
         id: commit-licenses
         run: |
+          set -euo pipefail
+
           git config --local user.email "licensed-ci@users.noreply.github.com"
           git config --local user.name "licensed-ci"
-          git add .
+
+          git add .licenses/
+
+          if git diff --cached --quiet; then
+            echo "No license cache changes to commit."
+            exit 0
+          fi
+
           git commit -m "Auto-update license files"
-          git push
+          git push origin HEAD:main
 
       # Last, check the status of the cached licenses.
       - name: Check Licenses
