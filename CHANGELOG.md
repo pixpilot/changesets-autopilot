@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.3.1...v1.4.0) (2026-05-08)
+
+
+### Bug Fixes
+
+* **oidc:** require node 24+ for trusted publishing ([2989a74](https://github.com/pixpilot/changesets-autopilot/commit/2989a74a34a6a97834023b3dcabbf17dff960228))
+
+
+### Features
+
+* **ci:** add setup and build steps to CI workflow ([33a3c1f](https://github.com/pixpilot/changesets-autopilot/commit/33a3c1f51de6273330e04de68497434a6d1fe9c4))
+* **core:** add message prefixing and OIDC node version validation ([dcbe185](https://github.com/pixpilot/changesets-autopilot/commit/dcbe1856d6f311ee7cd315161167314cd7b203fb))
+* **core:** enhance message prefixing for read-only methods ([0a23364](https://github.com/pixpilot/changesets-autopilot/commit/0a23364bfa3a7e3bb53f6bd2abfd75cab435ddd7))
+
 ## [1.3.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.3.0...v1.3.1) (2026-05-08)
 
 
