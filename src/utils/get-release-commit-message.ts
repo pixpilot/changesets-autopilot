@@ -1,7 +1,7 @@
 import type { ReleasePackage } from './get-release-plan';
 
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../constants/release-commit-message';
-import { log } from './core';
+import { log } from './log';
 
 /**
  * Generates a release commit message based on the packages to release.

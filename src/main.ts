@@ -12,8 +12,8 @@ import { getActionInputs, getBranchConfig, validateBranchConfiguration } from '.
 import { commitAndPush, configureGit } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
-import { log } from './utils/core';
 import { getPackagesToRelease } from './utils/get-release-plan';
+import { log } from './utils/log';
 import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
 
 /**

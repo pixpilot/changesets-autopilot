@@ -8,7 +8,7 @@ import process from 'node:process';
 
 import { getPackages } from '@manypkg/get-packages';
 import { changesetDir } from '../changeset/changesets';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
 
 function getPublishErrorDetails(error: unknown): string {

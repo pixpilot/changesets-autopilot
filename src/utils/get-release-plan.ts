@@ -1,6 +1,6 @@
 import process from 'node:process';
 import getReleasePlan from '@changesets/get-release-plan';
-import { log } from './core';
+import { log } from './log';
 
 export interface ReleasePackage {
   name: string;

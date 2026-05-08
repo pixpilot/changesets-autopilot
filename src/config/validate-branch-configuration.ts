@@ -1,6 +1,6 @@
 import type { ResolvedBranchConfig } from './get-branch-config';
 
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 /**
  * Validates branch configuration and logs appropriate messages

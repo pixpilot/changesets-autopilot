@@ -1,6 +1,6 @@
 import type { SimpleGit } from 'simple-git';
 import process from 'node:process';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 export async function pushBranch(git: SimpleGit, githubToken: string): Promise<void> {
   const repo = process.env.GITHUB_REPOSITORY;

@@ -1,6 +1,6 @@
 import { getChangesSinceLastCommit } from '../git/get-changes';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 import { createChangesetFile } from './create-changeset-file';
 

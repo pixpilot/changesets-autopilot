@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import process from 'node:process';
 
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 /**
  * Runs the 'changeset version' command to apply version updates based on changeset files.

@@ -1,6 +1,6 @@
 import type simpleGit from 'simple-git';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 /**
  * Finds the last published commit by looking for release tags or published commits

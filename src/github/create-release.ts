@@ -2,7 +2,7 @@ import type { Octokit } from '@octokit/rest';
 import fs from 'node:fs/promises';
 
 import path from 'node:path';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 export interface Package {
   dir: string;

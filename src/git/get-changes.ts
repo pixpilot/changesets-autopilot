@@ -5,8 +5,8 @@ import process from 'node:process';
 import simpleGit from 'simple-git';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
-import { log } from '../utils/core';
 import { getPackages } from '../utils/get-packages';
+import { log } from '../utils/log';
 
 import { findLastPublishedCommit } from './find-last-published-commit';
 

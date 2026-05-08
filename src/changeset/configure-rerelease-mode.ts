@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 import { changesetDir } from './changesets';
 

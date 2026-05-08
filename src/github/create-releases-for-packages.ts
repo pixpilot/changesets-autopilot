@@ -2,7 +2,7 @@ import type { Package } from './create-release';
 import { Octokit } from '@octokit/rest';
 
 import { getPackages } from '../utils';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 import { createRelease } from './create-release';
 
 export interface CreateReleasesOptions {

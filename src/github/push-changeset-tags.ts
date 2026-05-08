@@ -1,5 +1,5 @@
 import type { SimpleGit } from 'simple-git';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 /**
  * Pushes tags created by changeset publish to GitHub.

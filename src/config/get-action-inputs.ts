@@ -1,6 +1,6 @@
 import type { ActionInputs, BranchConfig } from '../../types';
 import { parse } from 'yaml';
-import { log } from '../utils/core';
+import { log } from '../utils/log';
 
 export function getActionInputs(): ActionInputs {
   const branchesInput =
