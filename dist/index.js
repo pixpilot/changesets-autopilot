@@ -30474,6 +30474,7 @@ var actionsCore = /*#__PURE__*/Object.freeze({
 });
 
 const ROBOT_MESSAGE_PREFIX = '🤖 ';
+const CHANGESET_MESSAGE_PREFIX = '🦋';
 const isVitestRuntime = env.VITEST === 'true';
 const coreModule = actionsCore;
 function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
@@ -30481,7 +30482,9 @@ function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
     return normalized
         .split('\n')
         .map((line) => {
-        if (line.length === 0 || line.startsWith(prefix)) {
+        if (line.length === 0 ||
+            line.startsWith(prefix) ||
+            line.startsWith(CHANGESET_MESSAGE_PREFIX)) {
             return line;
         }
         return `${prefix}${line}`;
@@ -47048,6 +47051,19 @@ async function getPackages(cwd = process$1.cwd()) {
     };
 }
 
+async function resolveSafeFallbackBase(git) {
+    if (typeof git.revparse !== 'function') {
+        return 'HEAD';
+    }
+    try {
+        await git.revparse(['--verify', 'HEAD~1']);
+        return 'HEAD~1';
+    }
+    catch {
+        const head = await git.revparse(['--verify', 'HEAD']);
+        return head.trim() || 'HEAD';
+    }
+}
 /**
  * Finds the last published commit by looking for release tags or published commits
  */
@@ -47086,13 +47102,15 @@ async function findLastPublishedCommit(git) {
                 }
             }
         }
-        // Fallback to HEAD~1 if no clear base found
-        log$1.info('No clear base commit found, falling back to HEAD~1');
-        return 'HEAD~1';
+        // Fallback to a valid base commit reference in shallow/single-commit histories.
+        const fallbackBase = await resolveSafeFallbackBase(git);
+        log$1.info(`No clear base commit found, falling back to ${fallbackBase}`);
+        return fallbackBase;
     }
     catch (error) {
-        log$1.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
-        return 'HEAD~1';
+        const fallbackBase = await resolveSafeFallbackBase(git);
+        log$1.warning(`Error finding last publishable commit: ${String(error)}, falling back to ${fallbackBase}`);
+        return fallbackBase;
     }
 }
 
