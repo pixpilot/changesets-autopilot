@@ -44908,7 +44908,6 @@ async function createChangesetsForRecentCommits() {
     }
 }
 
-// Parses the output from changeset publish to extract published package names
 function parsePublishedPackageNames(publishOutput) {
     const publishedPackageNames = new Set();
     const lines = publishOutput.split('\n');
