@@ -19,11 +19,6 @@ inputs:
     description: npm registry URL
     required: false
 
-  build:
-    description: Whether to build the project
-    required: false
-    default: 'false'
-
 runs:
   using: composite
   steps:
@@ -55,9 +50,4 @@ runs:
 
     - name: Install dependencies
       run: pnpm install
-      shell: bash
-
-    - name: Build project
-      if: ${{ inputs.build == 'true' }}
-      run: pnpm run build
       shell: bash
