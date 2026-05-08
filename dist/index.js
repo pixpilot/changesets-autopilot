@@ -87227,8 +87227,8 @@ async function pushChangesetTags(git, githubToken, repo) {
     info('Tags pushed successfully');
 }
 
-const CORE_PREFIX_PATCHED = Symbol.for('changesetsAutopilot.corePrefixPatched');
 const ROBOT_MESSAGE_PREFIX = '🤖 ';
+const patchedModules = new WeakSet();
 function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
     const normalized = message instanceof Error ? message.message : String(message);
     return normalized
@@ -87242,10 +87242,23 @@ function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
         .join('\n');
 }
 function installCoreMessagePrefix(coreModule, prefix = ROBOT_MESSAGE_PREFIX) {
-    const mutableCore = coreModule;
-    if (mutableCore[CORE_PREFIX_PATCHED]) {
-        return;
+    const patchTargets = getPatchTargets(coreModule);
+    for (const patchTarget of patchTargets) {
+        if (!patchedModules.has(patchTarget)) {
+            installPrefixForTarget(patchTarget, prefix);
+            patchedModules.add(patchTarget);
+        }
     }
+}
+function getPatchTargets(coreModule) {
+    const uniqueTargets = new Set();
+    uniqueTargets.add(coreModule);
+    if (typeof coreModule.default === 'object' && coreModule.default !== null) {
+        uniqueTargets.add(coreModule.default);
+    }
+    return [...uniqueTargets];
+}
+function installPrefixForTarget(targetCore, prefix) {
     const methods = [
         'debug',
         'info',
@@ -87256,12 +87269,35 @@ function installCoreMessagePrefix(coreModule, prefix = ROBOT_MESSAGE_PREFIX) {
         'startGroup',
     ];
     for (const methodName of methods) {
-        const originalMethod = mutableCore[methodName];
+        const originalMethod = targetCore[methodName];
         if (typeof originalMethod === 'function') {
-            mutableCore[methodName] = (message, ...args) => originalMethod(prefixCoreMessage(message, prefix), ...args);
+            const wrappedMethod = (message, ...args) => originalMethod(prefixCoreMessage(message, prefix), ...args);
+            setMethodSafely(targetCore, methodName, wrappedMethod);
         }
     }
-    mutableCore[CORE_PREFIX_PATCHED] = true;
+}
+function setMethodSafely(targetCore, methodName, wrappedMethod) {
+    const writableTarget = targetCore;
+    try {
+        writableTarget[methodName] = wrappedMethod;
+    }
+    catch {
+        const descriptor = Object.getOwnPropertyDescriptor(writableTarget, methodName);
+        if (!descriptor || !descriptor.configurable) {
+            return;
+        }
+        try {
+            Object.defineProperty(writableTarget, methodName, {
+                configurable: true,
+                enumerable: descriptor.enumerable ?? true,
+                writable: true,
+                value: wrappedMethod,
+            });
+        }
+        catch {
+            // Ignore non-patchable descriptors to avoid crashing the action.
+        }
+    }
 }
 
 const MIN_OIDC_NODE_VERSION = '24.0.0';

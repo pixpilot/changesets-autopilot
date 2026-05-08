@@ -49,4 +49,58 @@ describe('installCoreMessagePrefix', () => {
     expect(info).toHaveBeenCalledTimes(1);
     expect(info).toHaveBeenCalledWith('🤖 hello');
   });
+
+  it('does not throw when methods are read-only', () => {
+    const debug = vi.fn();
+
+    const fakeCore = {};
+    Object.defineProperty(fakeCore, 'debug', {
+      value: debug,
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    });
+
+    expect(() =>
+      installCoreMessagePrefix(
+        fakeCore as Parameters<typeof installCoreMessagePrefix>[0],
+      ),
+    ).not.toThrow();
+
+    (fakeCore as { debug: (message: string) => void }).debug('hello');
+    expect(debug).toHaveBeenCalledWith('hello');
+  });
+
+  it('patches mutable default export when namespace methods are read-only', () => {
+    const info = vi.fn();
+
+    const mutableCore = {
+      info,
+    };
+
+    const namespaceCore = {} as {
+      default: typeof mutableCore;
+      info: (message: string) => void;
+    };
+
+    Object.defineProperty(namespaceCore, 'default', {
+      value: mutableCore,
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    });
+
+    Object.defineProperty(namespaceCore, 'info', {
+      get: () => mutableCore.info,
+      configurable: false,
+      enumerable: true,
+    });
+
+    installCoreMessagePrefix(
+      namespaceCore as unknown as Parameters<typeof installCoreMessagePrefix>[0],
+    );
+
+    namespaceCore.info('hello');
+    expect(info).toHaveBeenCalledWith('🤖 hello');
+  });
 });

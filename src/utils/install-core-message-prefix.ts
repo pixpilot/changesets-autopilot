@@ -1,7 +1,5 @@
 import type * as coreType from '@actions/core';
 
-const CORE_PREFIX_PATCHED = Symbol.for('changesetsAutopilot.corePrefixPatched');
-
 export const ROBOT_MESSAGE_PREFIX = '🤖 ';
 
 type CoreMethodName =
@@ -14,10 +12,12 @@ type CoreMethodName =
   | 'startGroup';
 
 type PrefixableCore = typeof coreType & {
-  [CORE_PREFIX_PATCHED]?: boolean;
+  default?: unknown;
 };
 
 type MutableCore = PrefixableCore & Record<string, unknown>;
+
+const patchedModules = new WeakSet<object>();
 
 export function prefixCoreMessage(
   message: unknown,
@@ -41,12 +41,29 @@ export function installCoreMessagePrefix(
   coreModule: PrefixableCore,
   prefix = ROBOT_MESSAGE_PREFIX,
 ): void {
-  const mutableCore: MutableCore = coreModule;
+  const patchTargets = getPatchTargets(coreModule);
 
-  if (mutableCore[CORE_PREFIX_PATCHED]) {
-    return;
+  for (const patchTarget of patchTargets) {
+    if (!patchedModules.has(patchTarget)) {
+      installPrefixForTarget(patchTarget as MutableCore, prefix);
+      patchedModules.add(patchTarget);
+    }
+  }
+}
+
+function getPatchTargets(coreModule: PrefixableCore): object[] {
+  const uniqueTargets = new Set<object>();
+
+  uniqueTargets.add(coreModule);
+
+  if (typeof coreModule.default === 'object' && coreModule.default !== null) {
+    uniqueTargets.add(coreModule.default);
   }
 
+  return [...uniqueTargets];
+}
+
+function installPrefixForTarget(targetCore: MutableCore, prefix: string): void {
   const methods: CoreMethodName[] = [
     'debug',
     'info',
@@ -58,15 +75,44 @@ export function installCoreMessagePrefix(
   ];
 
   for (const methodName of methods) {
-    const originalMethod = mutableCore[methodName];
+    const originalMethod = targetCore[methodName];
     if (typeof originalMethod === 'function') {
-      mutableCore[methodName] = (message: unknown, ...args: unknown[]) =>
+      const wrappedMethod = (message: unknown, ...args: unknown[]) =>
         (originalMethod as (...callArgs: unknown[]) => unknown)(
           prefixCoreMessage(message, prefix),
           ...args,
         );
+
+      setMethodSafely(targetCore, methodName, wrappedMethod);
     }
   }
+}
 
-  mutableCore[CORE_PREFIX_PATCHED] = true;
+function setMethodSafely(
+  targetCore: MutableCore,
+  methodName: CoreMethodName,
+  wrappedMethod: (...args: unknown[]) => unknown,
+): void {
+  const writableTarget = targetCore as Record<string, unknown>;
+
+  try {
+    writableTarget[methodName] = wrappedMethod;
+  } catch {
+    const descriptor = Object.getOwnPropertyDescriptor(writableTarget, methodName);
+
+    if (!descriptor || !descriptor.configurable) {
+      return;
+    }
+
+    try {
+      Object.defineProperty(writableTarget, methodName, {
+        configurable: true,
+        enumerable: descriptor.enumerable ?? true,
+        writable: true,
+        value: wrappedMethod,
+      });
+    } catch {
+      // Ignore non-patchable descriptors to avoid crashing the action.
+    }
+  }
 }
