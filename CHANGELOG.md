@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.2...v1.4.3) (2026-05-08)
+
+
+### Bug Fixes
+
+* **log:** integrate message prefixing directly into log utility ([5798878](https://github.com/pixpilot/changesets-autopilot/commit/579887835a6cf2af9991e2d8922006cd69f8fdb7))
+
 ## [1.4.2](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.1...v1.4.2) (2026-05-08)
 
 
