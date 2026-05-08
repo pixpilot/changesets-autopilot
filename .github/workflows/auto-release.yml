@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: action-release-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -30,10 +30,45 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_run' &&
-            github.event.workflow_run.head_branch || 'main' }}
+          ref: main
+
+      - name: Resolve release target SHA
+        id: resolve-target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main --force
+          MAIN_SHA=$(git rev-parse origin/main)
+          echo "main_sha=$MAIN_SHA"
+
+          if [[ "$EVENT_NAME" != "workflow_run" ]]; then
+            echo "target_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$MAIN_SHA" == "$WORKFLOW_HEAD_SHA" ]]; then
+            echo "target_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          MAIN_SUBJECT=$(git log -1 --format=%s "$MAIN_SHA")
+          MAIN_PARENT=$(git rev-parse "${MAIN_SHA}^" 2>/dev/null || true)
+
+          if [[ "$MAIN_PARENT" == "$WORKFLOW_HEAD_SHA" ]] && [[ "$MAIN_SUBJECT" =~ ^chore\(ci\):\ update\ dist\ \[(skip\ ci|ci\ skip)\]$ ]]; then
+            echo "Detected CI dist commit on top of workflow head. Releasing from latest main commit."
+            echo "target_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Branch moved unexpectedly after CI run. Skipping release to prevent race conditions."
+          echo "target_sha=" >> "$GITHUB_OUTPUT"
 
       - name: Compute next release tag
+        if: steps.resolve-target.outputs.target_sha != ''
         id: next-version
         shell: bash
         run: |
@@ -95,10 +130,11 @@ jobs:
           echo "should_release=true" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
-        if: steps.next-version.outputs.should_release == 'true'
+        if: steps.resolve-target.outputs.target_sha != '' && steps.next-version.outputs.should_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           NEXT_TAG: ${{ steps.next-version.outputs.next_tag }}
+          TARGET_SHA: ${{ steps.resolve-target.outputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -109,12 +145,16 @@ jobs:
           fi
 
           gh release create "$NEXT_TAG" \
-            --target "$GITHUB_SHA" \
+            --target "$TARGET_SHA" \
             --title "$NEXT_TAG" \
             --generate-notes
 
       - name: Release summary
-        if: steps.next-version.outputs.should_release == 'true'
+        if: steps.resolve-target.outputs.target_sha != '' && steps.next-version.outputs.should_release == 'true'
         run: |
           echo "Created release: ${{ steps.next-version.outputs.next_tag }}"
           echo "Bump type: ${{ steps.next-version.outputs.bump }}"
+
+      - name: Release skipped due to race prevention
+        if: steps.resolve-target.outputs.target_sha == ''
+        run: echo "Skipped release because branch moved unexpectedly after CI completion."

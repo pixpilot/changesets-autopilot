@@ -11,8 +11,10 @@ interface WorkflowDefinition {
 const workflowsDirectory = path.resolve(process.cwd(), '.github', 'workflows');
 const workflowFilePattern = /\.ya?ml$/;
 const skipMarkerPattern = /\[(skip ci|ci skip)\]/i;
-const skipGuardPattern =
-  /if:\s*\$\{\{[\s\S]*?contains\([\s\S]*?\[(skip ci|ci skip)\][\s\S]*?\}\}/i;
+const skipGuardPatternSkipCi =
+  /contains\(\s*(github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[skip ci\]['"]\s*\)/i;
+const skipGuardPatternCiSkip =
+  /contains\(\s*(github\.event\.head_commit\.message|toJson\(github\.event\))\s*,\s*['"]\[ci skip\]['"]\s*\)/i;
 
 function hasTrigger(eventConfig: unknown, trigger: 'push' | 'pull_request'): boolean {
   if (typeof eventConfig === 'string') {
@@ -52,7 +54,9 @@ describe('workflow skip-ci guards', () => {
       }
 
       const hasSkipMarker = skipMarkerPattern.test(workflowContent);
-      const hasSkipGuard = skipGuardPattern.test(workflowContent);
+      const hasSkipGuard =
+        skipGuardPatternSkipCi.test(workflowContent) &&
+        skipGuardPatternCiSkip.test(workflowContent);
 
       if (!hasSkipMarker || !hasSkipGuard) {
         missingGuard.push(workflowFile);

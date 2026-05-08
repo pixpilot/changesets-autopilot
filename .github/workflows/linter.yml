@@ -21,8 +21,14 @@ permissions:
 jobs:
   lint:
     name: Lint Codebase
-    if: ${{ !contains(toJson(github.event), '[skip ci]') &&
-      !contains(toJson(github.event), '[ci skip]') }}
+    if: >-
+      ${{
+        github.event_name != 'push' ||
+        (
+          !contains(github.event.head_commit.message, '[skip ci]') &&
+          !contains(github.event.head_commit.message, '[ci skip]')
+        )
+      }}
     runs-on: ubuntu-latest
 
     steps:

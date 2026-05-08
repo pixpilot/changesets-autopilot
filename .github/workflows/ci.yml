@@ -18,8 +18,14 @@ permissions:
 jobs:
   test-javascript:
     name: JavaScript Tests
-    if: ${{ !contains(toJson(github.event), '[skip ci]') &&
-      !contains(toJson(github.event), '[ci skip]') }}
+    if: >-
+      ${{
+        github.event_name != 'push' ||
+        (
+          !contains(github.event.head_commit.message, '[skip ci]') &&
+          !contains(github.event.head_commit.message, '[ci skip]')
+        )
+      }}
     runs-on: ubuntu-latest
 
     steps:
@@ -52,8 +58,14 @@ jobs:
 
   test-action:
     name: GitHub Actions Test
-    if: ${{ !contains(toJson(github.event), '[skip ci]') &&
-      !contains(toJson(github.event), '[ci skip]') }}
+    if: >-
+      ${{
+        github.event_name != 'push' ||
+        (
+          !contains(github.event.head_commit.message, '[skip ci]') &&
+          !contains(github.event.head_commit.message, '[ci skip]')
+        )
+      }}
     runs-on: ubuntu-latest
 
     steps:
@@ -74,9 +86,13 @@ jobs:
 
   build-and-commit-dist:
     name: Build and Commit dist
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      !contains(toJson(github.event), '[skip ci]') &&
-      !contains(toJson(github.event), '[ci skip]') }}
+    if: >-
+      ${{
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/main' &&
+        !contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]')
+      }}
     needs:
       - test-javascript
       - test-action
