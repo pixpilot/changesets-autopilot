@@ -87,5 +87,3 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('HEAD~1');
   });
 });
-
-

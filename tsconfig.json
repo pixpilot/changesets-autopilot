@@ -15,7 +15,6 @@
     "__tests__/**/*.ts",
     "__fixtures__/**/*.ts",
     "types/**/*.ts",
-    "tests/**/*.ts",
     "test/**/*.ts",
     "__mocks__/**/*.ts",
     "vitest.config.ts"

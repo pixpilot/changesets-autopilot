@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: [],
     mockReset: true,
-    include: ['tests/**/*.test.ts'],
+    include: ['test/**/*.test.ts'],
     coverage: {
       enabled: true,
       reportOnFailure: true,
