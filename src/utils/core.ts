@@ -1,3 +1,4 @@
+import { env } from 'node:process';
 import * as actionsCore from '@actions/core';
 
 import { prefixCoreMessage, ROBOT_MESSAGE_PREFIX } from './install-core-message-prefix';
@@ -21,10 +22,7 @@ const prefixableMethods = new Set<PrefixableMethod>([
   'startGroup',
 ]);
 
-const runtimeProcess = Reflect.get(globalThis, 'process') as
-  | { env?: Record<string, string | undefined> }
-  | undefined;
-const isVitestRuntime = runtimeProcess?.env?.VITEST === 'true';
+const isVitestRuntime = env.VITEST === 'true';
 
 export const log = new Proxy(actionsCore, {
   get(target, prop, receiver) {

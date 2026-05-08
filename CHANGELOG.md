@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.1...v1.4.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **validate-oidc-node-runtime:** improve error message for Node.js version compatibility ([6916d9e](https://github.com/pixpilot/changesets-autopilot/commit/6916d9e867e1e0ca18e07c6f7c9a4fae5a7a1832))
+
 ## [1.4.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.0...v1.4.1) (2026-05-08)
 
 
