@@ -7,6 +7,11 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { commitAndPush } from '../../src/git/commit-and-push';
 import { DEFAULT_RELEASE_COMMIT_MESSAGE } from '../../src/constants/release-commit-message';
 
+vi.mock('@actions/core', () => ({
+  info: vi.fn(),
+  warning: vi.fn(),
+}));
+
 // Mock child_process
 vi.mock('child_process', () => ({
   execSync: vi.fn(),
@@ -42,8 +47,8 @@ describe('gitVersionAndPush', () => {
     mockGit = createMockGit();
     mockExecSync = vi.mocked(execSync);
 
-    vi.spyOn(core, 'info').mockImplementation(() => {});
-    vi.spyOn(core, 'warning').mockImplementation(() => {});
+    vi.mocked(core.info).mockImplementation(() => {});
+    vi.mocked(core.warning).mockImplementation(() => {});
 
     process.env.GITHUB_REPOSITORY = GITHUB_REPOSITORY;
     process.env.GITHUB_REF_NAME = GITHUB_REF_NAME;

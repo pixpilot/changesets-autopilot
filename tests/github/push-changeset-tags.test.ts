@@ -3,6 +3,10 @@ import * as core from '@actions/core';
 import type { SimpleGit } from 'simple-git';
 import { pushChangesetTags } from '../../src/github/push-changeset-tags';
 
+vi.mock('@actions/core', () => ({
+  info: vi.fn(),
+}));
+
 describe('pushChangesetTags', () => {
   const githubToken = 'test-token';
   const repo = 'owner/repo';
@@ -12,7 +16,7 @@ describe('pushChangesetTags', () => {
     git = {
       pushTags: vi.fn().mockResolvedValue(undefined),
     } as unknown as SimpleGit;
-    vi.spyOn(core, 'info').mockImplementation(() => {});
+    vi.mocked(core.info).mockImplementation(() => {});
   });
 
   it('pushes tags to GitHub and logs info', async () => {
