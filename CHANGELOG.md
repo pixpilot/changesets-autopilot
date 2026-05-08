@@ -1,3 +1,20 @@
+# [1.3.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.2.1...v1.3.0) (2026-05-08)
+
+
+### Bug Fixes
+
+* **docs:** update README for clarity on workflow completion ([277939e](https://github.com/pixpilot/changesets-autopilot/commit/277939e5528b7b70f0e219612fa15c3423ff99e3))
+* **package:** add packageManager field to specify pnpm version ([5773b86](https://github.com/pixpilot/changesets-autopilot/commit/5773b8634b5dfc18e969925f048f9ef4fc750475))
+* **parsePublishedPackages:** remove redundant comment ([cc8cf09](https://github.com/pixpilot/changesets-autopilot/commit/cc8cf09fa026cb21c872fc945aa0e3b0b301a164))
+* **release:** harden release commit parsing ([a80a930](https://github.com/pixpilot/changesets-autopilot/commit/a80a9309f799ee907061d576fdec49fe4534c3b7))
+* remove lock npm file ([27afb12](https://github.com/pixpilot/changesets-autopilot/commit/27afb12abd0ef94128dcb4ed68d7b203ee3d857c))
+* Update README.md ([#25](https://github.com/pixpilot/changesets-autopilot/issues/25)) ([ba501fa](https://github.com/pixpilot/changesets-autopilot/commit/ba501fa3fbf0b8149146be4a0bb9b74631a1f8d9))
+
+
+### Features
+
+* **tests:** enhance test coverage and improve mocking for GitHub actions ([56702bf](https://github.com/pixpilot/changesets-autopilot/commit/56702bff0cb62bb795da808ee584acb00c6d1887))
+
 ## [1.2.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.2.0...v1.2.1) (2026-05-08)
 
 
