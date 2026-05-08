@@ -2,6 +2,7 @@ import { env } from 'node:process';
 import * as actionsCore from '@actions/core';
 
 export const ROBOT_MESSAGE_PREFIX = '🤖 ';
+export const CHANGESET_MESSAGE_PREFIX = '🦋';
 
 const isVitestRuntime = env.VITEST === 'true';
 const coreModule = actionsCore as unknown as Record<string, unknown>;
@@ -15,7 +16,11 @@ export function prefixCoreMessage(
   return normalized
     .split('\n')
     .map((line) => {
-      if (line.length === 0 || line.startsWith(prefix)) {
+      if (
+        line.length === 0 ||
+        line.startsWith(prefix) ||
+        line.startsWith(CHANGESET_MESSAGE_PREFIX)
+      ) {
         return line;
       }
 

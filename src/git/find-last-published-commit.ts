@@ -2,6 +2,22 @@ import type simpleGit from 'simple-git';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
 import { log } from '../utils/log';
 
+async function resolveSafeFallbackBase(
+  git: ReturnType<typeof simpleGit>,
+): Promise<string> {
+  if (typeof git.revparse !== 'function') {
+    return 'HEAD';
+  }
+
+  try {
+    await git.revparse(['--verify', 'HEAD~1']);
+    return 'HEAD~1';
+  } catch {
+    const head = await git.revparse(['--verify', 'HEAD']);
+    return head.trim() || 'HEAD';
+  }
+}
+
 /**
  * Finds the last published commit by looking for release tags or published commits
  */
@@ -49,13 +65,15 @@ export async function findLastPublishedCommit(
       }
     }
 
-    // Fallback to HEAD~1 if no clear base found
-    log.info('No clear base commit found, falling back to HEAD~1');
-    return 'HEAD~1';
+    // Fallback to a valid base commit reference in shallow/single-commit histories.
+    const fallbackBase = await resolveSafeFallbackBase(git);
+    log.info(`No clear base commit found, falling back to ${fallbackBase}`);
+    return fallbackBase;
   } catch (error) {
+    const fallbackBase = await resolveSafeFallbackBase(git);
     log.warning(
-      `Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`,
+      `Error finding last publishable commit: ${String(error)}, falling back to ${fallbackBase}`,
     );
-    return 'HEAD~1';
+    return fallbackBase;
   }
 }

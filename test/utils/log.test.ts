@@ -30,6 +30,12 @@ describe('log utility', () => {
     );
   });
 
+  it('prefixCoreMessage does not prefix changeset butterfly lines', async () => {
+    const { prefixCoreMessage } = await import('../../src/utils/log');
+
+    expect(prefixCoreMessage('🦋 changeset: added')).toBe('🦋 changeset: added');
+  });
+
   it('log.info sends prefixed message in non-vitest runtime', async () => {
     vi.stubEnv('VITEST', 'false');
 

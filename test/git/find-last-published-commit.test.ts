@@ -57,7 +57,7 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('ghi789');
   });
 
-  it('returns HEAD~1 if no tags or publishable commits found', async () => {
+  it('returns HEAD~1 if no tags or publishable commits found and parent exists', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -69,12 +69,34 @@ describe('findLastPublishedCommit', () => {
     const git = {
       tags: vi.fn().mockResolvedValue(tags),
       log: vi.fn().mockResolvedValue(log),
+      revparse: vi.fn().mockResolvedValueOnce('HEAD~1').mockResolvedValueOnce('HEAD~1'),
     } as any;
     const result = await findLastPublishedCommit(git);
     expect(result).toBe('HEAD~1');
   });
 
-  it('returns HEAD~1 on error', async () => {
+  it('returns HEAD hash when HEAD~1 is unavailable', async () => {
+    vi.doMock('@actions/core', () => ({
+      info: vi.fn(),
+      warning: vi.fn(),
+    }));
+    const tags = { all: [], latest: null };
+    const log = {
+      all: [{ hash: 'abc123', message: 'chore: something irrelevant' }],
+    };
+    const git = {
+      tags: vi.fn().mockResolvedValue(tags),
+      log: vi.fn().mockResolvedValue(log),
+      revparse: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('no parent'))
+        .mockResolvedValueOnce('abc123'),
+    } as any;
+    const result = await findLastPublishedCommit(git);
+    expect(result).toBe('abc123');
+  });
+
+  it('returns HEAD hash on error when HEAD~1 is unavailable', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),
       warning: vi.fn(),
@@ -82,8 +104,12 @@ describe('findLastPublishedCommit', () => {
     const git = {
       tags: vi.fn().mockRejectedValue(new Error('fail')), // simulate error
       log: vi.fn(),
+      revparse: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('no parent'))
+        .mockResolvedValueOnce('abc123'),
     } as any;
     const result = await findLastPublishedCommit(git);
-    expect(result).toBe('HEAD~1');
+    expect(result).toBe('abc123');
   });
 });
