@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.2.0...v1.2.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **workflows:** improve clarity of skip-ci guard test description ([0324948](https://github.com/pixpilot/changesets-autopilot/commit/03249489a07583681f5273e87136d134db0e4241))
+
 # [1.2.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.1.3...v1.2.0) (2026-05-08)
 
 
