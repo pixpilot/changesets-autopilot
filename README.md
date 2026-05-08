@@ -288,7 +288,7 @@ Package is not being published because version X.X.X is already published on npm
 
 **Workarounds:**
 
-- **Wait for completion**: Ensure each workflow run completes fully before pushing new commits
+- **Wait for completion**: Ensure each workflow run completes fully before pushing new commits.
 - **Use concurrency controls**: Add concurrency settings to your workflow to prevent parallel runs:
 
 ```yaml
