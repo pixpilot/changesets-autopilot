@@ -28,7 +28,6 @@ vi.mock('../src/git/commit-and-push');
 vi.mock('../src/changeset/publish-packages');
 vi.mock('../src/github/create-releases-for-packages');
 vi.mock('../src/github/push-changeset-tags');
-vi.mock('../src/utils/install-core-message-prefix');
 vi.mock('../src/utils/validate-oidc-node-runtime');
 
 describe('main.js', () => {
@@ -45,7 +44,6 @@ describe('main.js', () => {
   let mockPublishPackages: MockedFunction<any>;
   let mockCreateReleasesForPackages: MockedFunction<any>;
   let mockPushChangesetTags: MockedFunction<any>;
-  let mockInstallCoreMessagePrefix: MockedFunction<any>;
   let mockValidateOidcNodeRuntime: MockedFunction<any>;
 
   beforeEach(async () => {
@@ -72,8 +70,6 @@ describe('main.js', () => {
     const createReleasesForPackagesModule =
       await import('../src/github/create-releases-for-packages');
     const pushChangesetTagsModule = await import('../src/github/push-changeset-tags');
-    const installCoreMessagePrefixModule =
-      await import('../src/utils/install-core-message-prefix');
     const validateOidcNodeRuntimeModule =
       await import('../src/utils/validate-oidc-node-runtime');
 
@@ -100,9 +96,6 @@ describe('main.js', () => {
       createReleasesForPackagesModule.createReleasesForPackages,
     );
     mockPushChangesetTags = vi.mocked(pushChangesetTagsModule.pushChangesetTags);
-    mockInstallCoreMessagePrefix = vi.mocked(
-      installCoreMessagePrefixModule.installCoreMessagePrefix,
-    );
     mockValidateOidcNodeRuntime = vi.mocked(
       validateOidcNodeRuntimeModule.validateOidcNodeRuntime,
     );
@@ -129,7 +122,6 @@ describe('main.js', () => {
     mockPublishPackages.mockResolvedValue([]);
     mockCreateReleasesForPackages.mockResolvedValue(undefined);
     mockPushChangesetTags.mockResolvedValue(undefined);
-    mockInstallCoreMessagePrefix.mockReturnValue(undefined);
     mockValidateOidcNodeRuntime.mockReturnValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
@@ -216,13 +208,6 @@ describe('main.js', () => {
     await run();
 
     expect(mockValidateOidcNodeRuntime).not.toHaveBeenCalled();
-  });
-
-  it('should install core message prefix wrapper at startup', async () => {
-    const { run } = await import('../src/main');
-    await run();
-
-    expect(mockInstallCoreMessagePrefix).toHaveBeenCalled();
   });
 
   it('should pass provenance=true to publishPackages when provenance input is true', async () => {

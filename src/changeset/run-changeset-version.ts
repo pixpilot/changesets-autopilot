@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import process from 'node:process';
 
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 /**
  * Runs the 'changeset version' command to apply version updates based on changeset files.
@@ -12,7 +12,7 @@ import * as core from '@actions/core';
  */
 export function runChangesetVersion(githubToken: string): void {
   try {
-    core.info('Running changeset version command...');
+    log.info('Running changeset version command...');
     const versionOutput = execSync('npx changeset version', {
       encoding: 'utf8',
       cwd: process.cwd(),
@@ -21,9 +21,9 @@ export function runChangesetVersion(githubToken: string): void {
         GITHUB_TOKEN: githubToken,
       },
     });
-    core.info(versionOutput);
-    core.info('Changeset version completed successfully');
+    log.info(versionOutput);
+    log.info('Changeset version completed successfully');
   } catch (error) {
-    core.info(`Error message: ${(error as Error).message}`);
+    log.info(`Error message: ${(error as Error).message}`);
   }
 }

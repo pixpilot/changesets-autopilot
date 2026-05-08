@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 const requiredPackages = ['@changesets/cli'];
 
@@ -27,7 +27,7 @@ function isPackageDeclared(pkgName: string): boolean {
     const devDeps = pkgJson.devDependencies ?? {};
     return pkgName in deps || pkgName in devDeps;
   } catch (err) {
-    core.warning(`Failed to read package.json: ${(err as Error).message}`);
+    log.warning(`Failed to read package.json: ${(err as Error).message}`);
     return false;
   }
 }

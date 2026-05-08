@@ -2,11 +2,10 @@ import type { ChangesMap, Commit } from '../../types/changes';
 
 import path from 'node:path';
 import process from 'node:process';
-import * as core from '@actions/core';
-
 import simpleGit from 'simple-git';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
 import { isVersionOrReleaseCommit } from '../utils/commit-validator';
+import { log } from '../utils/core';
 import { getPackages } from '../utils/get-packages';
 
 import { findLastPublishedCommit } from './find-last-published-commit';
@@ -17,11 +16,11 @@ export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
   const git = simpleGit();
 
   if (!isMonorepo) {
-    core.info('Detected single-package repository');
+    log.info('Detected single-package repository');
   }
 
   if (privatePackages.length > 0) {
-    core.info(
+    log.info(
       `Skipped private packages: ${privatePackages.map((pkg) => pkg.packageJson.name).join(', ')}`,
     );
   }
@@ -29,14 +28,14 @@ export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
   try {
     // Find the base commit to compare against
     const baseCommit = await findLastPublishedCommit(git);
-    core.info(`Found base commit for comparison: ${baseCommit}`);
+    log.info(`Found base commit for comparison: ${baseCommit}`);
 
     // Get changed files since the base commit
     const diff = await git.diff([baseCommit, 'HEAD', '--name-only']);
     const changedFiles = diff.split('\n').filter(Boolean);
 
     // Get all commits since the base commit
-    const log = await git.log({
+    const gitLog = await git.log({
       from: baseCommit,
       to: 'HEAD',
     });
@@ -44,7 +43,7 @@ export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
     // Filter commits to only include those that would create publishable changes
     const publishableCommits: Commit[] = [];
 
-    for (const commit of log.all) {
+    for (const commit of gitLog.all) {
       // Skip merge commits and version commits
       if (!isVersionOrReleaseCommit(commit.message)) {
         // Check if this commit would result in a publishable change
@@ -64,11 +63,11 @@ export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
     }
 
     if (publishableCommits.length === 0) {
-      core.info('No publishable commits found since base commit');
+      log.info('No publishable commits found since base commit');
       return {};
     }
 
-    core.info(
+    log.info(
       `Found ${publishableCommits.length} publishable commits since ${baseCommit}`,
     );
 
@@ -100,7 +99,7 @@ export async function getChangesSinceLastCommit(): Promise<ChangesMap> {
 
     return changes;
   } catch (error) {
-    core.error(`Error getting changes: ${String(error)}`);
+    log.error(`Error getting changes: ${String(error)}`);
     return {};
   }
 }

@@ -6,9 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import * as core from '@actions/core';
 import { getPackages } from '@manypkg/get-packages';
 import { changesetDir } from '../changeset/changesets';
+import { log } from '../utils/core';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
 
 function getPublishErrorDetails(error: unknown): string {
@@ -36,15 +36,15 @@ export async function publishPackages(
       : 'npx changeset publish';
 
   if (isInPrereleaseMode) {
-    core.info('In prerelease mode - changeset will handle dist-tag automatically');
+    log.info('In prerelease mode - changeset will handle dist-tag automatically');
   } else if (hasChannel) {
-    core.info(`Using custom dist-tag: ${branchConfig.channel}`);
+    log.info(`Using custom dist-tag: ${branchConfig.channel}`);
   }
 
-  core.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
-  core.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
+  log.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
+  log.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
 
-  core.info(`Publishing packages...`);
+  log.info(`Publishing packages...`);
 
   const publishEnv: NodeJS.ProcessEnv = { ...process.env };
   if (isTokenMode) {
@@ -53,7 +53,7 @@ export async function publishPackages(
     // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
     publishEnv.NODE_AUTH_TOKEN = '';
     publishEnv.NPM_TOKEN = '';
-    core.info(
+    log.info(
       'OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback',
     );
   }
@@ -82,11 +82,11 @@ export async function publishPackages(
     );
   }
 
-  core.info(publishOutput);
+  log.info(publishOutput);
 
   const publishedPackageNames = parsePublishedPackageNames(publishOutput);
   for (const pkgName of publishedPackageNames) {
-    core.info(`Detected published package from tag: ${pkgName}`);
+    log.info(`Detected published package from tag: ${pkgName}`);
   }
 
   const { packages } = await getPackages(process.cwd());
@@ -102,7 +102,7 @@ export async function publishPackages(
           private: pkg.packageJson.private,
         },
       });
-      core.info(
+      log.info(
         `Package ${pkg.packageJson.name} was published with version ${pkg.packageJson.version}`,
       );
     }

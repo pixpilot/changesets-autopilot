@@ -1,9 +1,8 @@
 import type { Package } from './create-release';
-import * as core from '@actions/core';
-
 import { Octokit } from '@octokit/rest';
 
 import { getPackages } from '../utils';
+import { log } from '../utils/core';
 import { createRelease } from './create-release';
 
 export interface CreateReleasesOptions {
@@ -23,7 +22,7 @@ export async function createReleasesForPackages({
 }: CreateReleasesOptions): Promise<void> {
   const { isMonorepo } = await getPackages();
 
-  core.info('Creating GitHub releases for published packages...');
+  log.info('Creating GitHub releases for published packages...');
   const octokit = new Octokit({ auth: githubToken });
   const [repoOwner, repoNameLocal] = repo.split('/');
   const finalOwner = owner ?? repoOwner;
@@ -41,9 +40,9 @@ export async function createReleasesForPackages({
           owner: finalOwner,
           repo: finalRepoName,
         });
-        core.info(`Created GitHub release for ${tagName}`);
+        log.info(`Created GitHub release for ${tagName}`);
       } catch (error) {
-        core.warning(`Failed to create release for ${tagName}: ${String(error)}`);
+        log.warning(`Failed to create release for ${tagName}: ${String(error)}`);
       }
     }),
   );

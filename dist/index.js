@@ -1,4 +1,9 @@
 import process$1 from 'node:process';
+import * as fs$7 from 'node:fs';
+import fs__default$1, { existsSync, readFileSync } from 'node:fs';
+import * as path__default from 'node:path';
+import path__default__default, { normalize } from 'node:path';
+import { execSync } from 'node:child_process';
 import * as os from 'os';
 import os__default, { EOL } from 'os';
 import * as crypto from 'crypto';
@@ -38,11 +43,6 @@ import require$$5$3, { StringDecoder } from 'string_decoder';
 import * as child from 'child_process';
 import child__default, { spawn } from 'child_process';
 import { setTimeout as setTimeout$1 } from 'timers';
-import * as fs$7 from 'node:fs';
-import fs__default$1, { existsSync, readFileSync } from 'node:fs';
-import * as path__default from 'node:path';
-import path__default__default, { normalize } from 'node:path';
-import { execSync } from 'node:child_process';
 import require$$1$6 from 'tty';
 import require$$0$9 from 'stream';
 import * as fsp__default from 'node:fs/promises';
@@ -51,6 +51,23 @@ import { F_OK } from 'node:constants';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import require$$0$8 from 'constants';
+
+const changesetDir = path__default__default.join(process$1.cwd(), '.changeset');
+/**
+ * Returns true if the file is any changeset markdown file (including auto-generated ones, excluding README.md).
+ */
+function isAnyChangesetFile(file) {
+    return file.endsWith('.md') && file !== 'README.md';
+}
+/**
+ * Checks if there are any changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
+ * @returns {boolean} True if any changeset markdown files exist, false otherwise.
+ */
+function hasChangesetFiles() {
+    if (!fs__default$1.existsSync(changesetDir))
+        return false;
+    return fs__default$1.readdirSync(changesetDir).some(isAnyChangesetFile);
+}
 
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -30424,7 +30441,7 @@ function getIDToken(aud) {
     });
 }
 
-var core$3 = /*#__PURE__*/Object.freeze({
+var actionsCore = /*#__PURE__*/Object.freeze({
     __proto__: null,
     get ExitCode () { return ExitCode; },
     addPath: addPath,
@@ -30456,22 +30473,49 @@ var core$3 = /*#__PURE__*/Object.freeze({
     warning: warning
 });
 
-const changesetDir = path__default__default.join(process$1.cwd(), '.changeset');
-/**
- * Returns true if the file is any changeset markdown file (including auto-generated ones, excluding README.md).
- */
-function isAnyChangesetFile(file) {
-    return file.endsWith('.md') && file !== 'README.md';
+const ROBOT_MESSAGE_PREFIX = '🤖 ';
+function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
+    const normalized = message instanceof Error ? message.message : String(message);
+    return normalized
+        .split('\n')
+        .map((line) => {
+        if (line.length === 0 || line.startsWith(prefix)) {
+            return line;
+        }
+        return `${prefix}${line}`;
+    })
+        .join('\n');
 }
-/**
- * Checks if there are any changeset markdown files (including auto-generated ones, excluding README.md) in the .changeset directory.
- * @returns {boolean} True if any changeset markdown files exist, false otherwise.
- */
-function hasChangesetFiles() {
-    if (!fs__default$1.existsSync(changesetDir))
-        return false;
-    return fs__default$1.readdirSync(changesetDir).some(isAnyChangesetFile);
-}
+
+const prefixableMethods = new Set([
+    'debug',
+    'info',
+    'notice',
+    'warning',
+    'error',
+    'setFailed',
+    'startGroup',
+]);
+const runtimeProcess = Reflect.get(globalThis, 'process');
+const isVitestRuntime = runtimeProcess?.env?.VITEST === 'true';
+const log$1 = new Proxy(actionsCore, {
+    get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value !== 'function') {
+            return value;
+        }
+        if (typeof prop === 'string' &&
+            prefixableMethods.has(prop)) {
+            return (message, ...args) => {
+                const formattedMessage = isVitestRuntime
+                    ? message
+                    : prefixCoreMessage(message, ROBOT_MESSAGE_PREFIX);
+                value(formattedMessage, ...args);
+            };
+        }
+        return value.bind(target);
+    },
+});
 
 /**
  * Manages pre-release mode based on branch configuration
@@ -30483,19 +30527,19 @@ function configureRereleaseMode(branchConfig) {
     if (hasPrereleaseLabel) {
         if (!isInPrereleaseMode) {
             const prereleaseCommand = `npx changeset pre enter ${branchConfig.prerelease}`;
-            info(`Entering pre-release mode: ${prereleaseCommand}`);
+            log$1.info(`Entering pre-release mode: ${prereleaseCommand}`);
             execSync(prereleaseCommand, { stdio: 'inherit' });
         }
         else {
-            info('Already in pre-release mode, skipping enter.');
+            log$1.info('Already in pre-release mode, skipping enter.');
         }
     }
     else if (isInPrereleaseMode) {
-        info('Exiting pre-release mode');
+        log$1.info('Exiting pre-release mode');
         execSync('npx changeset pre exit', { stdio: 'inherit' });
     }
     else {
-        info('Not in pre-release mode, skipping exit.');
+        log$1.info('Not in pre-release mode, skipping exit.');
     }
 }
 
@@ -47020,39 +47064,39 @@ async function findLastPublishedCommit(git) {
             // Find the first tag that looks like a version tag
             for (const tag of tags.all) {
                 if (/^v?\d+\.\d+\.\d+/u.test(tag)) {
-                    info(`Using last release tag as base: ${tag}`);
+                    log$1.info(`Using last release tag as base: ${tag}`);
                     return tag;
                 }
             }
         }
         // No version tags found, try commit history
-        info('No version tags found, searching commit history for published releases');
+        log$1.info('No version tags found, searching commit history for published releases');
         // If no version tags found, look through commit history for the last published commit
-        const log = await git.log({ maxCount: 80 });
+        const gitLog = await git.log({ maxCount: 80 });
         // Look for commits that indicate a published release
-        for (const commit of log.all) {
+        for (const commit of gitLog.all) {
             if (isVersionOrReleaseCommit(commit.message)) {
-                info(`Using last published release commit as base: ${commit.hash}`);
+                log$1.info(`Using last published release commit as base: ${commit.hash}`);
                 return commit.hash;
             }
         }
         // If no published commits found, look for the last commit that would create publishable changes
         // by finding commits that are not version/merge commits
-        for (const [index, commit] of log.all.entries()) {
+        for (const [index, commit] of gitLog.all.entries()) {
             if (!isVersionOrReleaseCommit(commit.message)) {
                 // This might be a publishable commit, but we want to find what was published before it
-                if (index < log.all.length - 1) {
-                    info(`Using commit before last publishable commit as base: ${log.all[index + 1].hash}`);
-                    return log.all[index + 1].hash;
+                if (index < gitLog.all.length - 1) {
+                    log$1.info(`Using commit before last publishable commit as base: ${gitLog.all[index + 1].hash}`);
+                    return gitLog.all[index + 1].hash;
                 }
             }
         }
         // Fallback to HEAD~1 if no clear base found
-        info('No clear base commit found, falling back to HEAD~1');
+        log$1.info('No clear base commit found, falling back to HEAD~1');
         return 'HEAD~1';
     }
     catch (error) {
-        warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
+        log$1.warning(`Error finding last publishable commit: ${String(error)}, falling back to HEAD~1`);
         return 'HEAD~1';
     }
 }
@@ -47061,26 +47105,26 @@ async function getChangesSinceLastCommit() {
     const { publishablePackages, privatePackages, isMonorepo } = await getPackages();
     const git = esm_default();
     if (!isMonorepo) {
-        info('Detected single-package repository');
+        log$1.info('Detected single-package repository');
     }
     if (privatePackages.length > 0) {
-        info(`Skipped private packages: ${privatePackages.map((pkg) => pkg.packageJson.name).join(', ')}`);
+        log$1.info(`Skipped private packages: ${privatePackages.map((pkg) => pkg.packageJson.name).join(', ')}`);
     }
     try {
         // Find the base commit to compare against
         const baseCommit = await findLastPublishedCommit(git);
-        info(`Found base commit for comparison: ${baseCommit}`);
+        log$1.info(`Found base commit for comparison: ${baseCommit}`);
         // Get changed files since the base commit
         const diff = await git.diff([baseCommit, 'HEAD', '--name-only']);
         const changedFiles = diff.split('\n').filter(Boolean);
         // Get all commits since the base commit
-        const log = await git.log({
+        const gitLog = await git.log({
             from: baseCommit,
             to: 'HEAD',
         });
         // Filter commits to only include those that would create publishable changes
         const publishableCommits = [];
-        for (const commit of log.all) {
+        for (const commit of gitLog.all) {
             // Skip merge commits and version commits
             if (!isVersionOrReleaseCommit(commit.message)) {
                 // Check if this commit would result in a publishable change
@@ -47099,10 +47143,10 @@ async function getChangesSinceLastCommit() {
             }
         }
         if (publishableCommits.length === 0) {
-            info('No publishable commits found since base commit');
+            log$1.info('No publishable commits found since base commit');
             return {};
         }
-        info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
+        log$1.info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
         const changes = {};
         // Only process public packages that have actual changes
         publishablePackages.forEach((pkg) => {
@@ -47127,7 +47171,7 @@ async function getChangesSinceLastCommit() {
         return changes;
     }
     catch (error) {
-        error$1(`Error getting changes: ${String(error)}`);
+        log$1.error(`Error getting changes: ${String(error)}`);
         return {};
     }
 }
@@ -47138,12 +47182,12 @@ async function getChangesSinceLastCommit() {
  */
 async function createChangesetsForRecentCommits() {
     const changes = await getChangesSinceLastCommit();
-    for (const [packageName, info$1] of Object.entries(changes)) {
-        if (info$1.commits.length > 0) {
-            for (const commit of info$1.commits) {
+    for (const [packageName, info] of Object.entries(changes)) {
+        if (info.commits.length > 0) {
+            for (const commit of info.commits) {
                 const { changeType, description } = getChangeTypeAndDescription(commit.message);
                 createChangesetFile(packageName, changeType, description);
-                info(`Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`);
+                log$1.info(`Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`);
             }
         }
     }
@@ -47203,14 +47247,14 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
         ? `npx changeset publish --tag ${branchConfig.channel}`
         : 'npx changeset publish';
     if (isInPrereleaseMode) {
-        info('In prerelease mode - changeset will handle dist-tag automatically');
+        log$1.info('In prerelease mode - changeset will handle dist-tag automatically');
     }
     else if (hasChannel) {
-        info(`Using custom dist-tag: ${branchConfig.channel}`);
+        log$1.info(`Using custom dist-tag: ${branchConfig.channel}`);
     }
-    info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
-    info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
-    info(`Publishing packages...`);
+    log$1.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
+    log$1.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
+    log$1.info(`Publishing packages...`);
     const publishEnv = { ...process$1.env };
     if (isTokenMode) {
         publishEnv.NODE_AUTH_TOKEN = npmToken;
@@ -47219,7 +47263,7 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
         // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
         publishEnv.NODE_AUTH_TOKEN = '';
         publishEnv.NPM_TOKEN = '';
-        info('OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback');
+        log$1.info('OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback');
     }
     if (provenance) {
         publishEnv.NPM_CONFIG_PROVENANCE = 'true';
@@ -47239,10 +47283,10 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
         }
         throw new Error(`Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write, npm trusted publisher fields exactly match (owner/repo/workflow/environment), and token auth env is cleared. Details: ${details}`);
     }
-    info(publishOutput);
+    log$1.info(publishOutput);
     const publishedPackageNames = parsePublishedPackageNames(publishOutput);
     for (const pkgName of publishedPackageNames) {
-        info(`Detected published package from tag: ${pkgName}`);
+        log$1.info(`Detected published package from tag: ${pkgName}`);
     }
     const { packages } = await getPackages$1(process$1.cwd());
     const releasedPackages = [];
@@ -47256,7 +47300,7 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
                     private: pkg.packageJson.private,
                 },
             });
-            info(`Package ${pkg.packageJson.name} was published with version ${pkg.packageJson.version}`);
+            log$1.info(`Package ${pkg.packageJson.name} was published with version ${pkg.packageJson.version}`);
         }
     }
     return releasedPackages;
@@ -47278,7 +47322,7 @@ function isPackageDeclared(pkgName) {
         return pkgName in deps || pkgName in devDeps;
     }
     catch (err) {
-        warning(`Failed to read package.json: ${err.message}`);
+        log$1.warning(`Failed to read package.json: ${err.message}`);
         return false;
     }
 }
@@ -47305,7 +47349,7 @@ function ensureChangesetsAvailable() {
  */
 function runChangesetVersion(githubToken) {
     try {
-        info('Running changeset version command...');
+        log$1.info('Running changeset version command...');
         const versionOutput = execSync('npx changeset version', {
             encoding: 'utf8',
             cwd: process$1.cwd(),
@@ -47314,11 +47358,11 @@ function runChangesetVersion(githubToken) {
                 GITHUB_TOKEN: githubToken,
             },
         });
-        info(versionOutput);
-        info('Changeset version completed successfully');
+        log$1.info(versionOutput);
+        log$1.info('Changeset version completed successfully');
     }
     catch (error) {
-        info(`Error message: ${error.message}`);
+        log$1.info(`Error message: ${error.message}`);
     }
 }
 
@@ -54213,7 +54257,7 @@ function parse$2(src, reviver, options) {
 }
 
 function getActionInputs() {
-    const branchesInput = getInput('BRANCHES') ||
+    const branchesInput = log$1.getInput('BRANCHES') ||
         `- main
 - name: next
   prerelease: rc
@@ -54230,19 +54274,19 @@ function getActionInputs() {
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        warning(`Failed to parse BRANCHES input: ${errorMessage}. Using default configuration.`);
+        log$1.warning(`Failed to parse BRANCHES input: ${errorMessage}. Using default configuration.`);
         branches = ['main', { name: 'next', prerelease: 'rc', channel: 'next' }];
     }
-    const shouldCreateReleaseInput = getInput('CREATE_RELEASE') || 'true';
+    const shouldCreateReleaseInput = log$1.getInput('CREATE_RELEASE') || 'true';
     const shouldCreateRelease = shouldCreateReleaseInput.toLowerCase() === 'true';
-    const shouldPushTagsInput = getInput('PUSH_TAGS') || 'true';
+    const shouldPushTagsInput = log$1.getInput('PUSH_TAGS') || 'true';
     const pushTags = shouldPushTagsInput.toLowerCase() === 'true';
-    const shouldAutoChangesetInput = getInput('AUTO_CHANGESET') || 'false';
+    const shouldAutoChangesetInput = log$1.getInput('AUTO_CHANGESET') || 'false';
     const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
     return {
-        githubToken: getInput('GITHUB_TOKEN', { required: true }),
-        npmToken: getInput('NPM_TOKEN') || undefined,
-        botName: getInput('BOT_NAME') || 'changesets-autopilot',
+        githubToken: log$1.getInput('GITHUB_TOKEN', { required: true }),
+        npmToken: log$1.getInput('NPM_TOKEN') || undefined,
+        botName: log$1.getInput('BOT_NAME') || 'changesets-autopilot',
         branches,
         createRelease: shouldCreateRelease,
         pushTags,
@@ -54291,10 +54335,10 @@ function validateBranchConfiguration(branchConfig) {
         ? ` (prerelease: ${branchConfig.prerelease})`
         : '';
     if (!branchConfig.isMatch) {
-        info(`Current branch '${branchConfig.name}' is not configured for releases. Skipping.`);
+        log$1.info(`Current branch '${branchConfig.name}' is not configured for releases. Skipping.`);
         return false;
     }
-    info(`Processing release for branch '${branchConfig.name}'${prereleaseSuffix}`);
+    log$1.info(`Processing release for branch '${branchConfig.name}'${prereleaseSuffix}`);
     return true;
 }
 
@@ -54311,7 +54355,7 @@ function getReleaseCommitMessage(packagesToRelease) {
             // Single package - include version in title
             const pkg = packagesToRelease[0];
             commitMessage = `chore(release): ${pkg.version} [skip ci]`;
-            info(`Creating commit message for single package: ${pkg.name}@${pkg.version}`);
+            log$1.info(`Creating commit message for single package: ${pkg.name}@${pkg.version}`);
         }
         else if (packagesToRelease.length > 1) {
             // Multiple packages - add versions to commit body (only changed packages)
@@ -54319,15 +54363,15 @@ function getReleaseCommitMessage(packagesToRelease) {
                 .map((pkg) => `${pkg.name}@${pkg.version}`)
                 .join('\n');
             commitMessage = `${DEFAULT_RELEASE_COMMIT_MESSAGE}\n\n${packageVersions}`;
-            info(`Creating commit message for ${packagesToRelease.length} changed packages`);
+            log$1.info(`Creating commit message for ${packagesToRelease.length} changed packages`);
         }
         else {
             // No changed packages found - use default message
-            info('No changed packages found, using default commit message');
+            log$1.info('No changed packages found, using default message');
         }
     }
     catch (error) {
-        warning(`Failed to get package information for commit message: ${String(error)}`);
+        log$1.warning(`Failed to get package information for commit message: ${String(error)}`);
         // Fall back to default message
     }
     return commitMessage;
@@ -54339,10 +54383,10 @@ async function commitReleaseChanges(git, packagesToRelease) {
     await git.add('.');
     try {
         await git.commit(commitMessage);
-        info('Git commit successful');
+        log$1.info('Git commit successful');
     }
     catch (e) {
-        info(`Git commit failed: ${String(e)}`);
+        log$1.info(`Git commit failed: ${String(e)}`);
     }
     return commitMessage;
 }
@@ -54358,17 +54402,17 @@ async function pushBranch(git, githubToken) {
             // Get current branch name to ensure we push to the correct branch
             const currentBranch = await git.branch(['--show-current']);
             const branchName = currentBranch.current || refName;
-            info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
+            log$1.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
             // Push the current branch to the remote branch with the same name
             await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${branchName}`);
-            info('Git push successful');
+            log$1.info('Git push successful');
         }
         catch (e) {
-            info(`Git push failed: ${String(e)}`);
+            log$1.info(`Git push failed: ${String(e)}`);
         }
     }
     else {
-        info('Missing repo, token, or refName for push.');
+        log$1.info('Missing repo, token, or refName for push.');
     }
 }
 
@@ -87036,12 +87080,12 @@ async function getPackagesToRelease() {
             }
         }
         for (const pkg of packagesToRelease) {
-            info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
+            log$1.info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
         }
         return packagesToRelease;
     }
     catch (error) {
-        warning(`Failed to get release plan: ${String(error)}`);
+        log$1.warning(`Failed to get release plan: ${String(error)}`);
         return [];
     }
 }
@@ -87149,12 +87193,12 @@ async function createRelease(octokit, options) {
         if (isErrorWithCode(err, 'ENOENT')) {
             return;
         }
-        error$1(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
+        log$1.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
         return;
     }
     const changelogEntry = getChangelogEntry(changelog, pkg.packageJson.version);
     if (!changelogEntry) {
-        warning(`Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`);
+        log$1.warning(`Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`);
         return;
     }
     // Create a formatted release title with version and date
@@ -87191,7 +87235,7 @@ ${changelogEntry.content}`;
 
 async function createReleasesForPackages({ releasedPackages, githubToken, repo, owner, repoName, }) {
     const { isMonorepo } = await getPackages();
-    info('Creating GitHub releases for published packages...');
+    log$1.info('Creating GitHub releases for published packages...');
     const octokit = new Octokit({ auth: githubToken });
     const [repoOwner, repoNameLocal] = repo.split('/');
     const finalOwner = owner ?? repoOwner;
@@ -87207,10 +87251,10 @@ async function createReleasesForPackages({ releasedPackages, githubToken, repo, 
                 owner: finalOwner,
                 repo: finalRepoName,
             });
-            info(`Created GitHub release for ${tagName}`);
+            log$1.info(`Created GitHub release for ${tagName}`);
         }
         catch (error) {
-            warning(`Failed to create release for ${tagName}: ${String(error)}`);
+            log$1.warning(`Failed to create release for ${tagName}: ${String(error)}`);
         }
     }));
 }
@@ -87222,82 +87266,9 @@ async function createReleasesForPackages({ releasedPackages, githubToken, repo, 
  * @param repo - The repository name (owner/repo)
  */
 async function pushChangesetTags(git, githubToken, repo) {
-    info('Pushing tags created by changeset publish to GitHub...');
+    log$1.info('Pushing tags created by changeset publish to GitHub...');
     await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-    info('Tags pushed successfully');
-}
-
-const ROBOT_MESSAGE_PREFIX = '🤖 ';
-const patchedModules = new WeakSet();
-function prefixCoreMessage(message, prefix = ROBOT_MESSAGE_PREFIX) {
-    const normalized = message instanceof Error ? message.message : String(message);
-    return normalized
-        .split('\n')
-        .map((line) => {
-        if (line.length === 0 || line.startsWith(prefix)) {
-            return line;
-        }
-        return `${prefix}${line}`;
-    })
-        .join('\n');
-}
-function installCoreMessagePrefix(coreModule, prefix = ROBOT_MESSAGE_PREFIX) {
-    const patchTargets = getPatchTargets(coreModule);
-    for (const patchTarget of patchTargets) {
-        if (!patchedModules.has(patchTarget)) {
-            installPrefixForTarget(patchTarget, prefix);
-            patchedModules.add(patchTarget);
-        }
-    }
-}
-function getPatchTargets(coreModule) {
-    const uniqueTargets = new Set();
-    uniqueTargets.add(coreModule);
-    if (typeof coreModule.default === 'object' && coreModule.default !== null) {
-        uniqueTargets.add(coreModule.default);
-    }
-    return [...uniqueTargets];
-}
-function installPrefixForTarget(targetCore, prefix) {
-    const methods = [
-        'debug',
-        'info',
-        'notice',
-        'warning',
-        'error',
-        'setFailed',
-        'startGroup',
-    ];
-    for (const methodName of methods) {
-        const originalMethod = targetCore[methodName];
-        if (typeof originalMethod === 'function') {
-            const wrappedMethod = (message, ...args) => originalMethod(prefixCoreMessage(message, prefix), ...args);
-            setMethodSafely(targetCore, methodName, wrappedMethod);
-        }
-    }
-}
-function setMethodSafely(targetCore, methodName, wrappedMethod) {
-    const writableTarget = targetCore;
-    try {
-        writableTarget[methodName] = wrappedMethod;
-    }
-    catch {
-        const descriptor = Object.getOwnPropertyDescriptor(writableTarget, methodName);
-        if (!descriptor || !descriptor.configurable) {
-            return;
-        }
-        try {
-            Object.defineProperty(writableTarget, methodName, {
-                configurable: true,
-                enumerable: descriptor.enumerable ?? true,
-                writable: true,
-                value: wrappedMethod,
-            });
-        }
-        catch {
-            // Ignore non-patchable descriptors to avoid crashing the action.
-        }
-    }
+    log$1.info('Tags pushed successfully');
 }
 
 const MIN_OIDC_NODE_VERSION = '24.0.0';
@@ -87345,7 +87316,6 @@ function validateOidcNodeRuntime(nodeVersion = process$1.versions.node, minimumV
  */
 async function run() {
     try {
-        installCoreMessagePrefix(core$3);
         // Ensure changesets is available
         ensureChangesetsAvailable();
         // Initialize inputs and configuration
@@ -87370,24 +87340,24 @@ async function run() {
             if (!hasNpmToken) {
                 validateOidcNodeRuntime();
             }
-            info('Processing versioning and git operations...');
+            log$1.info('Processing versioning and git operations...');
             // Get packages that will be released BEFORE running changeset version
             // because changeset version consumes the changeset files
             const packagesToRelease = await getPackagesToRelease();
             runChangesetVersion(githubToken);
             await commitAndPush(git, githubToken, packagesToRelease);
             if (hasNpmToken) {
-                info('Using npm authentication mode: token mode');
+                log$1.info('Using npm authentication mode: token mode');
             }
             else {
-                info('Using npm authentication mode: OIDC trusted publisher mode');
+                log$1.info('Using npm authentication mode: OIDC trusted publisher mode');
             }
-            const provenance = getInput('provenance') === 'true';
+            const provenance = log$1.getInput('provenance') === 'true';
             const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
-            info('Packages published successfully!');
+            log$1.info('Packages published successfully!');
             // Set published output based on whether any packages were actually released
             const wasPublished = releasedPackages.length > 0;
-            setOutput('published', wasPublished.toString());
+            log$1.setOutput('published', wasPublished.toString());
             // NOW push the tags that were created by changeset publish
             const repo = process$1.env.GITHUB_REPOSITORY;
             const hasRepo = typeof repo === 'string' && repo.length > 0;
@@ -87407,19 +87377,19 @@ async function run() {
                     }
                 }
                 catch (error) {
-                    warning(`Failed to push tags: ${String(error)}`);
+                    log$1.warning(`Failed to push tags: ${String(error)}`);
                 }
             }
         }
         else {
-            info('No changesets to process. Action completed.');
-            setOutput('published', 'false');
+            log$1.info('No changesets to process. Action completed.');
+            log$1.setOutput('published', 'false');
         }
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        setOutput('published', 'false');
-        setFailed(`Action failed: ${errorMessage}`);
+        log$1.setOutput('published', 'false');
+        log$1.setFailed(`Action failed: ${errorMessage}`);
     }
 }
 

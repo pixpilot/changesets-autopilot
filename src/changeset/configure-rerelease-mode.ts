@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 import { changesetDir } from './changesets';
 
@@ -19,15 +19,15 @@ export function configureRereleaseMode(branchConfig: ResolvedBranchConfig): void
   if (hasPrereleaseLabel) {
     if (!isInPrereleaseMode) {
       const prereleaseCommand = `npx changeset pre enter ${branchConfig.prerelease}`;
-      core.info(`Entering pre-release mode: ${prereleaseCommand}`);
+      log.info(`Entering pre-release mode: ${prereleaseCommand}`);
       execSync(prereleaseCommand, { stdio: 'inherit' });
     } else {
-      core.info('Already in pre-release mode, skipping enter.');
+      log.info('Already in pre-release mode, skipping enter.');
     }
   } else if (isInPrereleaseMode) {
-    core.info('Exiting pre-release mode');
+    log.info('Exiting pre-release mode');
     execSync('npx changeset pre exit', { stdio: 'inherit' });
   } else {
-    core.info('Not in pre-release mode, skipping exit.');
+    log.info('Not in pre-release mode, skipping exit.');
   }
 }

@@ -1,5 +1,5 @@
 import type { SimpleGit } from 'simple-git';
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 /**
  * Pushes tags created by changeset publish to GitHub.
@@ -12,7 +12,7 @@ export async function pushChangesetTags(
   githubToken: string,
   repo: string,
 ): Promise<void> {
-  core.info('Pushing tags created by changeset publish to GitHub...');
+  log.info('Pushing tags created by changeset publish to GitHub...');
   await git.pushTags(`https://${githubToken}@github.com/${repo}.git`);
-  core.info('Tags pushed successfully');
+  log.info('Tags pushed successfully');
 }

@@ -1,7 +1,6 @@
-import * as core from '@actions/core';
-
 import { getChangesSinceLastCommit } from '../git/get-changes';
 import { getChangeTypeAndDescription } from '../utils/commit-parser';
+import { log } from '../utils/core';
 
 import { createChangesetFile } from './create-changeset-file';
 
@@ -16,7 +15,7 @@ export async function createChangesetsForRecentCommits(): Promise<void> {
       for (const commit of info.commits) {
         const { changeType, description } = getChangeTypeAndDescription(commit.message);
         createChangesetFile(packageName, changeType, description);
-        core.info(
+        log.info(
           `Created changeset for package '${packageName}' with change type '${changeType}' and description '${description}'`,
         );
       }

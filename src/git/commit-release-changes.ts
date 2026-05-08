@@ -1,7 +1,7 @@
 import type { SimpleGit } from 'simple-git';
 import type { ReleasePackage } from '../utils/get-release-plan';
 
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 import { getReleaseCommitMessage } from '../utils/get-release-commit-message';
 
 export async function commitReleaseChanges(
@@ -14,9 +14,9 @@ export async function commitReleaseChanges(
   await git.add('.');
   try {
     await git.commit(commitMessage);
-    core.info('Git commit successful');
+    log.info('Git commit successful');
   } catch (e) {
-    core.info(`Git commit failed: ${String(e)}`);
+    log.info(`Git commit failed: ${String(e)}`);
   }
 
   return commitMessage;

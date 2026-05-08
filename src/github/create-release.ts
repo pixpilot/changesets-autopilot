@@ -2,7 +2,7 @@ import type { Octokit } from '@octokit/rest';
 import fs from 'node:fs/promises';
 
 import path from 'node:path';
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 export interface Package {
   dir: string;
@@ -132,12 +132,12 @@ export async function createRelease(
     if (isErrorWithCode(err, 'ENOENT')) {
       return;
     }
-    core.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
+    log.error(`Failed to read changelog for ${pkg.packageJson.name}: ${String(err)}`);
     return;
   }
   const changelogEntry = getChangelogEntry(changelog, pkg.packageJson.version);
   if (!changelogEntry) {
-    core.warning(
+    log.warning(
       `Could not find changelog entry for ${pkg.packageJson.name}@${pkg.packageJson.version}. skipping release creation.`,
     );
     return;

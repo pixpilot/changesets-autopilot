@@ -1,5 +1,4 @@
 import process from 'node:process';
-import * as core from '@actions/core';
 
 import {
   configureRereleaseMode,
@@ -13,8 +12,8 @@ import { getActionInputs, getBranchConfig, validateBranchConfiguration } from '.
 import { commitAndPush, configureGit } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
+import { log } from './utils/core';
 import { getPackagesToRelease } from './utils/get-release-plan';
-import { installCoreMessagePrefix } from './utils/install-core-message-prefix';
 import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
 
 /**
@@ -22,8 +21,6 @@ import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
  */
 export async function run(): Promise<void> {
   try {
-    installCoreMessagePrefix(core);
-
     // Ensure changesets is available
     ensureChangesetsAvailable();
 
@@ -64,7 +61,7 @@ export async function run(): Promise<void> {
         validateOidcNodeRuntime();
       }
 
-      core.info('Processing versioning and git operations...');
+      log.info('Processing versioning and git operations...');
 
       // Get packages that will be released BEFORE running changeset version
       // because changeset version consumes the changeset files
@@ -75,18 +72,18 @@ export async function run(): Promise<void> {
       await commitAndPush(git, githubToken, packagesToRelease);
 
       if (hasNpmToken) {
-        core.info('Using npm authentication mode: token mode');
+        log.info('Using npm authentication mode: token mode');
       } else {
-        core.info('Using npm authentication mode: OIDC trusted publisher mode');
+        log.info('Using npm authentication mode: OIDC trusted publisher mode');
       }
 
-      const provenance = core.getInput('provenance') === 'true';
+      const provenance = log.getInput('provenance') === 'true';
       const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
-      core.info('Packages published successfully!');
+      log.info('Packages published successfully!');
 
       // Set published output based on whether any packages were actually released
       const wasPublished = releasedPackages.length > 0;
-      core.setOutput('published', wasPublished.toString());
+      log.setOutput('published', wasPublished.toString());
 
       // NOW push the tags that were created by changeset publish
       const repo = process.env.GITHUB_REPOSITORY;
@@ -106,16 +103,16 @@ export async function run(): Promise<void> {
             }
           }
         } catch (error) {
-          core.warning(`Failed to push tags: ${String(error)}`);
+          log.warning(`Failed to push tags: ${String(error)}`);
         }
       }
     } else {
-      core.info('No changesets to process. Action completed.');
-      core.setOutput('published', 'false');
+      log.info('No changesets to process. Action completed.');
+      log.setOutput('published', 'false');
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    core.setOutput('published', 'false');
-    core.setFailed(`Action failed: ${errorMessage}`);
+    log.setOutput('published', 'false');
+    log.setFailed(`Action failed: ${errorMessage}`);
   }
 }

@@ -1,6 +1,6 @@
 import type { ResolvedBranchConfig } from './get-branch-config';
 
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 /**
  * Validates branch configuration and logs appropriate messages
@@ -12,11 +12,11 @@ export function validateBranchConfiguration(branchConfig: ResolvedBranchConfig):
       : '';
 
   if (!branchConfig.isMatch) {
-    core.info(
+    log.info(
       `Current branch '${branchConfig.name}' is not configured for releases. Skipping.`,
     );
     return false;
   }
-  core.info(`Processing release for branch '${branchConfig.name}'${prereleaseSuffix}`);
+  log.info(`Processing release for branch '${branchConfig.name}'${prereleaseSuffix}`);
   return true;
 }

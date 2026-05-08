@@ -1,6 +1,6 @@
 import type { SimpleGit } from 'simple-git';
 import process from 'node:process';
-import * as core from '@actions/core';
+import { log } from '../utils/core';
 
 export async function pushBranch(git: SimpleGit, githubToken: string): Promise<void> {
   const repo = process.env.GITHUB_REPOSITORY;
@@ -15,18 +15,18 @@ export async function pushBranch(git: SimpleGit, githubToken: string): Promise<v
       const currentBranch = await git.branch(['--show-current']);
       const branchName = currentBranch.current || refName;
 
-      core.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
+      log.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
 
       // Push the current branch to the remote branch with the same name
       await git.push(
         `https://${githubToken}@github.com/${repo}.git`,
         `HEAD:${branchName}`,
       );
-      core.info('Git push successful');
+      log.info('Git push successful');
     } catch (e) {
-      core.info(`Git push failed: ${String(e)}`);
+      log.info(`Git push failed: ${String(e)}`);
     }
   } else {
-    core.info('Missing repo, token, or refName for push.');
+    log.info('Missing repo, token, or refName for push.');
   }
 }

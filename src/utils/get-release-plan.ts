@@ -1,6 +1,6 @@
 import process from 'node:process';
-import * as core from '@actions/core';
 import getReleasePlan from '@changesets/get-release-plan';
+import { log } from './core';
 
 export interface ReleasePackage {
   name: string;
@@ -30,12 +30,12 @@ export async function getPackagesToRelease(): Promise<ReleasePackage[]> {
     }
 
     for (const pkg of packagesToRelease) {
-      core.info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
+      log.info(`  - ${pkg.name}@${pkg.version} (${pkg.type})`);
     }
 
     return packagesToRelease;
   } catch (error) {
-    core.warning(`Failed to get release plan: ${String(error)}`);
+    log.warning(`Failed to get release plan: ${String(error)}`);
     return [];
   }
 }
