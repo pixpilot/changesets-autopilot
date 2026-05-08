@@ -21,6 +21,7 @@ permissions:
 jobs:
   lint:
     name: Lint Codebase
+    if: ${{ !contains(toJson(github.event), '[skip ci]') && !contains(toJson(github.event), '[ci skip]') }}
     runs-on: ubuntu-latest
 
     steps:

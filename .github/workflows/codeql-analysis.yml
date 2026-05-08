@@ -26,6 +26,7 @@ on:
 
 jobs:
   codeql-analysis:
+    if: ${{ github.event_name == 'schedule' || (!contains(toJson(github.event), '[skip ci]') && !contains(toJson(github.event), '[ci skip]')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
