@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.3.0...v1.3.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **publish-packages:** clear NODE_AUTH_TOKEN/NPM_TOKEN in OIDC mode ([c548641](https://github.com/pixpilot/changesets-autopilot/commit/c5486415a7a6c31d30c6dfe81b5cf0c47843d84a))
+
 # [1.3.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.2.1...v1.3.0) (2026-05-08)
 
 
