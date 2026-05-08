@@ -171,6 +171,9 @@ describe('publishPackages', () => {
 
     expect(core.info).toHaveBeenCalledWith('Auth mode: OIDC');
     expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
+    expect(core.info).toHaveBeenCalledWith(
+      'OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback',
+    );
     expect(execSync).toHaveBeenCalledWith(
       'npx changeset publish',
       expect.objectContaining({
@@ -181,7 +184,8 @@ describe('publishPackages', () => {
     const execCallArgs = vi.mocked(execSync).mock.calls[0][1] as {
       env: NodeJS.ProcessEnv;
     };
-    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBeUndefined();
+    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBe('');
+    expect(execCallArgs.env.NPM_TOKEN).toBe('');
     expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBeUndefined();
   });
 

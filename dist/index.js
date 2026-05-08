@@ -44974,6 +44974,12 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
     if (isTokenMode) {
         publishEnv.NODE_AUTH_TOKEN = npmToken;
     }
+    else {
+        // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
+        publishEnv.NODE_AUTH_TOKEN = '';
+        publishEnv.NPM_TOKEN = '';
+        info('OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback');
+    }
     if (provenance) {
         publishEnv.NPM_CONFIG_PROVENANCE = 'true';
     }
@@ -44990,7 +44996,7 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
         if (isTokenMode) {
             throw new Error(`Publishing failed in token mode. Verify NPM_TOKEN has publish access. Details: ${details}`);
         }
-        throw new Error(`Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write and npm trusted publisher is configured for this repository. Details: ${details}`);
+        throw new Error(`Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write, npm trusted publisher fields exactly match (owner/repo/workflow/environment), and token auth env is cleared. Details: ${details}`);
     }
     info(publishOutput);
     const publishedPackageNames = parsePublishedPackageNames(publishOutput);

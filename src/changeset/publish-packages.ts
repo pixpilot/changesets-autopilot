@@ -49,6 +49,13 @@ export async function publishPackages(
   const publishEnv: NodeJS.ProcessEnv = { ...process.env };
   if (isTokenMode) {
     publishEnv.NODE_AUTH_TOKEN = npmToken;
+  } else {
+    // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
+    publishEnv.NODE_AUTH_TOKEN = '';
+    publishEnv.NPM_TOKEN = '';
+    core.info(
+      'OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback',
+    );
   }
 
   if (provenance) {
@@ -71,7 +78,7 @@ export async function publishPackages(
     }
 
     throw new Error(
-      `Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write and npm trusted publisher is configured for this repository. Details: ${details}`,
+      `Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write, npm trusted publisher fields exactly match (owner/repo/workflow/environment), and token auth env is cleared. Details: ${details}`,
     );
   }
 
