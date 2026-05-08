@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.3...v1.4.4) (2026-05-08)
+
+
+### Bug Fixes
+
+* **git:** enhance fallback logic for last published commit retrieval ([743b3ab](https://github.com/pixpilot/changesets-autopilot/commit/743b3aba8a4c465d05221e630b06ca0b1d624203))
+
 ## [1.4.3](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.2...v1.4.3) (2026-05-08)
 
 
