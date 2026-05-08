@@ -38,18 +38,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Setup Node.js using the version specified in `.node-version`.
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-          cache: npm
-
-      # Install dependencies using `npm ci`.
-      - name: Install Dependencies
-        id: install
-        run: npm ci
+      # Setup Node.js, pnpm, and dependencies using the shared action.
+      - name: Setup Project
+        id: setup-project
+        uses: ./.github/actions/setup-project
 
       # Run project linting (includes TypeScript via ESLint)
       - name: Lint TypeScript and JavaScript
