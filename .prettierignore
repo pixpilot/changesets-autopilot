@@ -7,3 +7,5 @@ npm-lock.yaml
 .git/
 *.log
 *.lock
+CHANGELOG.md
+CHANGELOG_FIX.md

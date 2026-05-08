@@ -37,7 +37,7 @@ function isPushOrPullRequestWorkflow(workflow: WorkflowDefinition): boolean {
 }
 
 describe('workflow skip-ci guards', () => {
-  test('all push/pull_request workflows include an explicit skip-ci guard', () => {
+  test('should ensure all push/pull_request workflows include an explicit skip-ci guard', () => {
     const workflowFiles = fs
       .readdirSync(workflowsDirectory)
       .filter((filename) => workflowFilePattern.test(filename));
