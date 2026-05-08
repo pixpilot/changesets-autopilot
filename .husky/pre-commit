@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-npm run lint:fix
-npm run format:write
-npm run typecheck
-npm run build
+pnpm lint-staged
+pnpm build
 git add dist
