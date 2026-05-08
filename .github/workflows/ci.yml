@@ -68,6 +68,14 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: Setup Project
+        id: setup-project
+        uses: ./.github/actions/setup-project
+
+      - name: Build dist
+        id: npm-package
+        run: npm run package
+
       - name: Test Local Action
         id: test-action
         uses: ./
