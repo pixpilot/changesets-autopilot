@@ -297,7 +297,7 @@ concurrency:
   cancel-in-progress: false
 ```
 
-- **Manual intervention**: If a duplicate version error occurs, the subsequent run should detect the published version and proceed with the correct next version
+- **Manual intervention**: If a duplicate version error occurs, the subsequent run should detect the published version and proceed with the correct next version.
 
 **Note:** This is a known timing issue that occurs when the repository state hasn't been updated before a new workflow begins. Future versions may include better synchronization mechanisms. In the meantime, using concurrency controls and ensuring sequential workflow runs can help mitigate this issue.
 
