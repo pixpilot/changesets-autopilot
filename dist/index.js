@@ -87337,7 +87337,7 @@ function validateOidcNodeRuntime(nodeVersion = process$1.versions.node, minimumV
     if (isNodeVersionCompatibleForOidc(nodeVersion, minimumVersion)) {
         return;
     }
-    throw new Error(`OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 or higher.`);
+    throw new Error(`OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 or higher. If your workflow already sets Node 24+ but this still reports Node 20.x, update to an action version that runs with node24 in action.yml (or pin to the latest commit that includes it).`);
 }
 
 /**
