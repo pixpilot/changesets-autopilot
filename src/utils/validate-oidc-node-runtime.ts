@@ -1,6 +1,6 @@
 import process from 'node:process';
 
-const MIN_OIDC_NODE_VERSION = '22.14.0';
+const MIN_OIDC_NODE_VERSION = '24.0.0';
 
 interface ParsedVersion {
   major: number;
@@ -61,6 +61,6 @@ export function validateOidcNodeRuntime(
   }
 
   throw new Error(
-    `OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 (recommended) or >= ${minimumVersion}.`,
+    `OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 or higher.`,
   );
 }

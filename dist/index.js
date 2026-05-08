@@ -87264,7 +87264,7 @@ function installCoreMessagePrefix(coreModule, prefix = ROBOT_MESSAGE_PREFIX) {
     mutableCore[CORE_PREFIX_PATCHED] = true;
 }
 
-const MIN_OIDC_NODE_VERSION = '22.14.0';
+const MIN_OIDC_NODE_VERSION = '24.0.0';
 function parseVersion(version) {
     const match = /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)/u.exec(version.trim());
     if (!match) {
@@ -87301,7 +87301,7 @@ function validateOidcNodeRuntime(nodeVersion = process$1.versions.node, minimumV
     if (isNodeVersionCompatibleForOidc(nodeVersion, minimumVersion)) {
         return;
     }
-    throw new Error(`OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 (recommended) or >= ${minimumVersion}.`);
+    throw new Error(`OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 or higher.`);
 }
 
 /**
