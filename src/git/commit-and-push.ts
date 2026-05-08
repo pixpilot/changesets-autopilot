@@ -10,7 +10,6 @@ export async function commitAndPush(
   githubToken: string,
   packagesToRelease: ReleasePackage[],
 ) {
-  // Use new helper to commit release changes
   const commitMessage = await commitReleaseChanges(git, packagesToRelease);
 
   await pushBranch(git, githubToken);
