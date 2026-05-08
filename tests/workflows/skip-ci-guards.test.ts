@@ -11,7 +11,8 @@ interface WorkflowDefinition {
 const workflowsDirectory = path.resolve(process.cwd(), '.github', 'workflows');
 const workflowFilePattern = /\.ya?ml$/;
 const skipMarkerPattern = /\[(skip ci|ci skip)\]/i;
-const skipGuardPattern = /if:\s*\$\{\{[\s\S]*?contains\([\s\S]*?\[(skip ci|ci skip)\][\s\S]*?\}\}/i;
+const skipGuardPattern =
+  /if:\s*\$\{\{[\s\S]*?contains\([\s\S]*?\[(skip ci|ci skip)\][\s\S]*?\}\}/i;
 
 function hasTrigger(eventConfig: unknown, trigger: 'push' | 'pull_request'): boolean {
   if (typeof eventConfig === 'string') {

@@ -1,4 +1,4 @@
-name: 'CodeQL Analyser'
+name: "CodeQL Analyser"
 
 permissions:
   security-events: write
@@ -22,11 +22,12 @@ on:
     #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
     #        │  │ │ │ │
     #        *  * * * *
-    - cron: '30 1 * * 0' # Every Sunday at 01:30 UTC
+    - cron: "30 1 * * 0" # Every Sunday at 01:30 UTC
 
 jobs:
   codeql-analysis:
-    if: ${{ github.event_name == 'schedule' || (!contains(toJson(github.event), '[skip ci]') && !contains(toJson(github.event), '[ci skip]')) }}
+    if: ${{ github.event_name == 'schedule' || (!contains(toJson(github.event),
+      '[skip ci]') && !contains(toJson(github.event), '[ci skip]')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -42,6 +43,7 @@ jobs:
 
       - name: Run CodeQL Scanner
         uses: github/codeql-action/analyze@v3
+
 # -------------------------------------------------------------
 # Alternative: pixpilot/codeql-scanner@main
 # -------------------------------------------------------------
@@ -61,4 +63,3 @@ jobs:
 #         with:
 #           token: ${{ secrets.GITHUB_TOKEN }}
 #           config-file: .github/codeql/codeql-config.yml
-
