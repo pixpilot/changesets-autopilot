@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.0...v1.4.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **husky:** remove build step from pre-commit hook ([795f88c](https://github.com/pixpilot/changesets-autopilot/commit/795f88c42b4d4aa61a3350ca1f1fda7bd02bd598))
+
 # [1.4.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.3.1...v1.4.0) (2026-05-08)
 
 
