@@ -14,12 +14,16 @@ import { commitAndPush, configureGit } from './git';
 import { createReleasesForPackages } from './github/create-releases-for-packages';
 import { pushChangesetTags } from './github/push-changeset-tags';
 import { getPackagesToRelease } from './utils/get-release-plan';
+import { installCoreMessagePrefix } from './utils/install-core-message-prefix';
+import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
 
 /**
  * The main function for the action.
  */
 export async function run(): Promise<void> {
   try {
+    installCoreMessagePrefix(core);
+
     // Ensure changesets is available
     ensureChangesetsAvailable();
 
@@ -55,6 +59,11 @@ export async function run(): Promise<void> {
 
     // Version and push changes if we have changesets
     if (hasChangesetReleaseFiles) {
+      const hasNpmToken = typeof npmToken === 'string' && npmToken.length > 0;
+      if (!hasNpmToken) {
+        validateOidcNodeRuntime();
+      }
+
       core.info('Processing versioning and git operations...');
 
       // Get packages that will be released BEFORE running changeset version
@@ -65,7 +74,6 @@ export async function run(): Promise<void> {
 
       await commitAndPush(git, githubToken, packagesToRelease);
 
-      const hasNpmToken = typeof npmToken === 'string' && npmToken.length > 0;
       if (hasNpmToken) {
         core.info('Using npm authentication mode: token mode');
       } else {
