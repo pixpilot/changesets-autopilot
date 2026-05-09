@@ -30473,7 +30473,7 @@ var actionsCore = /*#__PURE__*/Object.freeze({
     warning: warning
 });
 
-const ROBOT_MESSAGE_PREFIX = '🦋︎ ';
+const ROBOT_MESSAGE_PREFIX = '';
 const CHANGESET_MESSAGE_PREFIX = '🦋';
 const isVitestRuntime = env.VITEST === 'true';
 const coreModule = actionsCore;

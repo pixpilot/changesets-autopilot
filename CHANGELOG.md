@@ -1,3 +1,11 @@
+# [1.5.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.5...v1.5.0) (2026-05-09)
+
+
+### Features
+
+* **log:** implement logging utility with message prefixing ([c7fe97d](https://github.com/pixpilot/changesets-autopilot/commit/c7fe97d69ffd499d81f5e5d34fad33e341d3f590))
+* **log:** integrate @changesets/logger for enhanced logging ([37d7542](https://github.com/pixpilot/changesets-autopilot/commit/37d75428d98bf9a39851d0a7f4509b25575a27fd))
+
 ## [1.4.5](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.4...v1.4.5) (2026-05-08)
 
 
