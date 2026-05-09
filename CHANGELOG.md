@@ -1,3 +1,11 @@
+## [1.4.5](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.4...v1.4.5) (2026-05-08)
+
+
+### Bug Fixes
+
+* **log:** correct CHANGESET_MESSAGE_PREFIX character ([bbf1455](https://github.com/pixpilot/changesets-autopilot/commit/bbf1455f597b41a327e1222832553debb3c8bab7))
+* **log:** update message prefix characters for consistency ([6fc30fe](https://github.com/pixpilot/changesets-autopilot/commit/6fc30fe2087d3ecba25c1160a06eee86b5bf2102))
+
 ## [1.4.4](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.3...v1.4.4) (2026-05-08)
 
 
