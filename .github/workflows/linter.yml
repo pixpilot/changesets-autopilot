@@ -38,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Setup Node.js, pnpm, and dependencies using the shared action.
+      # Setup the project with pnpm and install dependencies.
       - name: Setup Project
         id: setup-project
         uses: ./.github/actions/setup-project
@@ -46,14 +46,14 @@ jobs:
       # Run project linting (includes TypeScript via ESLint)
       - name: Lint TypeScript and JavaScript
         id: lint-ts-js
-        run: npm run lint
+        run: pnpm run lint
 
       # Run TypeScript type checking
       - name: TypeScript Type Check
         id: typecheck
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       # Run Prettier formatting check
       - name: Check Formatting
         id: format-check
-        run: npm run format:check
+        run: pnpm run format:check
