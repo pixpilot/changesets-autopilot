@@ -29,7 +29,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "bundle": "npm run format:write && npm run package",
+    "bundle": "npm run package",
     "ci-test": "vitest run && npm run coverage",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
