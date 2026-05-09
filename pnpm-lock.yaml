@@ -17,6 +17,9 @@ importers:
       '@changesets/get-release-plan':
         specifier: ^4.0.16
         version: 4.0.16
+      '@changesets/logger':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@conventional-commits/parser':
         specifier: ^0.4.1
         version: 0.4.1
