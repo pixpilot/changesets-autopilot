@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.0...v1.5.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **release:** update create-github-app-token action to v3 ([ecbd84d](https://github.com/pixpilot/changesets-autopilot/commit/ecbd84de2ce7450fe0ad9cdcaa3dccdc2f31a442))
+
 # [1.5.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.4.5...v1.5.0) (2026-05-09)
 
 
