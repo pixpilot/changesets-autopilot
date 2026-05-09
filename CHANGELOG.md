@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.1...v1.5.2) (2026-05-09)
+
+
+### Bug Fixes
+
+* **scripts:** simplify bundle command in package.json ([d962c13](https://github.com/pixpilot/changesets-autopilot/commit/d962c13d0c09c817b34a039983e9823ca34c8846))
+
 ## [1.5.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.0...v1.5.1) (2026-05-09)
 
 
