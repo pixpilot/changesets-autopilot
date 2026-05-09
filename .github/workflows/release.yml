@@ -25,9 +25,9 @@ jobs:
     steps:
       - name: Generate token
         id: generate-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.RELEASER_ID }}
+          client-id: ${{ secrets.RELEASER_ID }}
           private-key: ${{ secrets.RELEASER_PRIVATE_KEY }}
 
       - name: Checkout
