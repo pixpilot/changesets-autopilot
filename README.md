@@ -59,21 +59,34 @@ jobs:
 
 ### Inputs
 
-| Input            | Description                                                                          | Required | Default                |
-| ---------------- | ------------------------------------------------------------------------------------ | -------- | ---------------------- |
-| `GITHUB_TOKEN`   | GitHub token for authentication                                                      | ✅       | -                      |
-| `NPM_TOKEN`      | NPM token for publishing (optional when using npm Trusted Publisher / OIDC)          | ❌       | -                      |
-| `provenance`     | Enable npm provenance attestation                                                    | ❌       | `false`                |
-| `BOT_NAME`       | Bot name for commits                                                                 | ❌       | `changesets-autopilot` |
-| `BRANCHES`       | Branch configuration (YAML array)                                                    | ❌       | See below              |
-| `CREATE_RELEASE` | Enable or disable GitHub release creation                                            | ❌       | `true`                 |
-| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub (disabling this will also prevent releases) | ❌       | `true`                 |
-| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning                      | ❌       | `true`                 |
+| Input            | Description                                                                          | Required | Default                   |
+| ---------------- | ------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| `GITHUB_TOKEN`   | GitHub token for authentication                                                      | ✅       | -                         |
+| `NPM_TOKEN`      | NPM token for publishing (optional when using npm Trusted Publisher / OIDC)          | ❌       | -                         |
+| `provenance`     | Enable npm provenance attestation                                                    | ❌       | `false`                   |
+| `BOT_NAME`       | Bot name for commits                                                                 | ❌       | `changesets-autopilot`    |
+| `BRANCHES`       | Branch configuration (YAML array)                                                    | ❌       | Auto-detected (see below) |
+| `CREATE_RELEASE` | Enable or disable GitHub release creation                                            | ❌       | `true`                    |
+| `PUSH_TAGS`      | Enable or disable pushing tags to GitHub (disabling this will also prevent releases) | ❌       | `true`                    |
+| `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning                      | ❌       | `true`                    |
 
-**Default BRANCHES configuration:**
+**Default branch behavior:**
+
+- If `BRANCHES` is provided, that value is used as-is.
+- If `BRANCHES` is not provided and `.changeset/config.json` has `baseBranch`, the action uses:
+
+```yaml
+- <baseBranch>
+- name: next
+  prerelease: rc
+  channel: next
+```
+
+- If `BRANCHES` is not provided and `baseBranch` is missing, the action falls back to:
 
 ```yaml
 - main
+- master
 - name: next
   prerelease: rc
   channel: next

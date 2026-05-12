@@ -22,11 +22,6 @@ inputs:
   BRANCHES:
     description: Branch configuration for releases (YAML array)
     required: false
-    default: |
-      - main
-      - name: next
-        prerelease: rc
-        channel: next
   CREATE_RELEASE:
     description: Enable or disable GitHub release creation
     required: false

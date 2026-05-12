@@ -1,12 +1,19 @@
+import * as fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getActionInputs } from '../../src/config';
 
 vi.mock('@actions/core');
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn(),
+  readFileSync: vi.fn(),
+}));
 
 const core = await import('@actions/core');
 const getInput = core.getInput as unknown as ReturnType<typeof vi.fn>;
 const warning = core.warning as unknown as ReturnType<typeof vi.fn>;
+const existsSync = fs.existsSync as unknown as ReturnType<typeof vi.fn>;
+const readFileSync = fs.readFileSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('getActionInputs', () => {
   // Setup mock implementations for each test
@@ -19,6 +26,8 @@ describe('getActionInputs', () => {
       return '';
     });
     warning.mockImplementation(() => {});
+    existsSync.mockReturnValue(false);
+    readFileSync.mockReturnValue('');
   });
 
   it('should be defined', () => {
@@ -31,11 +40,47 @@ describe('getActionInputs', () => {
       githubToken: 'gh-token',
       npmToken: 'npm-token',
       botName: 'changesets-autopilot',
-      branches: ['main', { name: 'next', prerelease: 'rc', channel: 'next' }],
+      branches: ['main', 'master', { name: 'next', prerelease: 'rc', channel: 'next' }],
       createRelease: true,
       pushTags: true,
       autoChangeset: false,
     });
+  });
+
+  it('uses baseBranch from .changeset/config.json when BRANCHES input is empty', () => {
+    existsSync.mockReturnValue(true);
+    readFileSync.mockReturnValue('{"baseBranch":"master"}');
+
+    const result = getActionInputs();
+
+    expect(result.branches).toStrictEqual([
+      'master',
+      { name: 'next', prerelease: 'rc', channel: 'next' },
+    ]);
+  });
+
+  it('falls back to main/master/next when baseBranch is missing in .changeset/config.json', () => {
+    existsSync.mockReturnValue(true);
+    readFileSync.mockReturnValue('{"commit":false}');
+
+    const result = getActionInputs();
+
+    expect(result.branches).toStrictEqual([
+      'main',
+      'master',
+      { name: 'next', prerelease: 'rc', channel: 'next' },
+    ]);
+  });
+
+  it('falls back to next-only when baseBranch is next', () => {
+    existsSync.mockReturnValue(true);
+    readFileSync.mockReturnValue('{"baseBranch":"next"}');
+
+    const result = getActionInputs();
+
+    expect(result.branches).toStrictEqual([
+      { name: 'next', prerelease: 'rc', channel: 'next' },
+    ]);
   });
 
   it('parses valid YAML array for BRANCHES', () => {
@@ -45,7 +90,14 @@ describe('getActionInputs', () => {
       if (name === 'NPM_TOKEN') return 'npm-token';
       return '';
     });
+
+    existsSync.mockReturnValue(true);
+    readFileSync.mockReturnValue('{"baseBranch":"master"}');
+
     const result = getActionInputs();
+
+    expect(existsSync).not.toHaveBeenCalled();
+    expect(readFileSync).not.toHaveBeenCalled();
     expect(result.branches).toStrictEqual(['main', { name: 'dev', channel: 'dev' }]);
   });
 
@@ -59,6 +111,23 @@ describe('getActionInputs', () => {
     const result = getActionInputs();
     expect(result.branches).toStrictEqual([
       'main',
+      'master',
+      { name: 'next', prerelease: 'rc', channel: 'next' },
+    ]);
+  });
+
+  it('falls back when .changeset/config.json cannot be parsed', () => {
+    existsSync.mockReturnValue(true);
+    readFileSync.mockReturnValue('{invalid json}');
+
+    const result = getActionInputs();
+
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to read .changeset/config.json'),
+    );
+    expect(result.branches).toStrictEqual([
+      'main',
+      'master',
       { name: 'next', prerelease: 'rc', channel: 'next' },
     ]);
   });
@@ -142,6 +211,7 @@ describe('getActionInputs', () => {
     );
     expect(result.branches).toStrictEqual([
       'main',
+      'master',
       { name: 'next', prerelease: 'rc', channel: 'next' },
     ]);
   });
