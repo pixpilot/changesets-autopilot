@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.2...v1.5.3) (2026-05-12)
+
+
+### Bug Fixes
+
+* **config:** update default branch behavior and improve fallback logic ([3c9a0a5](https://github.com/pixpilot/changesets-autopilot/commit/3c9a0a53af006bf9135c361613ed16b2ecb50ef3))
+
 ## [1.5.2](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.1...v1.5.2) (2026-05-09)
 
 

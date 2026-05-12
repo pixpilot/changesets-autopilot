@@ -54269,26 +54269,57 @@ function parse$2(src, reviver, options) {
     return doc.toJS(Object.assign({ reviver: _reviver }, options));
 }
 
-function getActionInputs() {
-    const branchesInput = log$1.getInput('BRANCHES') ||
-        `- main
-- name: next
-  prerelease: rc
-  channel: next`;
-    let branches;
+const NEXT_BRANCH_CONFIG = {
+    name: 'next',
+    prerelease: 'rc',
+    channel: 'next',
+};
+function getFallbackBranches() {
+    return ['main', 'master', NEXT_BRANCH_CONFIG];
+}
+function getDefaultBranches() {
+    const changesetsConfigPath = path__default__default.join(process$1.cwd(), '.changeset', 'config.json');
+    if (!existsSync(changesetsConfigPath)) {
+        return getFallbackBranches();
+    }
     try {
-        const parsed = parse$2(branchesInput);
-        if (Array.isArray(parsed)) {
-            branches = parsed;
+        const parsed = JSON.parse(readFileSync(changesetsConfigPath, 'utf8'));
+        const baseBranch = typeof parsed.baseBranch === 'string' ? parsed.baseBranch.trim() : '';
+        if (baseBranch.length === 0) {
+            return getFallbackBranches();
         }
-        else {
-            throw new TypeError('BRANCHES input must be a YAML array');
+        if (baseBranch === NEXT_BRANCH_CONFIG.name) {
+            return [NEXT_BRANCH_CONFIG];
         }
+        return [baseBranch, NEXT_BRANCH_CONFIG];
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        log$1.warning(`Failed to parse BRANCHES input: ${errorMessage}. Using default configuration.`);
-        branches = ['main', { name: 'next', prerelease: 'rc', channel: 'next' }];
+        log$1.warning(`Failed to read .changeset/config.json: ${errorMessage}. Using fallback branch configuration.`);
+        return getFallbackBranches();
+    }
+}
+function getActionInputs() {
+    const branchesInput = log$1.getInput('BRANCHES');
+    let branches;
+    if (branchesInput.trim().length > 0) {
+        try {
+            const parsed = parse$2(branchesInput);
+            if (Array.isArray(parsed)) {
+                branches = parsed;
+            }
+            else {
+                throw new TypeError('BRANCHES input must be a YAML array');
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            log$1.warning(`Failed to parse BRANCHES input: ${errorMessage}. Using default configuration.`);
+            branches = getDefaultBranches();
+        }
+    }
+    else {
+        branches = getDefaultBranches();
     }
     const shouldCreateReleaseInput = log$1.getInput('CREATE_RELEASE') || 'true';
     const shouldCreateRelease = shouldCreateReleaseInput.toLowerCase() === 'true';
