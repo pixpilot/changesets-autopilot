@@ -79,6 +79,13 @@ export async function run(): Promise<void> {
 
       const provenance = log.getInput('provenance') === 'true';
       const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+
+      if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
+        throw new Error(
+          `Publishing failed: expected to publish ${packagesToRelease.length} package(s), but none were published.`,
+        );
+      }
+
       log.info('Packages published successfully!');
 
       // Set published output based on whether any packages were actually released
@@ -90,20 +97,16 @@ export async function run(): Promise<void> {
       const hasRepo = typeof repo === 'string' && repo.length > 0;
       const hasGithubToken = githubToken.length > 0;
       if (hasRepo && hasGithubToken && pushTags) {
-        try {
-          if (releasedPackages.length > 0) {
-            await pushChangesetTags(git, githubToken, repo);
-            // Create GitHub releases for published packages
-            if (shouldCreateRelease) {
-              await createReleasesForPackages({
-                releasedPackages,
-                githubToken,
-                repo,
-              });
-            }
+        if (releasedPackages.length > 0) {
+          await pushChangesetTags(git, githubToken, repo);
+          // Create GitHub releases for published packages
+          if (shouldCreateRelease) {
+            await createReleasesForPackages({
+              releasedPackages,
+              githubToken,
+              repo,
+            });
           }
-        } catch (error) {
-          log.warning(`Failed to push tags: ${String(error)}`);
         }
       }
     } else {

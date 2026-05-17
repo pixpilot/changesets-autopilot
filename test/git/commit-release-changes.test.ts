@@ -29,9 +29,11 @@ describe('commitReleaseChanges', () => {
     expect(msg).toBe('release commit');
   });
 
-  it('logs error if commit fails', async () => {
+  it('throws if commit fails', async () => {
     (mockGit.commit as any).mockRejectedValueOnce(new Error('fail'));
-    await commitReleaseChanges(mockGit as any, mockPackages);
+    await expect(commitReleaseChanges(mockGit as any, mockPackages)).rejects.toThrow(
+      'Git commit failed: fail',
+    );
     // Should still call add
     expect(mockGit.add).toHaveBeenCalled();
   });

@@ -35,6 +35,7 @@ function createMockGit() {
   return {
     add: vi.fn().mockResolvedValue(undefined),
     commit: vi.fn().mockResolvedValue(undefined),
+    branch: vi.fn().mockResolvedValue({ current: GITHUB_REF_NAME }),
     push: vi.fn().mockResolvedValue(undefined),
   } as unknown as SimpleGit;
 }

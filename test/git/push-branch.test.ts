@@ -40,32 +40,42 @@ describe('pushBranch', () => {
   });
 
   it('does not push if githubToken is missing', async () => {
-    await pushBranch(mockGit as any, '');
+    await expect(pushBranch(mockGit as any, '')).rejects.toThrow(
+      'Missing repo, token, or refName for push.',
+    );
     expect(mockGit.push).not.toHaveBeenCalled();
   });
 
   it('does not push if refName is missing', async () => {
     process.env.GITHUB_REF_NAME = '';
-    await pushBranch(mockGit as any, 'token');
+    await expect(pushBranch(mockGit as any, 'token')).rejects.toThrow(
+      'Missing repo, token, or refName for push.',
+    );
     expect(mockGit.push).not.toHaveBeenCalled();
   });
 
-  it('logs error if push fails', async () => {
+  it('throws error if push fails', async () => {
     (mockGit.push as any).mockRejectedValueOnce(new Error('fail'));
-    await pushBranch(mockGit as any, 'token');
+    await expect(pushBranch(mockGit as any, 'token')).rejects.toThrow(
+      'Git push failed: fail',
+    );
     expect(mockGit.branch).toHaveBeenCalled();
   });
 
-  it('logs missing env vars', async () => {
+  it('throws for missing env vars', async () => {
     process.env.GITHUB_REPOSITORY = '';
-    await pushBranch(mockGit as any, 'token');
+    await expect(pushBranch(mockGit as any, 'token')).rejects.toThrow(
+      'Missing repo, token, or refName for push.',
+    );
     // Should not call push
     expect(mockGit.push).not.toHaveBeenCalled();
   });
 
-  it('logs error if branch throws', async () => {
+  it('throws error if branch throws', async () => {
     mockGit.branch.mockRejectedValueOnce(new Error('fail'));
-    await pushBranch(mockGit as any, 'token');
+    await expect(pushBranch(mockGit as any, 'token')).rejects.toThrow(
+      'Git push failed: fail',
+    );
     // Should not call push if branch fails
     expect(mockGit.push).not.toHaveBeenCalled();
   });

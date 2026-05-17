@@ -27,12 +27,13 @@ describe('runChangesetVersion', () => {
     expect(core.info).toHaveBeenCalledWith('Changeset version completed successfully');
   });
 
-  it('logs error message if execSync throws', () => {
+  it('throws if execSync fails', () => {
     const execSyncMock = child_process.execSync as unknown as ReturnType<typeof vi.fn>;
     execSyncMock.mockImplementation(() => {
       throw new Error('fail!');
     });
-    runChangesetVersion('gh-token');
-    expect(core.info).toHaveBeenCalledWith('Error message: fail!');
+    expect(() => runChangesetVersion('gh-token')).toThrow(
+      'Changeset version failed: fail!',
+    );
   });
 });

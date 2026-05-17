@@ -24,6 +24,7 @@ export function runChangesetVersion(githubToken: string): void {
     log.info(versionOutput);
     log.info('Changeset version completed successfully');
   } catch (error) {
-    log.info(`Error message: ${(error as Error).message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Changeset version failed: ${errorMessage}`);
   }
 }

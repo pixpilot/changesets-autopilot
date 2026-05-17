@@ -16,7 +16,8 @@ export async function commitReleaseChanges(
     await git.commit(commitMessage);
     log.info('Git commit successful');
   } catch (e) {
-    log.info(`Git commit failed: ${String(e)}`);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    throw new Error(`Git commit failed: ${errorMessage}`);
   }
 
   return commitMessage;

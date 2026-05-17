@@ -9,24 +9,22 @@ export async function pushBranch(git: SimpleGit, githubToken: string): Promise<v
   const hasToken = githubToken.length > 0;
   const hasRefName = typeof refName === 'string' && refName.length > 0;
 
-  if (hasRepo && hasToken && hasRefName) {
-    try {
-      // Get current branch name to ensure we push to the correct branch
-      const currentBranch = await git.branch(['--show-current']);
-      const branchName = currentBranch.current || refName;
+  if (!hasRepo || !hasToken || !hasRefName) {
+    throw new Error('Missing repo, token, or refName for push.');
+  }
 
-      log.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
+  try {
+    // Get current branch name to ensure we push to the correct branch
+    const currentBranch = await git.branch(['--show-current']);
+    const branchName = currentBranch.current || refName;
 
-      // Push the current branch to the remote branch with the same name
-      await git.push(
-        `https://${githubToken}@github.com/${repo}.git`,
-        `HEAD:${branchName}`,
-      );
-      log.info('Git push successful');
-    } catch (e) {
-      log.info(`Git push failed: ${String(e)}`);
-    }
-  } else {
-    log.info('Missing repo, token, or refName for push.');
+    log.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
+
+    // Push the current branch to the remote branch with the same name
+    await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${branchName}`);
+    log.info('Git push successful');
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    throw new Error(`Git push failed: ${errorMessage}`);
   }
 }

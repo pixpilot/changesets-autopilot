@@ -28,6 +28,7 @@ vi.mock('../src/git/commit-and-push');
 vi.mock('../src/changeset/publish-packages');
 vi.mock('../src/github/create-releases-for-packages');
 vi.mock('../src/github/push-changeset-tags');
+vi.mock('../src/utils/get-release-plan');
 vi.mock('../src/utils/validate-oidc-node-runtime');
 
 describe('main.js', () => {
@@ -44,6 +45,7 @@ describe('main.js', () => {
   let mockPublishPackages: MockedFunction<any>;
   let mockCreateReleasesForPackages: MockedFunction<any>;
   let mockPushChangesetTags: MockedFunction<any>;
+  let mockGetPackagesToRelease: MockedFunction<any>;
   let mockValidateOidcNodeRuntime: MockedFunction<any>;
 
   beforeEach(async () => {
@@ -70,6 +72,7 @@ describe('main.js', () => {
     const createReleasesForPackagesModule =
       await import('../src/github/create-releases-for-packages');
     const pushChangesetTagsModule = await import('../src/github/push-changeset-tags');
+    const getReleasePlanModule = await import('../src/utils/get-release-plan');
     const validateOidcNodeRuntimeModule =
       await import('../src/utils/validate-oidc-node-runtime');
 
@@ -96,6 +99,7 @@ describe('main.js', () => {
       createReleasesForPackagesModule.createReleasesForPackages,
     );
     mockPushChangesetTags = vi.mocked(pushChangesetTagsModule.pushChangesetTags);
+    mockGetPackagesToRelease = vi.mocked(getReleasePlanModule.getPackagesToRelease);
     mockValidateOidcNodeRuntime = vi.mocked(
       validateOidcNodeRuntimeModule.validateOidcNodeRuntime,
     );
@@ -122,6 +126,7 @@ describe('main.js', () => {
     mockPublishPackages.mockResolvedValue([]);
     mockCreateReleasesForPackages.mockResolvedValue(undefined);
     mockPushChangesetTags.mockResolvedValue(undefined);
+    mockGetPackagesToRelease.mockResolvedValue([]);
     mockValidateOidcNodeRuntime.mockReturnValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
@@ -287,9 +292,9 @@ describe('main.js', () => {
     );
   });
 
-  it('should call core.warning if pushChangesetTags throws', async () => {
+  it('should fail action if pushChangesetTags throws', async () => {
     const coreModule = await import('@actions/core');
-    const mockWarning = vi.spyOn(coreModule, 'warning');
+    const mockSetFailed = vi.spyOn(coreModule, 'setFailed');
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
@@ -303,7 +308,27 @@ describe('main.js', () => {
     mockPushChangesetTags.mockRejectedValue(new Error('tag error'));
     const { run } = await import('../src/main');
     await run();
-    expect(mockWarning).toHaveBeenCalledWith('Failed to push tags: Error: tag error');
+    expect(mockSetFailed).toHaveBeenCalledWith('Action failed: tag error');
+  });
+
+  it('should fail action if a release is expected but nothing is published', async () => {
+    const coreModule = await import('@actions/core');
+    const mockSetFailed = vi.spyOn(coreModule, 'setFailed');
+    const mockSetOutput = vi.spyOn(coreModule, 'setOutput');
+
+    mockHasChangesetFiles.mockReturnValue(true);
+    mockGetPackagesToRelease.mockResolvedValue([
+      { name: 'test-package', version: '1.0.0', type: 'minor' },
+    ]);
+    mockPublishPackages.mockResolvedValue([]);
+
+    const { run } = await import('../src/main');
+    await run();
+
+    expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    expect(mockSetFailed).toHaveBeenCalledWith(
+      'Action failed: Publishing failed: expected to publish 1 package(s), but none were published.',
+    );
   });
 
   it('should call createReleasesForPackages if releasedPackages and shouldCreateRelease', async () => {
