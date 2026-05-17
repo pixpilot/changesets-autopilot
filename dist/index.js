@@ -47375,7 +47375,8 @@ function runChangesetVersion(githubToken) {
         log$1.info('Changeset version completed successfully');
     }
     catch (error) {
-        log$1.info(`Error message: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Changeset version failed: ${errorMessage}`);
     }
 }
 
@@ -54430,7 +54431,8 @@ async function commitReleaseChanges(git, packagesToRelease) {
         log$1.info('Git commit successful');
     }
     catch (e) {
-        log$1.info(`Git commit failed: ${String(e)}`);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        throw new Error(`Git commit failed: ${errorMessage}`);
     }
     return commitMessage;
 }
@@ -54441,22 +54443,21 @@ async function pushBranch(git, githubToken) {
     const hasRepo = typeof repo === 'string' && repo.length > 0;
     const hasToken = githubToken.length > 0;
     const hasRefName = typeof refName === 'string' && refName.length > 0;
-    if (hasRepo && hasToken && hasRefName) {
-        try {
-            // Get current branch name to ensure we push to the correct branch
-            const currentBranch = await git.branch(['--show-current']);
-            const branchName = currentBranch.current || refName;
-            log$1.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
-            // Push the current branch to the remote branch with the same name
-            await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${branchName}`);
-            log$1.info('Git push successful');
-        }
-        catch (e) {
-            log$1.info(`Git push failed: ${String(e)}`);
-        }
+    if (!hasRepo || !hasToken || !hasRefName) {
+        throw new Error('Missing repo, token, or refName for push.');
     }
-    else {
-        log$1.info('Missing repo, token, or refName for push.');
+    try {
+        // Get current branch name to ensure we push to the correct branch
+        const currentBranch = await git.branch(['--show-current']);
+        const branchName = currentBranch.current || refName;
+        log$1.info(`Pushing to branch: ${branchName} (GITHUB_REF_NAME: ${refName})`);
+        // Push the current branch to the remote branch with the same name
+        await git.push(`https://${githubToken}@github.com/${repo}.git`, `HEAD:${branchName}`);
+        log$1.info('Git push successful');
+    }
+    catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        throw new Error(`Git push failed: ${errorMessage}`);
     }
 }
 
@@ -87398,6 +87399,9 @@ async function run() {
             }
             const provenance = log$1.getInput('provenance') === 'true';
             const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+            if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
+                throw new Error(`Publishing failed: expected to publish ${packagesToRelease.length} package(s), but none were published.`);
+            }
             log$1.info('Packages published successfully!');
             // Set published output based on whether any packages were actually released
             const wasPublished = releasedPackages.length > 0;
@@ -87407,21 +87411,16 @@ async function run() {
             const hasRepo = typeof repo === 'string' && repo.length > 0;
             const hasGithubToken = githubToken.length > 0;
             if (hasRepo && hasGithubToken && pushTags) {
-                try {
-                    if (releasedPackages.length > 0) {
-                        await pushChangesetTags(git, githubToken, repo);
-                        // Create GitHub releases for published packages
-                        if (shouldCreateRelease) {
-                            await createReleasesForPackages({
-                                releasedPackages,
-                                githubToken,
-                                repo,
-                            });
-                        }
+                if (releasedPackages.length > 0) {
+                    await pushChangesetTags(git, githubToken, repo);
+                    // Create GitHub releases for published packages
+                    if (shouldCreateRelease) {
+                        await createReleasesForPackages({
+                            releasedPackages,
+                            githubToken,
+                            repo,
+                        });
                     }
-                }
-                catch (error) {
-                    log$1.warning(`Failed to push tags: ${String(error)}`);
                 }
             }
         }

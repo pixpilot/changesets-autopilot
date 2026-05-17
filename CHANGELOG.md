@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.3...v1.5.4) (2026-05-17)
+
+
+### Bug Fixes
+
+* improve error handling in git operations and publishing logic ([c9a7563](https://github.com/pixpilot/changesets-autopilot/commit/c9a756378a9a4c4d2f5a70d9bcc23e1dd2c2ed9a))
+
 ## [1.5.3](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.2...v1.5.3) (2026-05-12)
 
 
