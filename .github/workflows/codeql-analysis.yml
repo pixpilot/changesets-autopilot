@@ -2,6 +2,7 @@ name: CodeQL Analyser
 
 permissions:
   security-events: write
+  issues: write
   actions: read
   contents: read
 
