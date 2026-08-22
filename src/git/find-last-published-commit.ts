@@ -19,18 +19,28 @@ async function resolveSafeFallbackBase(
 }
 
 /**
+ * Matches the release tags changesets creates, in both layouts:
+ * `v1.2.3` / `1.2.3` for a single-package repo, and `pkg@1.2.3` /
+ * `@scope/pkg@1.2.3` for a monorepo. Matching only the bare semver form would
+ * miss every monorepo tag, which is the layout this action mainly targets.
+ */
+const VERSION_TAG_PATTERN = /^(?:.*@)?v?\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/u;
+
+/**
  * Finds the last published commit by looking for release tags or published commits
  */
 export async function findLastPublishedCommit(
   git: ReturnType<typeof simpleGit>,
 ): Promise<string> {
   try {
-    // First, try to find the most recent release tag
-    const tags = await git.tags(['--sort=-version:refname', '--merged']);
+    // Sort by tag date rather than by refname: with monorepo tags a refname sort
+    // orders by package name first, so the "highest" tag is an arbitrary package
+    // rather than the most recent release.
+    const tags = await git.tags(['--sort=-creatordate', '--merged']);
     if (tags.all.length > 0) {
       // Find the first tag that looks like a version tag
       for (const tag of tags.all) {
-        if (/^v?\d+\.\d+\.\d+/u.test(tag)) {
+        if (VERSION_TAG_PATTERN.test(tag)) {
           log.info(`Using last release tag as base: ${tag}`);
           return tag;
         }

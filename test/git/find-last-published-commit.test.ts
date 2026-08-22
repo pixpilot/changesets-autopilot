@@ -17,6 +17,67 @@ describe('findLastPublishedCommit', () => {
     expect(result).toBe('v1.2.3');
   });
 
+  it('returns a monorepo package tag as base', async () => {
+    vi.doMock('@actions/core', () => ({
+      info: vi.fn(),
+      warning: vi.fn(),
+    }));
+    const tags = {
+      all: ['nightly', '@scope/pkg-b@2.1.0', 'pkg-a@1.0.0'],
+      latest: null,
+    };
+    const git = {
+      tags: vi.fn().mockResolvedValue(tags),
+      log: vi.fn(),
+    } as any;
+    const result = await findLastPublishedCommit(git);
+    expect(result).toBe('@scope/pkg-b@2.1.0');
+  });
+
+  it('returns a prerelease tag as base', async () => {
+    vi.doMock('@actions/core', () => ({
+      info: vi.fn(),
+      warning: vi.fn(),
+    }));
+    const tags = { all: ['pkg-a@1.0.0-rc.3'], latest: null };
+    const git = {
+      tags: vi.fn().mockResolvedValue(tags),
+      log: vi.fn(),
+    } as any;
+    const result = await findLastPublishedCommit(git);
+    expect(result).toBe('pkg-a@1.0.0-rc.3');
+  });
+
+  it('sorts tags by date so the newest release wins, not the highest refname', async () => {
+    vi.doMock('@actions/core', () => ({
+      info: vi.fn(),
+      warning: vi.fn(),
+    }));
+    const git = {
+      tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
+      log: vi.fn().mockResolvedValue({ all: [] }),
+      revparse: vi.fn().mockResolvedValue('HEAD~1'),
+    } as any;
+    await findLastPublishedCommit(git);
+    expect(git.tags).toHaveBeenCalledWith(['--sort=-creatordate', '--merged']);
+  });
+
+  it('ignores tags that are not version tags', async () => {
+    vi.doMock('@actions/core', () => ({
+      info: vi.fn(),
+      warning: vi.fn(),
+    }));
+    const tags = { all: ['latest', 'release-candidate', 'pkg@1.2'], latest: null };
+    const git = {
+      tags: vi.fn().mockResolvedValue(tags),
+      log: vi.fn().mockResolvedValue({
+        all: [{ hash: 'abc123', message: 'chore(release): version packages [skip ci]' }],
+      }),
+    } as any;
+    const result = await findLastPublishedCommit(git);
+    expect(result).toBe('abc123');
+  });
+
   it('returns commit hash if no version tag but published commit exists', async () => {
     vi.doMock('@actions/core', () => ({
       info: vi.fn(),

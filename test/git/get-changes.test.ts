@@ -453,4 +453,145 @@ describe('getChangesSinceLastCommit', () => {
     expect(core.info).toHaveBeenCalledWith('Detected single-package repository');
     vi.resetModules();
   });
+
+  const twoPackages = () => [
+    {
+      dir: normalizePath(`${process.cwd()}/packages/pkg-a`),
+      packageJson: { name: 'pkg-a', version: '1.0.0', private: false },
+    },
+    {
+      dir: normalizePath(`${process.cwd()}/packages/pkg-b`),
+      packageJson: { name: 'pkg-b', version: '2.0.0', private: false },
+    },
+  ];
+
+  // An earlier test mocks `src/utils/get-packages`, and `mockReset` wipes that
+  // factory's implementation, so these tests mock it explicitly instead of
+  // relying on the `@manypkg/get-packages` passthrough.
+  const mockTwoPackageWorkspace = () => {
+    vi.doMock('@manypkg/get-packages', () => ({
+      getPackages: vi.fn().mockResolvedValue({ packages: twoPackages() }),
+    }));
+    vi.doMock('../../src/utils/get-packages', () => ({
+      getPackages: vi.fn().mockResolvedValue({
+        packages: twoPackages(),
+        publishablePackages: twoPackages(),
+        privatePackages: [],
+        isMonorepo: true,
+      }),
+    }));
+  };
+
+  const twoCommitLog = {
+    all: [
+      {
+        message: 'feat: only pkg-a',
+        hash: 'sha-a',
+        date: '2023-01-02',
+        refs: '',
+        body: '',
+        author_name: 'Test',
+        author_email: 'test@example.com',
+      },
+      {
+        message: 'fix: only pkg-b',
+        hash: 'sha-b',
+        date: '2023-01-01',
+        refs: '',
+        body: '',
+        author_name: 'Test',
+        author_email: 'test@example.com',
+      },
+    ],
+  };
+
+  it('should attribute each commit only to the packages that commit touched', async () => {
+    vi.doMock('simple-git', () => ({
+      default: () => ({
+        diff: vi.fn().mockImplementation(async (args: string[]) => {
+          if (args[0] === 'sha-a^!') return 'packages/pkg-a/file.js';
+          if (args[0] === 'sha-b^!') return 'packages/pkg-b/file.js';
+          // Range diff: the union of both commits
+          return 'packages/pkg-a/file.js\npackages/pkg-b/file.js';
+        }),
+        log: vi.fn().mockResolvedValue(twoCommitLog),
+        tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
+      }),
+    }));
+    mockTwoPackageWorkspace();
+    vi.resetModules();
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    const result = await getChangesSinceLastCommit();
+
+    expect(result['pkg-a'].commits).toHaveLength(1);
+    expect(result['pkg-a'].commits[0].message).toBe('feat: only pkg-a');
+    expect(result['pkg-a'].files).toEqual(['packages/pkg-a/file.js']);
+
+    expect(result['pkg-b'].commits).toHaveLength(1);
+    expect(result['pkg-b'].commits[0].message).toBe('fix: only pkg-b');
+    expect(result['pkg-b'].files).toEqual(['packages/pkg-b/file.js']);
+    vi.resetModules();
+  });
+
+  it('should attribute a commit to every package it actually touches', async () => {
+    vi.doMock('simple-git', () => ({
+      default: () => ({
+        diff: vi.fn().mockResolvedValue('packages/pkg-a/file.js\npackages/pkg-b/file.js'),
+        log: vi.fn().mockResolvedValue({ all: [twoCommitLog.all[0]] }),
+        tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
+      }),
+    }));
+    mockTwoPackageWorkspace();
+    vi.resetModules();
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    const result = await getChangesSinceLastCommit();
+
+    expect(result['pkg-a'].commits).toHaveLength(1);
+    expect(result['pkg-b'].commits).toHaveLength(1);
+    vi.resetModules();
+  });
+
+  it('should fall back to the range diff when a commit cannot be resolved', async () => {
+    vi.doMock('simple-git', () => ({
+      default: () => ({
+        diff: vi.fn().mockImplementation(async (args: string[]) => {
+          if (args[0].endsWith('^!')) {
+            throw new Error('unknown revision');
+          }
+          return 'packages/pkg-a/file.js\npackages/pkg-b/file.js';
+        }),
+        log: vi.fn().mockResolvedValue({ all: [twoCommitLog.all[0]] }),
+        tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
+      }),
+    }));
+    mockTwoPackageWorkspace();
+    vi.resetModules();
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    const result = await getChangesSinceLastCommit();
+
+    // Over-attribution is the intended fallback: better a redundant changeset
+    // than a silently dropped release.
+    expect(result['pkg-a'].commits).toHaveLength(1);
+    expect(result['pkg-b'].commits).toHaveLength(1);
+    vi.resetModules();
+  });
+
+  it('should not duplicate files when several commits touch the same file', async () => {
+    vi.doMock('simple-git', () => ({
+      default: () => ({
+        diff: vi.fn().mockResolvedValue('packages/pkg-a/file.js'),
+        log: vi.fn().mockResolvedValue(twoCommitLog),
+        tags: vi.fn().mockResolvedValue({ all: [], latest: null }),
+      }),
+    }));
+    mockTwoPackageWorkspace();
+    vi.resetModules();
+    const { getChangesSinceLastCommit } = await import('../../src/git/get-changes');
+    const result = await getChangesSinceLastCommit();
+
+    expect(result['pkg-a'].files).toEqual(['packages/pkg-a/file.js']);
+    expect(result['pkg-a'].commits).toHaveLength(2);
+    expect(result).not.toHaveProperty('pkg-b');
+    vi.resetModules();
+  });
 });

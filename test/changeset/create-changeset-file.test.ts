@@ -67,7 +67,44 @@ describe('createChangesetFile', () => {
 
   it('should return file path with expected pattern', () => {
     const filePath = createChangesetFile('pkg', 'minor', 'desc');
-    expect(filePath).toMatch(/\.changeset\/auto-generated-at-\d+\.md$/u);
+    expect(filePath).toMatch(/\.changeset\/auto-generated-at-\d+-\d+\.md$/u);
     fs.unlinkSync(filePath);
+  });
+
+  it('should not overwrite changesets written within the same millisecond', () => {
+    const paths = Array.from({ length: 25 }, (_, index) =>
+      createChangesetFile(`pkg-${index}`, 'patch', `change ${index}`),
+    );
+
+    expect(new Set(paths).size).toBe(paths.length);
+    for (const [index, filePath] of paths.entries()) {
+      expect(fs.readFileSync(filePath, 'utf8')).toContain(`'pkg-${index}': patch`);
+    }
+
+    for (const filePath of paths) {
+      fs.unlinkSync(filePath);
+    }
+  });
+
+  it('should not reuse a name left over from a previous run', () => {
+    const existing = createChangesetFile('pkg', 'patch', 'first');
+    fs.writeFileSync(existing, 'stale content');
+
+    // Force the sequence back onto a name that is already on disk.
+    const collidingName = existing.replace(/-\d+\.md$/u, '-1.md');
+    if (collidingName !== existing) {
+      fs.writeFileSync(collidingName, 'stale content');
+    }
+
+    const next = createChangesetFile('pkg', 'patch', 'second');
+    expect(next).not.toBe(existing);
+    expect(fs.readFileSync(next, 'utf8')).toContain('second');
+    expect(fs.readFileSync(existing, 'utf8')).toBe('stale content');
+
+    fs.unlinkSync(existing);
+    fs.unlinkSync(next);
+    if (collidingName !== existing && fs.existsSync(collidingName)) {
+      fs.unlinkSync(collidingName);
+    }
   });
 });

@@ -30541,15 +30541,35 @@ function configureRereleaseMode(branchConfig) {
     }
 }
 
+const CHANGESET_DIR = '.changeset';
+const AUTO_GENERATED_PREFIX = 'auto-generated-at-';
+let sequence = 0;
+/**
+ * Builds a unique path for an auto-generated changeset.
+ *
+ * `Date.now()` on its own is not unique: changesets are written in a tight
+ * synchronous loop, so several of them land in the same millisecond and silently
+ * overwrite each other, dropping releases for whole packages. A per-process
+ * sequence number keeps names distinct within a run, and the existence check
+ * guards against collisions with files left over from a previous run.
+ */
+function getUniqueChangesetPath(changesetDir) {
+    const timestamp = Date.now();
+    let filePath;
+    do {
+        sequence += 1;
+        filePath = `${changesetDir}/${AUTO_GENERATED_PREFIX}${timestamp}-${sequence}.md`;
+    } while (fs__default$1.existsSync(filePath));
+    return filePath;
+}
 function createChangesetFile(packageName, changeType, description) {
     const trimmedName = packageName.trim();
     const trimmedDesc = description?.trim() ?? 'No description provided.';
     const changesetContent = `---\n'${trimmedName}': ${changeType}\n---\n${trimmedDesc}\n`;
-    const changesetDir = '.changeset';
-    if (!fs__default$1.existsSync(changesetDir)) {
-        fs__default$1.mkdirSync(changesetDir);
+    if (!fs__default$1.existsSync(CHANGESET_DIR)) {
+        fs__default$1.mkdirSync(CHANGESET_DIR);
     }
-    const filePath = `${changesetDir}/auto-generated-at-${Date.now()}.md`;
+    const filePath = getUniqueChangesetPath(CHANGESET_DIR);
     fs__default$1.writeFileSync(filePath, changesetContent);
     return filePath;
 }
@@ -47065,16 +47085,25 @@ async function resolveSafeFallbackBase(git) {
     }
 }
 /**
+ * Matches the release tags changesets creates, in both layouts:
+ * `v1.2.3` / `1.2.3` for a single-package repo, and `pkg@1.2.3` /
+ * `@scope/pkg@1.2.3` for a monorepo. Matching only the bare semver form would
+ * miss every monorepo tag, which is the layout this action mainly targets.
+ */
+const VERSION_TAG_PATTERN = /^(?:.*@)?v?\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/u;
+/**
  * Finds the last published commit by looking for release tags or published commits
  */
 async function findLastPublishedCommit(git) {
     try {
-        // First, try to find the most recent release tag
-        const tags = await git.tags(['--sort=-version:refname', '--merged']);
+        // Sort by tag date rather than by refname: with monorepo tags a refname sort
+        // orders by package name first, so the "highest" tag is an arbitrary package
+        // rather than the most recent release.
+        const tags = await git.tags(['--sort=-creatordate', '--merged']);
         if (tags.all.length > 0) {
             // Find the first tag that looks like a version tag
             for (const tag of tags.all) {
-                if (/^v?\d+\.\d+\.\d+/u.test(tag)) {
+                if (VERSION_TAG_PATTERN.test(tag)) {
                     log$1.info(`Using last release tag as base: ${tag}`);
                     return tag;
                 }
@@ -47114,6 +47143,50 @@ async function findLastPublishedCommit(git) {
     }
 }
 
+function parseFileList(diff) {
+    return diff
+        .split('\n')
+        .map((file) => file.trim())
+        .filter(Boolean);
+}
+/**
+ * Returns the files touched by a single commit.
+ *
+ * Attribution has to be resolved per commit: a range diff only says which
+ * packages changed somewhere in the range, not which commit changed them, so
+ * using it directly attributes every commit to every touched package.
+ *
+ * Falling back to the range diff when a commit cannot be resolved (a root commit
+ * has no parent, for example) is deliberate. Over-attributing produces a
+ * redundant changeset, while dropping the commit would silently lose a release.
+ */
+async function getFilesForCommit(git, commit, fallbackFiles) {
+    try {
+        const diff = await git.diff([`${commit.hash}^!`, '--name-only']);
+        return { commit, files: parseFileList(diff) };
+    }
+    catch (error) {
+        log$1.warning(`Could not resolve changed files for commit ${commit.hash}: ${String(error)}. Falling back to the full range diff.`);
+        return { commit, files: fallbackFiles };
+    }
+}
+function getPackageRelativeDir(packageDir) {
+    return path__default__default.relative(process$1.cwd(), packageDir).replace(/\\/gu, '/');
+}
+function filterFilesForPackage(files, packagePath, isMonorepo) {
+    // In a single-package repo the package owns the whole tree, including root files.
+    if (!isMonorepo && (packagePath === '.' || packagePath === '')) {
+        return files;
+    }
+    return files.filter((file) => file.startsWith(`${packagePath}/`));
+}
+function addFiles(change, files) {
+    for (const file of files) {
+        if (!change.files.includes(file)) {
+            change.files.push(file);
+        }
+    }
+}
 async function getChangesSinceLastCommit() {
     const { publishablePackages, privatePackages, isMonorepo } = await getPackages();
     const git = esm_default();
@@ -47127,9 +47200,9 @@ async function getChangesSinceLastCommit() {
         // Find the base commit to compare against
         const baseCommit = await findLastPublishedCommit(git);
         log$1.info(`Found base commit for comparison: ${baseCommit}`);
-        // Get changed files since the base commit
-        const diff = await git.diff([baseCommit, 'HEAD', '--name-only']);
-        const changedFiles = diff.split('\n').filter(Boolean);
+        // Range diff, used only as a fallback when a single commit cannot be resolved
+        const rangeDiff = await git.diff([baseCommit, 'HEAD', '--name-only']);
+        const rangeFiles = parseFileList(rangeDiff);
         // Get all commits since the base commit
         const gitLog = await git.log({
             from: baseCommit,
@@ -47160,28 +47233,28 @@ async function getChangesSinceLastCommit() {
             return {};
         }
         log$1.info(`Found ${publishableCommits.length} publishable commits since ${baseCommit}`);
-        const changes = {};
-        // Only process public packages that have actual changes
-        publishablePackages.forEach((pkg) => {
-            const pkgPath = path__default__default.relative(process$1.cwd(), pkg.dir).replace(/\\/gu, '/');
-            let pkgChangedFiles;
-            // If single-package repo (pkgPath is '.' or ''), assign all changed files
-            if (!isMonorepo && (pkgPath === '.' || pkgPath === '')) {
-                pkgChangedFiles = changedFiles;
+        const commitFiles = await Promise.all(publishableCommits.map(async (commit) => getFilesForCommit(git, commit, rangeFiles)));
+        const changes = new Map();
+        // Attribute each commit only to the public packages that commit actually touched
+        for (const { commit, files } of commitFiles) {
+            for (const pkg of publishablePackages) {
+                const packagePath = getPackageRelativeDir(pkg.dir);
+                const packageFiles = filterFilesForPackage(files, packagePath, isMonorepo);
+                if (packageFiles.length > 0) {
+                    const packageName = pkg.packageJson.name;
+                    const change = changes.get(packageName) ?? {
+                        files: [],
+                        commits: [],
+                        version: pkg.packageJson.version,
+                        private: pkg.packageJson.private ?? false,
+                    };
+                    changes.set(packageName, change);
+                    addFiles(change, packageFiles);
+                    change.commits.push(commit);
+                }
             }
-            else {
-                pkgChangedFiles = changedFiles.filter((file) => file.startsWith(`${pkgPath}/`) || file === `${pkgPath}/package.json`);
-            }
-            if (pkgChangedFiles.length > 0) {
-                changes[pkg.packageJson.name] = {
-                    files: pkgChangedFiles,
-                    commits: publishableCommits,
-                    version: pkg.packageJson.version,
-                    private: pkg.packageJson.private ?? false,
-                };
-            }
-        });
-        return changes;
+        }
+        return Object.fromEntries(changes);
     }
     catch (error) {
         log$1.error(`Error getting changes: ${String(error)}`);
