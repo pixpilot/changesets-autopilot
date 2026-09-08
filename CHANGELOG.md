@@ -1,3 +1,10 @@
+## [1.5.5](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.4...v1.5.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* update git change detection logic ([5ccaf60](https://github.com/pixpilot/changesets-autopilot/commit/5ccaf600bc93552fdc48732538cdec289cc4cbce))
+
 ## [1.5.4](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.3...v1.5.4) (2026-05-17)
 
 
