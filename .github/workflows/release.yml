@@ -39,7 +39,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Project
-        uses: ./.github/actions/setup-project
+        uses: pixpilot/github-actions/setup-pnpm-project@v1
 
       - name: Build dist
         run: npm run bundle

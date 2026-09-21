@@ -34,7 +34,7 @@ jobs:
 
       - name: Setup Project
         id: setup-project
-        uses: ./.github/actions/setup-project
+        uses: pixpilot/github-actions/setup-pnpm-project@v1
 
       - name: Build dist
         id: npm-package
@@ -70,7 +70,7 @@ jobs:
 
       - name: Setup Project
         id: setup-project
-        uses: ./.github/actions/setup-project
+        uses: pixpilot/github-actions/setup-pnpm-project@v1
 
       - name: Build dist
         id: npm-package

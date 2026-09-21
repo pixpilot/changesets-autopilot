@@ -31,7 +31,7 @@ jobs:
 
       - name: Setup Project
         id: setup-project
-        uses: ./.github/actions/setup-project
+        uses: pixpilot/github-actions/setup-pnpm-project@v1
 
       - name: Setup Ruby
         id: setup-ruby

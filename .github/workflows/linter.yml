@@ -41,7 +41,7 @@ jobs:
       # Setup the project with pnpm and install dependencies.
       - name: Setup Project
         id: setup-project
-        uses: ./.github/actions/setup-project
+        uses: pixpilot/github-actions/setup-pnpm-project@v1
 
       # Run project linting (includes TypeScript via ESLint)
       - name: Lint TypeScript and JavaScript
