@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.5...v1.6.0) (2026-09-21)
+
+
+### Bug Fixes
+
+* **inputs:** correct formatting in REGISTRY_TOKEN description ([9aa554e](https://github.com/pixpilot/changesets-autopilot/commit/9aa554ecdc5e7b761faef492aea597425317a686))
+
+
+### Features
+
+* **inputs:** replace `NPM_TOKEN` with `REGISTRY_TOKEN` ([6a74b46](https://github.com/pixpilot/changesets-autopilot/commit/6a74b46951828485b490d124ce92affdc066b6e4))
+
 ## [1.5.5](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.4...v1.5.5) (2026-08-22)
 
 
