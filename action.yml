@@ -12,9 +12,17 @@ inputs:
   GITHUB_TOKEN:
     description: GitHub token for authentication
     required: true
-  NPM_TOKEN:
-    description: NPM token for publishing
+  REGISTRY_TOKEN:
+    description: >-
+      Token used to authenticate against the registry each package publishes to.
+      For npmjs use an npm automation token; for GitHub Packages use
+      ${{ secrets.GITHUB_TOKEN }} (needs permissions.packages: write). Leave
+      empty to use npm Trusted Publisher (OIDC), which npmjs supports only.
     required: false
+  NPM_TOKEN:
+    description: Deprecated alias for REGISTRY_TOKEN. Use REGISTRY_TOKEN instead.
+    required: false
+    deprecationMessage: Use REGISTRY_TOKEN instead; NPM_TOKEN also covers non-npm registries and the name is misleading.
   BOT_NAME:
     description: Optional bot name
     required: false

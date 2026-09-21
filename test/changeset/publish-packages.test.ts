@@ -17,7 +17,7 @@ vi.mock('@manypkg/get-packages', () => ({
 }));
 
 describe('publishPackages', () => {
-  const npmToken = 'test-token';
+  const registryToken = 'test-token';
   let mockGetPackages: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
@@ -44,7 +44,7 @@ describe('publishPackages', () => {
 
   it('publishes with tag if channel is provided', async () => {
     const branchConfig = { name: 'next', isMatch: true, channel: 'next' };
-    const result = await publishPackages(branchConfig, npmToken);
+    const result = await publishPackages(branchConfig, registryToken);
     expect(core.info).toHaveBeenCalledWith('Using custom dist-tag: next');
     expect(core.info).toHaveBeenCalledWith('Auth mode: token');
     expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
@@ -53,7 +53,7 @@ describe('publishPackages', () => {
       'npx changeset publish --tag next',
       expect.objectContaining({
         encoding: 'utf8',
-        env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
+        env: expect.objectContaining({ NODE_AUTH_TOKEN: registryToken }),
       }),
     );
     expect(Array.isArray(result)).toBe(true);
@@ -61,7 +61,7 @@ describe('publishPackages', () => {
 
   it('publishes without tag if channel is not provided', async () => {
     const branchConfig = { name: 'main', isMatch: true };
-    const result = await publishPackages(branchConfig, npmToken);
+    const result = await publishPackages(branchConfig, registryToken);
     expect(core.info).toHaveBeenCalledWith('Auth mode: token');
     expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
     expect(core.info).toHaveBeenCalledWith('Publishing packages...');
@@ -69,7 +69,7 @@ describe('publishPackages', () => {
       'npx changeset publish',
       expect.objectContaining({
         encoding: 'utf8',
-        env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
+        env: expect.objectContaining({ NODE_AUTH_TOKEN: registryToken }),
       }),
     );
     expect(Array.isArray(result)).toBe(true);
@@ -104,7 +104,7 @@ describe('publishPackages', () => {
       ],
     });
 
-    const result = await publishPackages(branchConfig, npmToken);
+    const result = await publishPackages(branchConfig, registryToken);
     expect(result).toHaveLength(1);
     expect(result[0].packageJson.name).toBe('@pixpilot/pkg-a');
     expect(result[0].packageJson.version).toBe('1.0.1');
@@ -131,7 +131,7 @@ describe('publishPackages', () => {
       ],
     });
 
-    const result = await publishPackages(branchConfig, npmToken);
+    const result = await publishPackages(branchConfig, registryToken);
     expect(result).toHaveLength(0); // Private packages should be excluded
   });
   it('publishes without tag in prerelease mode even if channel is provided', async () => {
@@ -145,7 +145,7 @@ describe('publishPackages', () => {
     // Mock fs.existsSync to return true (in prerelease mode)
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
-    const result = await publishPackages(branchConfig, npmToken);
+    const result = await publishPackages(branchConfig, registryToken);
 
     expect(core.info).toHaveBeenCalledWith(
       'In prerelease mode - changeset will handle dist-tag automatically',
@@ -158,7 +158,7 @@ describe('publishPackages', () => {
       'npx changeset publish',
       expect.objectContaining({
         encoding: 'utf8',
-        env: expect.objectContaining({ NODE_AUTH_TOKEN: npmToken }),
+        env: expect.objectContaining({ NODE_AUTH_TOKEN: registryToken }),
       }),
     );
     expect(Array.isArray(result)).toBe(true);
@@ -192,7 +192,7 @@ describe('publishPackages', () => {
   it('sets provenance env when explicit provenance flag is true', async () => {
     const branchConfig = { name: 'main', isMatch: true };
 
-    await publishPackages(branchConfig, npmToken, true);
+    await publishPackages(branchConfig, registryToken, true);
 
     expect(core.info).toHaveBeenCalledWith('Auth mode: token');
     expect(core.info).toHaveBeenCalledWith('Provenance: enabled');
@@ -200,7 +200,64 @@ describe('publishPackages', () => {
     const execCallArgs = vi.mocked(execSync).mock.calls[0][1] as {
       env: NodeJS.ProcessEnv;
     };
-    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBe(npmToken);
+    expect(execCallArgs.env.NODE_AUTH_TOKEN).toBe(registryToken);
     expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBe('true');
+  });
+  describe('custom publish registries', () => {
+    const githubRegistry = 'https://npm.pkg.github.com';
+
+    function mockGithubPackagesWorkspace(): void {
+      mockGetPackages.mockResolvedValue({
+        packages: [
+          {
+            dir: '/packages/billing-react',
+            packageJson: {
+              name: '@pixpilot-private/billing-react',
+              version: '1.0.0',
+              private: false,
+              publishConfig: { registry: githubRegistry },
+            },
+          },
+        ],
+      });
+    }
+
+    it('logs the registry resolved from publishConfig.registry', async () => {
+      mockGithubPackagesWorkspace();
+      const branchConfig = { name: 'main', isMatch: true };
+
+      await publishPackages(branchConfig, registryToken);
+
+      expect(core.info).toHaveBeenCalledWith(
+        `Custom publish registries: ${githubRegistry}`,
+      );
+    });
+
+    it('disables provenance because only npmjs supports attestation', async () => {
+      mockGithubPackagesWorkspace();
+      const branchConfig = { name: 'main', isMatch: true };
+
+      await publishPackages(branchConfig, registryToken, true);
+
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Provenance attestation is only supported by'),
+      );
+      expect(core.info).toHaveBeenCalledWith('Provenance: disabled');
+
+      const execCallArgs = vi.mocked(execSync).mock.calls[0][1] as {
+        env: NodeJS.ProcessEnv;
+      };
+      expect(execCallArgs.env.NPM_CONFIG_PROVENANCE).toBeUndefined();
+    });
+
+    it('refuses OIDC mode because trusted publishing is npmjs-only', async () => {
+      mockGithubPackagesWorkspace();
+      const branchConfig = { name: 'main', isMatch: true };
+
+      await expect(publishPackages(branchConfig)).rejects.toThrow(
+        /OIDC trusted publisher mode is only supported by/u,
+      );
+      expect(execSync).not.toHaveBeenCalled();
+    });
   });
 });

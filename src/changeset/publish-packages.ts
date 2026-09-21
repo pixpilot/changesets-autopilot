@@ -10,6 +10,8 @@ import { getPackages } from '@manypkg/get-packages';
 import { changesetDir } from '../changeset/changesets';
 import { log } from '../utils/log';
 import { parsePublishedPackageNames } from '../utils/parse-published-packages';
+import { getCustomPublishRegistries, NPM_REGISTRY } from '../utils/publish-registry';
+import { validatePublishAuth } from '../utils/validate-publish-auth';
 
 function getPublishErrorDetails(error: unknown): string {
   if (error instanceof Error) {
@@ -21,12 +23,12 @@ function getPublishErrorDetails(error: unknown): string {
 
 export async function publishPackages(
   branchConfig: ResolvedBranchConfig,
-  npmToken?: string,
+  registryToken?: string,
   provenance = false,
 ): Promise<Package[]> {
   const preJsonPath = path.join(changesetDir, 'pre.json');
   const isInPrereleaseMode = fs.existsSync(preJsonPath);
-  const isTokenMode = typeof npmToken === 'string' && npmToken.length > 0;
+  const isTokenMode = typeof registryToken === 'string' && registryToken.length > 0;
   const hasChannel =
     typeof branchConfig.channel === 'string' && branchConfig.channel.length > 0;
 
@@ -41,14 +43,30 @@ export async function publishPackages(
     log.info(`Using custom dist-tag: ${branchConfig.channel}`);
   }
 
+  // changeset publish reads publishConfig.registry per package; mirror that resolution
+  // so auth/provenance are validated against the registry actually being published to.
+  const customRegistries = await getCustomPublishRegistries();
+  validatePublishAuth(isTokenMode, customRegistries);
+
+  let useProvenance = provenance;
+  if (provenance && customRegistries.length > 0) {
+    useProvenance = false;
+    log.warning(
+      `Provenance attestation is only supported by ${NPM_REGISTRY}; disabling it because publishable packages target: ${customRegistries.join(', ')}.`,
+    );
+  }
+
   log.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
-  log.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
+  log.info(`Provenance: ${useProvenance ? 'enabled' : 'disabled'}`);
+  if (customRegistries.length > 0) {
+    log.info(`Custom publish registries: ${customRegistries.join(', ')}`);
+  }
 
   log.info(`Publishing packages...`);
 
   const publishEnv: NodeJS.ProcessEnv = { ...process.env };
   if (isTokenMode) {
-    publishEnv.NODE_AUTH_TOKEN = npmToken;
+    publishEnv.NODE_AUTH_TOKEN = registryToken;
   } else {
     // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
     publishEnv.NODE_AUTH_TOKEN = '';
@@ -58,7 +76,7 @@ export async function publishPackages(
     );
   }
 
-  if (provenance) {
+  if (useProvenance) {
     publishEnv.NPM_CONFIG_PROVENANCE = 'true';
   }
 
@@ -73,7 +91,7 @@ export async function publishPackages(
     const details = getPublishErrorDetails(error);
     if (isTokenMode) {
       throw new Error(
-        `Publishing failed in token mode. Verify NPM_TOKEN has publish access. Details: ${details}`,
+        `Publishing failed in token mode. Verify REGISTRY_TOKEN has publish access to the target registry. Details: ${details}`,
       );
     }
 

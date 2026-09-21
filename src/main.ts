@@ -14,7 +14,9 @@ import { createReleasesForPackages } from './github/create-releases-for-packages
 import { pushChangesetTags } from './github/push-changeset-tags';
 import { getPackagesToRelease } from './utils/get-release-plan';
 import { log } from './utils/log';
+import { getCustomPublishRegistries } from './utils/publish-registry';
 import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
+import { validatePublishAuth } from './utils/validate-publish-auth';
 
 /**
  * The main function for the action.
@@ -27,7 +29,7 @@ export async function run(): Promise<void> {
     // Initialize inputs and configuration
     const {
       githubToken,
-      npmToken,
+      registryToken,
       botName,
       branches,
       createRelease: shouldCreateRelease,
@@ -56,8 +58,13 @@ export async function run(): Promise<void> {
 
     // Version and push changes if we have changesets
     if (hasChangesetReleaseFiles) {
-      const hasNpmToken = typeof npmToken === 'string' && npmToken.length > 0;
-      if (!hasNpmToken) {
+      const hasRegistryToken =
+        typeof registryToken === 'string' && registryToken.length > 0;
+      if (!hasRegistryToken) {
+        // Validate before versioning/pushing so an unpublishable auth setup
+        // does not leave a release commit behind.
+        const customRegistries = await getCustomPublishRegistries();
+        validatePublishAuth(hasRegistryToken, customRegistries);
         validateOidcNodeRuntime();
       }
 
@@ -71,14 +78,18 @@ export async function run(): Promise<void> {
 
       await commitAndPush(git, githubToken, packagesToRelease);
 
-      if (hasNpmToken) {
+      if (hasRegistryToken) {
         log.info('Using npm authentication mode: token mode');
       } else {
         log.info('Using npm authentication mode: OIDC trusted publisher mode');
       }
 
       const provenance = log.getInput('provenance') === 'true';
-      const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+      const releasedPackages = await publishPackages(
+        branchConfig,
+        registryToken,
+        provenance,
+      );
 
       if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
         throw new Error(

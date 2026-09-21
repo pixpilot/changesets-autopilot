@@ -47,6 +47,28 @@ function getDefaultBranches(): (string | BranchConfig)[] {
   }
 }
 
+/**
+ * Resolves the registry auth token, accepting the legacy `NPM_TOKEN` name.
+ * The token is not npm-specific: it authenticates whichever registry a package
+ * pins through `publishConfig.registry`, e.g. GitHub Packages.
+ */
+function getRegistryToken(): string | undefined {
+  const registryToken = log.getInput('REGISTRY_TOKEN');
+  if (registryToken.length > 0) {
+    return registryToken;
+  }
+
+  const legacyToken = log.getInput('NPM_TOKEN');
+  if (legacyToken.length > 0) {
+    log.warning(
+      'NPM_TOKEN is deprecated because it also authenticates non-npm registries. Rename the input to REGISTRY_TOKEN.',
+    );
+    return legacyToken;
+  }
+
+  return undefined;
+}
+
 export function getActionInputs(): ActionInputs {
   const branchesInput = log.getInput('BRANCHES');
   let branches: (string | BranchConfig)[];
@@ -78,7 +100,7 @@ export function getActionInputs(): ActionInputs {
   const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
   return {
     githubToken: log.getInput('GITHUB_TOKEN', { required: true }),
-    npmToken: log.getInput('NPM_TOKEN') || undefined,
+    registryToken: getRegistryToken(),
     botName: log.getInput('BOT_NAME') || 'changesets-autopilot',
     branches,
     createRelease: shouldCreateRelease,

@@ -20,7 +20,7 @@ describe('getActionInputs', () => {
   beforeEach(() => {
     getInput.mockImplementation((name: string) => {
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       if (name === 'BOT_NAME') return '';
       if (name === 'BRANCHES') return '';
       return '';
@@ -38,7 +38,7 @@ describe('getActionInputs', () => {
     const result = getActionInputs();
     expect(result).toStrictEqual({
       githubToken: 'gh-token',
-      npmToken: 'npm-token',
+      registryToken: 'registry-token',
       botName: 'changesets-autopilot',
       branches: ['main', 'master', { name: 'next', prerelease: 'rc', channel: 'next' }],
       createRelease: true,
@@ -87,7 +87,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return '- main\n- name: dev\n  channel: dev';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
 
@@ -105,7 +105,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return 'not: yaml: array';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -136,7 +136,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BOT_NAME') return 'custom-bot';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -149,7 +149,7 @@ describe('getActionInputs', () => {
         throw new Error(`Input required and not supplied: ${name}`);
       }
       if (name === 'GITHUB_TOKEN') return '';
-      if (name === 'NPM_TOKEN') return '';
+      if (name === 'REGISTRY_TOKEN') return '';
       return '';
     });
     expect(() => getActionInputs()).toThrow();
@@ -158,18 +158,18 @@ describe('getActionInputs', () => {
   it('allows missing npm token for OIDC publishing', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return '';
+      if (name === 'REGISTRY_TOKEN') return '';
       return '';
     });
 
     const result = getActionInputs();
-    expect(result.npmToken).toBeUndefined();
+    expect(result.registryToken).toBeUndefined();
   });
 
   it('defaults autoChangeset to false when AUTO_CHANGESET input is not provided', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -180,7 +180,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'AUTO_CHANGESET') return 'true';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -191,7 +191,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'AUTO_CHANGESET') return 'false';
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -202,7 +202,7 @@ describe('getActionInputs', () => {
     getInput.mockImplementation((name: string) => {
       if (name === 'BRANCHES') return 'foo: bar'; // valid YAML object, not array
       if (name === 'GITHUB_TOKEN') return 'gh-token';
-      if (name === 'NPM_TOKEN') return 'npm-token';
+      if (name === 'REGISTRY_TOKEN') return 'registry-token';
       return '';
     });
     const result = getActionInputs();
@@ -214,5 +214,42 @@ describe('getActionInputs', () => {
       'master',
       { name: 'next', prerelease: 'rc', channel: 'next' },
     ]);
+  });
+  describe('registry token resolution', () => {
+    it('prefers REGISTRY_TOKEN over the deprecated NPM_TOKEN', () => {
+      getInput.mockImplementation((name: string) => {
+        if (name === 'GITHUB_TOKEN') return 'gh-token';
+        if (name === 'REGISTRY_TOKEN') return 'registry-token';
+        if (name === 'NPM_TOKEN') return 'legacy-token';
+        return '';
+      });
+
+      expect(getActionInputs().registryToken).toBe('registry-token');
+      expect(warning).not.toHaveBeenCalledWith(
+        expect.stringContaining('NPM_TOKEN is deprecated'),
+      );
+    });
+
+    it('falls back to NPM_TOKEN and warns that it is deprecated', () => {
+      getInput.mockImplementation((name: string) => {
+        if (name === 'GITHUB_TOKEN') return 'gh-token';
+        if (name === 'NPM_TOKEN') return 'legacy-token';
+        return '';
+      });
+
+      expect(getActionInputs().registryToken).toBe('legacy-token');
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining('NPM_TOKEN is deprecated'),
+      );
+    });
+
+    it('is undefined when neither input is set', () => {
+      getInput.mockImplementation((name: string) => {
+        if (name === 'GITHUB_TOKEN') return 'gh-token';
+        return '';
+      });
+
+      expect(getActionInputs().registryToken).toBeUndefined();
+    });
   });
 });

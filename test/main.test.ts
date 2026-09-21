@@ -107,7 +107,7 @@ describe('main.js', () => {
     // Default return values
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
     });
@@ -188,7 +188,7 @@ describe('main.js', () => {
   it('should use OIDC publish mode if npm token is missing', async () => {
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: undefined,
+      registryToken: undefined,
       botName: 'test-bot',
       branches: ['main'],
     });
@@ -280,7 +280,7 @@ describe('main.js', () => {
     const mockInfo = vi.spyOn(coreModule, 'info');
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: undefined,
+      registryToken: undefined,
       botName: 'test-bot',
       branches: ['main'],
     });
@@ -298,7 +298,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -335,7 +335,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -355,7 +355,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -371,7 +371,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -387,7 +387,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -404,7 +404,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: '',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: true,
@@ -420,7 +420,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       pushTags: false,
@@ -436,7 +436,7 @@ describe('main.js', () => {
     mockHasChangesetFiles.mockReturnValue(true);
     mockGetActionInputs.mockReturnValue({
       githubToken: 'test-token',
-      npmToken: 'test-npm-token',
+      registryToken: 'test-npm-token',
       botName: 'test-bot',
       branches: ['main'],
       autoChangeset: true,
@@ -454,7 +454,7 @@ describe('main.js', () => {
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
-        npmToken: 'test-npm-token',
+        registryToken: 'test-npm-token',
         botName: 'test-bot',
         branches: ['main'],
         pushTags: true,
@@ -480,7 +480,7 @@ describe('main.js', () => {
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
-        npmToken: 'test-npm-token',
+        registryToken: 'test-npm-token',
         botName: 'test-bot',
         branches: ['main'],
       });
@@ -499,7 +499,7 @@ describe('main.js', () => {
       mockHasChangesetFiles.mockReturnValue(true);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
-        npmToken: undefined,
+        registryToken: undefined,
         botName: 'test-bot',
         branches: ['main'],
       });
@@ -519,7 +519,7 @@ describe('main.js', () => {
       mockHasChangesetFiles.mockReturnValue(false);
       mockGetActionInputs.mockReturnValue({
         githubToken: 'test-token',
-        npmToken: 'test-npm-token',
+        registryToken: 'test-npm-token',
         botName: 'test-bot',
         branches: ['main'],
       });

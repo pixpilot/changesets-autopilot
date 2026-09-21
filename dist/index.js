@@ -8,9 +8,9 @@ import * as os from 'os';
 import os__default, { EOL } from 'os';
 import * as crypto from 'crypto';
 import * as require$$0 from 'fs';
-import require$$0__default, { promises, constants as constants$a, statSync, stat as stat$2, realpathSync, realpath, readdirSync, readdir as readdir$1 } from 'fs';
+import require$$0__default, { promises, constants as constants$a } from 'fs';
 import * as path$1 from 'path';
-import path__default$1, { sep as sep$1, basename, dirname, resolve, normalize as normalize$1, relative, posix, isAbsolute } from 'path';
+import path__default$1, { sep as sep$1, basename, dirname, resolve, normalize as normalize$1, relative, posix } from 'path';
 import * as http from 'http';
 import http__default from 'http';
 import * as https from 'https';
@@ -327,7 +327,7 @@ function getAugmentedNamespace(n) {
 			var isInstance = false;
       try {
         isInstance = this instanceof a;
-      } catch (e) {}
+      } catch {}
 			if (isInstance) {
         return Reflect.construct(f, arguments, this.constructor);
 			}
@@ -32730,17 +32730,17 @@ var init_line_parser = __esm({
 function createInstanceConfig(...options) {
   const baseDir = process.cwd();
   const config = Object.assign(
-    { baseDir, ...defaultOptions$2 },
+    { baseDir, ...defaultOptions$1 },
     ...options.filter((o) => typeof o === "object" && o)
   );
   config.baseDir = config.baseDir || baseDir;
   config.trimmed = config.trimmed === true;
   return config;
 }
-var defaultOptions$2;
+var defaultOptions$1;
 var init_simple_git_options = __esm({
   "src/lib/utils/simple-git-options.ts"() {
-    defaultOptions$2 = {
+    defaultOptions$1 = {
       binary: "git",
       maxConcurrentProcesses: 5,
       config: [],
@@ -37023,7 +37023,7 @@ function assignMatchedCorrespondence(target, matches, correspondence) {
     return target;
 }
 
-const defaultOptions$1 = {
+const defaultOptions = {
     noteKeywords: ['BREAKING CHANGE', 'BREAKING-CHANGE'],
     issuePrefixes: ['#'],
     referenceActions: [
@@ -37078,7 +37078,7 @@ class CommitParser {
     commit = createCommitObject();
     constructor(options = {}) {
         this.options = {
-            ...defaultOptions$1,
+            ...defaultOptions,
             ...options
         };
         this.regexes = getParserRegexes(this.options);
@@ -38058,8 +38058,6 @@ function requireConstants$4 () {
 	const WIN_SLASH = '\\\\/';
 	const WIN_NO_SLASH = `[^${WIN_SLASH}]`;
 
-	const DEFAULT_MAX_EXTGLOB_RECURSION = 0;
-
 	/**
 	 * Posix glob regex
 	 */
@@ -38126,7 +38124,6 @@ function requireConstants$4 () {
 	 */
 
 	const POSIX_REGEX_SOURCE = {
-	  __proto__: null,
 	  alnum: 'a-zA-Z0-9',
 	  alpha: 'a-zA-Z',
 	  ascii: '\\x00-\\x7F',
@@ -38144,7 +38141,6 @@ function requireConstants$4 () {
 	};
 
 	constants$4 = {
-	  DEFAULT_MAX_EXTGLOB_RECURSION,
 	  MAX_LENGTH: 1024 * 64,
 	  POSIX_REGEX_SOURCE,
 
@@ -38773,277 +38769,6 @@ function requireParse$5 () {
 	  return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
 	};
 
-	const splitTopLevel = input => {
-	  const parts = [];
-	  let bracket = 0;
-	  let paren = 0;
-	  let quote = 0;
-	  let value = '';
-	  let escaped = false;
-
-	  for (const ch of input) {
-	    if (escaped === true) {
-	      value += ch;
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      value += ch;
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (ch === '"') {
-	      quote = quote === 1 ? 0 : 1;
-	      value += ch;
-	      continue;
-	    }
-
-	    if (quote === 0) {
-	      if (ch === '[') {
-	        bracket++;
-	      } else if (ch === ']' && bracket > 0) {
-	        bracket--;
-	      } else if (bracket === 0) {
-	        if (ch === '(') {
-	          paren++;
-	        } else if (ch === ')' && paren > 0) {
-	          paren--;
-	        } else if (ch === '|' && paren === 0) {
-	          parts.push(value);
-	          value = '';
-	          continue;
-	        }
-	      }
-	    }
-
-	    value += ch;
-	  }
-
-	  parts.push(value);
-	  return parts;
-	};
-
-	const isPlainBranch = branch => {
-	  let escaped = false;
-
-	  for (const ch of branch) {
-	    if (escaped === true) {
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (/[?*+@!()[\]{}]/.test(ch)) {
-	      return false;
-	    }
-	  }
-
-	  return true;
-	};
-
-	const normalizeSimpleBranch = branch => {
-	  let value = branch.trim();
-	  let changed = true;
-
-	  while (changed === true) {
-	    changed = false;
-
-	    if (/^@\([^\\()[\]{}|]+\)$/.test(value)) {
-	      value = value.slice(2, -1);
-	      changed = true;
-	    }
-	  }
-
-	  if (!isPlainBranch(value)) {
-	    return;
-	  }
-
-	  return value.replace(/\\(.)/g, '$1');
-	};
-
-	const hasRepeatedCharPrefixOverlap = branches => {
-	  const values = branches.map(normalizeSimpleBranch).filter(Boolean);
-
-	  for (let i = 0; i < values.length; i++) {
-	    for (let j = i + 1; j < values.length; j++) {
-	      const a = values[i];
-	      const b = values[j];
-	      const char = a[0];
-
-	      if (!char || a !== char.repeat(a.length) || b !== char.repeat(b.length)) {
-	        continue;
-	      }
-
-	      if (a === b || a.startsWith(b) || b.startsWith(a)) {
-	        return true;
-	      }
-	    }
-	  }
-
-	  return false;
-	};
-
-	const parseRepeatedExtglob = (pattern, requireEnd = true) => {
-	  if ((pattern[0] !== '+' && pattern[0] !== '*') || pattern[1] !== '(') {
-	    return;
-	  }
-
-	  let bracket = 0;
-	  let paren = 0;
-	  let quote = 0;
-	  let escaped = false;
-
-	  for (let i = 1; i < pattern.length; i++) {
-	    const ch = pattern[i];
-
-	    if (escaped === true) {
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (ch === '"') {
-	      quote = quote === 1 ? 0 : 1;
-	      continue;
-	    }
-
-	    if (quote === 1) {
-	      continue;
-	    }
-
-	    if (ch === '[') {
-	      bracket++;
-	      continue;
-	    }
-
-	    if (ch === ']' && bracket > 0) {
-	      bracket--;
-	      continue;
-	    }
-
-	    if (bracket > 0) {
-	      continue;
-	    }
-
-	    if (ch === '(') {
-	      paren++;
-	      continue;
-	    }
-
-	    if (ch === ')') {
-	      paren--;
-
-	      if (paren === 0) {
-	        if (requireEnd === true && i !== pattern.length - 1) {
-	          return;
-	        }
-
-	        return {
-	          type: pattern[0],
-	          body: pattern.slice(2, i),
-	          end: i
-	        };
-	      }
-	    }
-	  }
-	};
-
-	const getStarExtglobSequenceOutput = pattern => {
-	  let index = 0;
-	  const chars = [];
-
-	  while (index < pattern.length) {
-	    const match = parseRepeatedExtglob(pattern.slice(index), false);
-
-	    if (!match || match.type !== '*') {
-	      return;
-	    }
-
-	    const branches = splitTopLevel(match.body).map(branch => branch.trim());
-	    if (branches.length !== 1) {
-	      return;
-	    }
-
-	    const branch = normalizeSimpleBranch(branches[0]);
-	    if (!branch || branch.length !== 1) {
-	      return;
-	    }
-
-	    chars.push(branch);
-	    index += match.end + 1;
-	  }
-
-	  if (chars.length < 1) {
-	    return;
-	  }
-
-	  const source = chars.length === 1
-	    ? utils.escapeRegex(chars[0])
-	    : `[${chars.map(ch => utils.escapeRegex(ch)).join('')}]`;
-
-	  return `${source}*`;
-	};
-
-	const repeatedExtglobRecursion = pattern => {
-	  let depth = 0;
-	  let value = pattern.trim();
-	  let match = parseRepeatedExtglob(value);
-
-	  while (match) {
-	    depth++;
-	    value = match.body.trim();
-	    match = parseRepeatedExtglob(value);
-	  }
-
-	  return depth;
-	};
-
-	const analyzeRepeatedExtglob = (body, options) => {
-	  if (options.maxExtglobRecursion === false) {
-	    return { risky: false };
-	  }
-
-	  const max =
-	    typeof options.maxExtglobRecursion === 'number'
-	      ? options.maxExtglobRecursion
-	      : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
-
-	  const branches = splitTopLevel(body).map(branch => branch.trim());
-
-	  if (branches.length > 1) {
-	    if (
-	      branches.some(branch => branch === '') ||
-	      branches.some(branch => /^[*?]+$/.test(branch)) ||
-	      hasRepeatedCharPrefixOverlap(branches)
-	    ) {
-	      return { risky: true };
-	    }
-	  }
-
-	  for (const branch of branches) {
-	    const safeOutput = getStarExtglobSequenceOutput(branch);
-	    if (safeOutput) {
-	      return { risky: true, safeOutput };
-	    }
-
-	    if (repeatedExtglobRecursion(branch) > max) {
-	      return { risky: true };
-	    }
-	  }
-
-	  return { risky: false };
-	};
-
 	/**
 	 * Parse the given input string.
 	 * @param {String} input
@@ -39224,8 +38949,6 @@ function requireParse$5 () {
 	    token.prev = prev;
 	    token.parens = state.parens;
 	    token.output = state.output;
-	    token.startIndex = state.index;
-	    token.tokensIndex = tokens.length;
 	    const output = (opts.capture ? '(' : '') + token.open;
 
 	    increment('parens');
@@ -39235,34 +38958,6 @@ function requireParse$5 () {
 	  };
 
 	  const extglobClose = token => {
-	    const literal = input.slice(token.startIndex, state.index + 1);
-	    const body = input.slice(token.startIndex + 2, state.index);
-	    const analysis = analyzeRepeatedExtglob(body, opts);
-
-	    if ((token.type === 'plus' || token.type === 'star') && analysis.risky) {
-	      const safeOutput = analysis.safeOutput
-	        ? (token.output ? '' : ONE_CHAR) + (opts.capture ? `(${analysis.safeOutput})` : analysis.safeOutput)
-	        : undefined;
-	      const open = tokens[token.tokensIndex];
-
-	      open.type = 'text';
-	      open.value = literal;
-	      open.output = safeOutput || utils.escapeRegex(literal);
-
-	      for (let i = token.tokensIndex + 1; i < tokens.length; i++) {
-	        tokens[i].value = '';
-	        tokens[i].output = '';
-	        delete tokens[i].suffix;
-	      }
-
-	      state.output = token.output + open.output;
-	      state.backtrack = true;
-
-	      push({ type: 'paren', extglob: true, value, output: '' });
-	      decrement('parens');
-	      return;
-	    }
-
 	    let output = token.close + (opts.capture ? ')' : '');
 	    let rest;
 
@@ -40355,14 +40050,6 @@ function requirePicomatch$3 () {
 	 * Compile a regular expression from the `state` object returned by the
 	 * [parse()](#parse) method.
 	 *
-	 * ```js
-	 * const picomatch = require('picomatch');
-	 * const state = picomatch.parse('*.js');
-	 * // picomatch.compileRe(state[, options]);
-	 *
-	 * console.log(picomatch.compileRe(state));
-	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
-	 * ```
 	 * @param {Object} `state`
 	 * @param {Object} `options`
 	 * @param {Boolean} `returnOutput` Intended for implementors, this argument allows you to return the raw output from the parser.
@@ -40398,10 +40085,10 @@ function requirePicomatch$3 () {
 	 *
 	 * ```js
 	 * const picomatch = require('picomatch');
-	 * // picomatch.makeRe(state[, options]);
+	 * const state = picomatch.parse('*.js');
+	 * // picomatch.compileRe(state[, options]);
 	 *
-	 * const result = picomatch.makeRe('*.js');
-	 * console.log(result);
+	 * console.log(picomatch.compileRe(state));
 	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
 	 * ```
 	 * @param {String} `state` The object returned from the `.parse` method.
@@ -40502,37 +40189,36 @@ var picomatch$1 = /*@__PURE__*/getDefaultExportFromCjs(picomatchExports);
 
 //#region src/utils.ts
 const isReadonlyArray = Array.isArray;
-const BACKSLASHES = /\\/g;
-const DRIVE_RELATIVE_PATH = /^[A-Za-z]:$/;
 const isWin = process.platform === "win32";
 const ONLY_PARENT_DIRECTORIES = /^(\/?\.\.)+$/;
 function getPartialMatcher(patterns, options = {}) {
 	const patternsCount = patterns.length;
 	const patternsParts = Array(patternsCount);
 	const matchers = Array(patternsCount);
-	let i, j;
-	for (i = 0; i < patternsCount; i++) {
+	const globstarEnabled = !options.noglobstar;
+	for (let i = 0; i < patternsCount; i++) {
 		const parts = splitPattern(patterns[i]);
 		patternsParts[i] = parts;
 		const partsCount = parts.length;
 		const partMatchers = Array(partsCount);
-		for (j = 0; j < partsCount; j++) partMatchers[j] = picomatch$1(parts[j], options);
+		for (let j = 0; j < partsCount; j++) partMatchers[j] = picomatch$1(parts[j], options);
 		matchers[i] = partMatchers;
 	}
 	return (input) => {
 		const inputParts = input.split("/");
 		if (inputParts[0] === ".." && ONLY_PARENT_DIRECTORIES.test(input)) return true;
-		for (i = 0; i < patternsCount; i++) {
+		for (let i = 0; i < patterns.length; i++) {
 			const patternParts = patternsParts[i];
 			const matcher = matchers[i];
 			const inputPatternCount = inputParts.length;
 			const minParts = Math.min(inputPatternCount, patternParts.length);
-			j = 0;
+			let j = 0;
 			while (j < minParts) {
 				const part = patternParts[j];
 				if (part.includes("/")) return true;
-				if (!matcher[j](inputParts[j])) break;
-				if (!options.noglobstar && part === "**") return true;
+				const match = matcher[j](inputParts[j]);
+				if (!match) break;
+				if (globstarEnabled && part === "**") return true;
 				j++;
 			}
 			if (j === inputPatternCount) return true;
@@ -40546,7 +40232,7 @@ const isRoot = isWin ? (p) => WIN32_ROOT_DIR.test(p) : (p) => p === "/";
 function buildFormat(cwd, root, absolute) {
 	if (cwd === root || root.startsWith(`${cwd}/`)) {
 		if (absolute) {
-			const start = cwd.length + +!isRoot(cwd);
+			const start = isRoot(cwd) ? cwd.length : cwd.length + 1;
 			return (p, isDir) => p.slice(start, isDir ? -1 : void 0) || ".";
 		}
 		const prefix = root.slice(cwd.length + 1);
@@ -40567,22 +40253,20 @@ function buildRelative(cwd, root) {
 	}
 	return (p) => {
 		const result = posix.relative(cwd, `${root}/${p}`);
-		return p[p.length - 1] === "/" && result !== "" ? `${result}/` : result || ".";
+		if (p.endsWith("/") && result !== "") return `${result}/`;
+		return result || ".";
 	};
 }
-function ensureNonDriveRelativePath(path) {
-	return path.replace(DRIVE_RELATIVE_PATH, (match) => `${match}/`);
-}
 const splitPatternOptions = { parts: true };
-function splitPattern(path) {
+function splitPattern(path$1) {
 	var _result$parts;
-	const result = picomatch$1.scan(path, splitPatternOptions);
-	return ((_result$parts = result.parts) === null || _result$parts === void 0 ? void 0 : _result$parts.length) ? result.parts : [path];
+	const result = picomatch$1.scan(path$1, splitPatternOptions);
+	return ((_result$parts = result.parts) === null || _result$parts === void 0 ? void 0 : _result$parts.length) ? result.parts : [path$1];
 }
 const POSIX_UNESCAPED_GLOB_SYMBOLS = /(?<!\\)([()[\]{}*?|]|^!|[!+@](?=\()|\\(?![()[\]{}!*+?@|]))/g;
 const WIN32_UNESCAPED_GLOB_SYMBOLS = /(?<!\\)([()[\]{}]|^!|[!+@](?=\())/g;
-const escapePosixPath = (path) => path.replace(POSIX_UNESCAPED_GLOB_SYMBOLS, "\\$&");
-const escapeWin32Path = (path) => path.replace(WIN32_UNESCAPED_GLOB_SYMBOLS, "\\$&");
+const escapePosixPath = (path$1) => path$1.replace(POSIX_UNESCAPED_GLOB_SYMBOLS, "\\$&");
+const escapeWin32Path = (path$1) => path$1.replace(WIN32_UNESCAPED_GLOB_SYMBOLS, "\\$&");
 /**
 * Escapes a path's special characters depending on the platform.
 * @see {@link https://superchupu.dev/tinyglobby/documentation#escapePath}
@@ -40608,34 +40292,32 @@ function isDynamicPattern(pattern, options) {
 function log(...tasks) {
 	console.log(`[tinyglobby ${(/* @__PURE__ */ new Date()).toLocaleTimeString("es")}]`, ...tasks);
 }
-function ensureStringArray(value) {
-	return typeof value === "string" ? [value] : value !== null && value !== void 0 ? value : [];
-}
+
 //#endregion
-//#region src/patterns.ts
+//#region src/index.ts
 const PARENT_DIRECTORY = /^(\/?\.\.)+/;
 const ESCAPING_BACKSLASHES = /\\(?=[()[\]{}!*+?@|])/g;
-function normalizePattern(pattern, opts, props, isIgnore) {
-	var _PARENT_DIRECTORY$exe;
-	const cwd = opts.cwd;
+const BACKSLASHES = /\\/g;
+function normalizePattern(pattern, expandDirectories, cwd, props, isIgnore) {
 	let result = pattern;
-	if (pattern[pattern.length - 1] === "/") result = pattern.slice(0, -1);
-	if (result[result.length - 1] !== "*" && opts.expandDirectories) result += "/**";
+	if (pattern.endsWith("/")) result = pattern.slice(0, -1);
+	if (!result.endsWith("*") && expandDirectories) result += "/**";
 	const escapedCwd = escapePath(cwd);
-	result = isAbsolute(result.replace(ESCAPING_BACKSLASHES, "")) ? posix.relative(escapedCwd, result) : posix.normalize(result);
-	const parentDir = (_PARENT_DIRECTORY$exe = PARENT_DIRECTORY.exec(result)) === null || _PARENT_DIRECTORY$exe === void 0 ? void 0 : _PARENT_DIRECTORY$exe[0];
+	if (path__default$1.isAbsolute(result.replace(ESCAPING_BACKSLASHES, ""))) result = posix.relative(escapedCwd, result);
+	else result = posix.normalize(result);
+	const parentDirectoryMatch = PARENT_DIRECTORY.exec(result);
 	const parts = splitPattern(result);
-	if (parentDir) {
-		const n = (parentDir.length + 1) / 3;
+	if (parentDirectoryMatch === null || parentDirectoryMatch === void 0 ? void 0 : parentDirectoryMatch[0]) {
+		const n = (parentDirectoryMatch[0].length + 1) / 3;
 		let i = 0;
 		const cwdParts = escapedCwd.split("/");
 		while (i < n && parts[i + n] === cwdParts[cwdParts.length + i - n]) {
 			result = result.slice(0, (n - i - 1) * 3) + result.slice((n - i) * 3 + parts[i + n].length + 1) || ".";
 			i++;
 		}
-		const potentialRoot = posix.join(cwd, parentDir.slice(i * 3));
-		if (potentialRoot[0] !== "." && props.root.length > potentialRoot.length) {
-			props.root = ensureNonDriveRelativePath(potentialRoot);
+		const potentialRoot = posix.join(cwd, parentDirectoryMatch[0].slice(i * 3));
+		if (!potentialRoot.startsWith(".") && props.root.length > potentialRoot.length) {
+			props.root = potentialRoot;
 			props.depthOffset = -n + i;
 		}
 	}
@@ -40650,140 +40332,154 @@ function normalizePattern(pattern, opts, props, isIgnore) {
 				newCommonPath.pop();
 				break;
 			}
-			if (i === parts.length - 1 || part !== props.commonPath[i] || isDynamicPattern(part)) break;
+			if (part !== props.commonPath[i] || isDynamicPattern(part) || i === parts.length - 1) break;
 			newCommonPath.push(part);
 		}
 		props.depthOffset = newCommonPath.length;
 		props.commonPath = newCommonPath;
-		props.root = ensureNonDriveRelativePath(newCommonPath.length > 0 ? posix.join(cwd, ...newCommonPath) : cwd);
+		props.root = newCommonPath.length > 0 ? posix.join(cwd, ...newCommonPath) : cwd;
 	}
 	return result;
 }
-function processPatterns(options, patterns, props) {
+function processPatterns({ patterns = ["**/*"], ignore = [], expandDirectories = true }, cwd, props) {
+	if (typeof patterns === "string") patterns = [patterns];
+	if (typeof ignore === "string") ignore = [ignore];
 	const matchPatterns = [];
 	const ignorePatterns = [];
-	for (const pattern of options.ignore) {
+	for (const pattern of ignore) {
 		if (!pattern) continue;
-		if (pattern[0] !== "!" || pattern[1] === "(") ignorePatterns.push(normalizePattern(pattern, options, props, true));
+		if (pattern[0] !== "!" || pattern[1] === "(") ignorePatterns.push(normalizePattern(pattern, expandDirectories, cwd, props, true));
 	}
 	for (const pattern of patterns) {
 		if (!pattern) continue;
-		if (pattern[0] !== "!" || pattern[1] === "(") matchPatterns.push(normalizePattern(pattern, options, props, false));
-		else if (pattern[1] !== "!" || pattern[2] === "(") ignorePatterns.push(normalizePattern(pattern.slice(1), options, props, true));
+		if (pattern[0] !== "!" || pattern[1] === "(") matchPatterns.push(normalizePattern(pattern, expandDirectories, cwd, props, false));
+		else if (pattern[1] !== "!" || pattern[2] === "(") ignorePatterns.push(normalizePattern(pattern.slice(1), expandDirectories, cwd, props, true));
 	}
 	return {
 		match: matchPatterns,
 		ignore: ignorePatterns
 	};
 }
-//#endregion
-//#region src/crawler.ts
-function buildCrawler(options, patterns) {
-	const cwd = options.cwd;
+function formatPaths(paths, relative) {
+	for (let i = paths.length - 1; i >= 0; i--) {
+		const path$1 = paths[i];
+		paths[i] = relative(path$1);
+	}
+	return paths;
+}
+function normalizeCwd(cwd) {
+	if (!cwd) return process.cwd().replace(BACKSLASHES, "/");
+	if (cwd instanceof URL) return fileURLToPath(cwd).replace(BACKSLASHES, "/");
+	return path__default$1.resolve(cwd).replace(BACKSLASHES, "/");
+}
+function getCrawler(patterns, inputOptions = {}) {
+	const options = process.env.TINYGLOBBY_DEBUG ? {
+		...inputOptions,
+		debug: true
+	} : inputOptions;
+	const cwd = normalizeCwd(options.cwd);
+	if (options.debug) log("globbing with:", {
+		patterns,
+		options,
+		cwd
+	});
+	if (Array.isArray(patterns) && patterns.length === 0) return [{
+		sync: () => [],
+		withPromise: async () => []
+	}, false];
 	const props = {
 		root: cwd,
+		commonPath: null,
 		depthOffset: 0
 	};
-	const processed = processPatterns(options, patterns, props);
+	const processed = processPatterns({
+		...options,
+		patterns
+	}, cwd, props);
 	if (options.debug) log("internal processing patterns:", processed);
-	const { absolute, caseSensitiveMatch, debug, dot, followSymbolicLinks, onlyDirectories } = options;
-	const root = props.root.replace(BACKSLASHES, "");
 	const matchOptions = {
-		dot,
+		dot: options.dot,
 		nobrace: options.braceExpansion === false,
-		nocase: !caseSensitiveMatch,
+		nocase: options.caseSensitiveMatch === false,
 		noextglob: options.extglob === false,
 		noglobstar: options.globstar === false,
 		posix: true
 	};
-	const matcher = picomatch$1(processed.match, matchOptions);
+	const matcher = picomatch$1(processed.match, {
+		...matchOptions,
+		ignore: processed.ignore
+	});
 	const ignore = picomatch$1(processed.ignore, matchOptions);
 	const partialMatcher = getPartialMatcher(processed.match, matchOptions);
-	const format = buildFormat(cwd, root, absolute);
-	const excludeFormatter = absolute ? format : buildFormat(cwd, root, true);
-	const excludePredicate = (_, p) => {
-		const relativePath = excludeFormatter(p, true);
-		return relativePath !== "." && !partialMatcher(relativePath) || ignore(relativePath);
-	};
-	let maxDepth;
-	if (options.deep !== void 0) maxDepth = Math.round(options.deep - props.depthOffset);
-	const crawler = new Builder({
-		filters: [debug ? (p, isDirectory) => {
-			const path = format(p, isDirectory);
-			const matches = matcher(path) && !ignore(path);
-			if (matches) log(`matched ${path}`);
+	const format = buildFormat(cwd, props.root, options.absolute);
+	const formatExclude = options.absolute ? format : buildFormat(cwd, props.root, true);
+	const fdirOptions = {
+		filters: [options.debug ? (p, isDirectory) => {
+			const path$1 = format(p, isDirectory);
+			const matches = matcher(path$1);
+			if (matches) log(`matched ${path$1}`);
 			return matches;
-		} : (p, isDirectory) => {
-			const path = format(p, isDirectory);
-			return matcher(path) && !ignore(path);
-		}],
-		exclude: debug ? (_, p) => {
-			const skipped = excludePredicate(_, p);
-			log(`${skipped ? "skipped" : "crawling"} ${p}`);
+		} : (p, isDirectory) => matcher(format(p, isDirectory))],
+		exclude: options.debug ? (_, p) => {
+			const relativePath = formatExclude(p, true);
+			const skipped = relativePath !== "." && !partialMatcher(relativePath) || ignore(relativePath);
+			if (skipped) log(`skipped ${p}`);
+			else log(`crawling ${p}`);
 			return skipped;
-		} : excludePredicate,
-		fs: options.fs,
+		} : (_, p) => {
+			const relativePath = formatExclude(p, true);
+			return relativePath !== "." && !partialMatcher(relativePath) || ignore(relativePath);
+		},
+		fs: options.fs ? {
+			readdir: options.fs.readdir || require$$0__default.readdir,
+			readdirSync: options.fs.readdirSync || require$$0__default.readdirSync,
+			realpath: options.fs.realpath || require$$0__default.realpath,
+			realpathSync: options.fs.realpathSync || require$$0__default.realpathSync,
+			stat: options.fs.stat || require$$0__default.stat,
+			statSync: options.fs.statSync || require$$0__default.statSync
+		} : void 0,
 		pathSeparator: "/",
-		relativePaths: !absolute,
-		resolvePaths: absolute,
-		includeBasePath: absolute,
-		resolveSymlinks: followSymbolicLinks,
-		excludeSymlinks: !followSymbolicLinks,
-		excludeFiles: onlyDirectories,
-		includeDirs: onlyDirectories || !options.onlyFiles,
-		maxDepth,
+		relativePaths: true,
+		resolveSymlinks: true,
 		signal: options.signal
-	}).crawl(root);
-	if (options.debug) log("internal properties:", {
-		...props,
-		root
-	});
-	return [crawler, cwd !== root && !absolute && buildRelative(cwd, root)];
+	};
+	if (options.deep !== void 0) fdirOptions.maxDepth = Math.round(options.deep - props.depthOffset);
+	if (options.absolute) {
+		fdirOptions.relativePaths = false;
+		fdirOptions.resolvePaths = true;
+		fdirOptions.includeBasePath = true;
+	}
+	if (options.followSymbolicLinks === false) {
+		fdirOptions.resolveSymlinks = false;
+		fdirOptions.excludeSymlinks = true;
+	}
+	if (options.onlyDirectories) {
+		fdirOptions.excludeFiles = true;
+		fdirOptions.includeDirs = true;
+	} else if (options.onlyFiles === false) fdirOptions.includeDirs = true;
+	props.root = props.root.replace(BACKSLASHES, "");
+	const root = props.root;
+	if (options.debug) log("internal properties:", props);
+	const relative = cwd !== root && !options.absolute && buildRelative(cwd, props.root);
+	return [new Builder(fdirOptions).crawl(root), relative];
 }
-//#endregion
-//#region src/index.ts
-function formatPaths(paths, mapper) {
-	if (mapper) for (let i = paths.length - 1; i >= 0; i--) paths[i] = mapper(paths[i]);
-	return paths;
+async function glob(patternsOrOptions, options) {
+	if (patternsOrOptions && (options === null || options === void 0 ? void 0 : options.patterns)) throw new Error("Cannot pass patterns as both an argument and an option");
+	const isModern = isReadonlyArray(patternsOrOptions) || typeof patternsOrOptions === "string";
+	const opts = isModern ? options : patternsOrOptions;
+	const patterns = isModern ? patternsOrOptions : patternsOrOptions.patterns;
+	const [crawler, relative] = getCrawler(patterns, opts);
+	if (!relative) return crawler.withPromise();
+	return formatPaths(await crawler.withPromise(), relative);
 }
-const defaultOptions = {
-	caseSensitiveMatch: true,
-	debug: !!process.env.TINYGLOBBY_DEBUG,
-	expandDirectories: true,
-	followSymbolicLinks: true,
-	onlyFiles: true
-};
-function getOptions(options) {
-	const opts = Object.assign({}, options);
-	for (const key in defaultOptions) if (opts[key] === void 0) Object.assign(opts, { [key]: defaultOptions[key] });
-	opts.cwd = (opts.cwd instanceof URL ? fileURLToPath(opts.cwd) : resolve(opts.cwd || process.cwd())).replace(BACKSLASHES, "/");
-	opts.ignore = ensureStringArray(opts.ignore);
-	opts.fs && (opts.fs = {
-		readdir: opts.fs.readdir || readdir$1,
-		readdirSync: opts.fs.readdirSync || readdirSync,
-		realpath: opts.fs.realpath || realpath,
-		realpathSync: opts.fs.realpathSync || realpathSync,
-		stat: opts.fs.stat || stat$2,
-		statSync: opts.fs.statSync || statSync
-	});
-	if (opts.debug) log("globbing with options:", opts);
-	return opts;
-}
-function getCrawler(globInput, inputOptions = {}) {
-	var _ref;
-	if (globInput && (inputOptions === null || inputOptions === void 0 ? void 0 : inputOptions.patterns)) throw new Error("Cannot pass patterns as both an argument and an option");
-	const isModern = isReadonlyArray(globInput) || typeof globInput === "string";
-	const patterns = ensureStringArray((_ref = isModern ? globInput : globInput.patterns) !== null && _ref !== void 0 ? _ref : "**/*");
-	const options = getOptions(isModern ? inputOptions : globInput);
-	return patterns.length > 0 ? buildCrawler(options, patterns) : [];
-}
-async function glob(globInput, options) {
-	const [crawler, relative] = getCrawler(globInput, options);
-	return crawler ? formatPaths(await crawler.withPromise(), relative) : [];
-}
-function globSync(globInput, options) {
-	const [crawler, relative] = getCrawler(globInput, options);
-	return crawler ? formatPaths(crawler.sync(), relative) : [];
+function globSync(patternsOrOptions, options) {
+	if (patternsOrOptions && (options === null || options === void 0 ? void 0 : options.patterns)) throw new Error("Cannot pass patterns as both an argument and an option");
+	const isModern = isReadonlyArray(patternsOrOptions) || typeof patternsOrOptions === "string";
+	const opts = isModern ? options : patternsOrOptions;
+	const patterns = isModern ? patternsOrOptions : patternsOrOptions.patterns;
+	const [crawler, relative] = getCrawler(patterns, opts);
+	if (!relative) return crawler.sync();
+	return formatPaths(crawler.sync(), relative);
 }
 
 /*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
@@ -47622,16 +47318,84 @@ function parsePublishedPackageNames(publishOutput) {
     return publishedPackageNames;
 }
 
+const NPM_REGISTRY = 'https://registry.npmjs.org';
+const YARN_REGISTRY = 'https://registry.yarnpkg.com';
+/**
+ * Mirrors `@changesets/cli`'s own registry resolution so the action reasons about
+ * the exact registry changesets will publish to.
+ */
+function isCustomRegistry(registry) {
+    if (typeof registry !== 'string' || registry.length === 0) {
+        return false;
+    }
+    return (registry !== NPM_REGISTRY &&
+        registry !== `${NPM_REGISTRY}/` &&
+        registry !== YARN_REGISTRY &&
+        registry !== `${YARN_REGISTRY}/`);
+}
+function readRegistry(publishConfig, key) {
+    const value = publishConfig[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+/**
+ * Resolves the registry a single package will be published to, honouring
+ * `publishConfig["@scope:registry"]` before `publishConfig.registry`.
+ */
+function getPackageRegistry(packageJson) {
+    const publishConfig = packageJson.publishConfig ?? {};
+    const { name } = packageJson;
+    if (typeof name === 'string' && name.startsWith('@')) {
+        const scope = name.split('/')[0];
+        const scopedRegistry = readRegistry(publishConfig, `${scope}:registry`) ??
+            process$1.env[`npm_config_${scope}:registry`];
+        if (typeof scopedRegistry === 'string' && scopedRegistry.length > 0) {
+            return scopedRegistry;
+        }
+    }
+    const registry = readRegistry(publishConfig, 'registry') ?? process$1.env.npm_config_registry;
+    return isCustomRegistry(registry) ? registry : NPM_REGISTRY;
+}
+/**
+ * Returns the distinct non-npmjs registries publishable workspace packages target
+ * (e.g. `https://npm.pkg.github.com`). Empty when everything goes to npmjs.
+ */
+async function getCustomPublishRegistries(cwd = process$1.cwd()) {
+    const { packages } = await getPackages$1(cwd);
+    const registries = new Set();
+    for (const pkg of packages) {
+        const packageJson = pkg.packageJson;
+        if (packageJson.private !== true) {
+            const registry = getPackageRegistry(packageJson);
+            if (isCustomRegistry(registry)) {
+                registries.add(registry);
+            }
+        }
+    }
+    return [...registries];
+}
+
+/**
+ * npm Trusted Publisher (OIDC) token exchange only exists on the public npm
+ * registry. Any package pinned to another registry through
+ * `publishConfig.registry` must authenticate with a token instead.
+ */
+function validatePublishAuth(hasNpmToken, customRegistries) {
+    if (hasNpmToken || customRegistries.length === 0) {
+        return;
+    }
+    throw new Error(`OIDC trusted publisher mode is only supported by ${NPM_REGISTRY}, but publishable packages target: ${customRegistries.join(', ')}. Fix: pass a REGISTRY_TOKEN for that registry. For GitHub Packages (https://npm.pkg.github.com) use REGISTRY_TOKEN: \${{ secrets.GITHUB_TOKEN }} together with permissions.packages: write, and set registry-url: 'https://npm.pkg.github.com' on actions/setup-node.`);
+}
+
 function getPublishErrorDetails(error) {
     if (error instanceof Error) {
         return error.message;
     }
     return String(error);
 }
-async function publishPackages(branchConfig, npmToken, provenance = false) {
+async function publishPackages(branchConfig, registryToken, provenance = false) {
     const preJsonPath = path__default__default.join(changesetDir, 'pre.json');
     const isInPrereleaseMode = fs__default$1.existsSync(preJsonPath);
-    const isTokenMode = typeof npmToken === 'string' && npmToken.length > 0;
+    const isTokenMode = typeof registryToken === 'string' && registryToken.length > 0;
     const hasChannel = typeof branchConfig.channel === 'string' && branchConfig.channel.length > 0;
     const publishCommand = !isInPrereleaseMode && hasChannel
         ? `npx changeset publish --tag ${branchConfig.channel}`
@@ -47642,12 +47406,24 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
     else if (hasChannel) {
         log$1.info(`Using custom dist-tag: ${branchConfig.channel}`);
     }
+    // changeset publish reads publishConfig.registry per package; mirror that resolution
+    // so auth/provenance are validated against the registry actually being published to.
+    const customRegistries = await getCustomPublishRegistries();
+    validatePublishAuth(isTokenMode, customRegistries);
+    let useProvenance = provenance;
+    if (provenance && customRegistries.length > 0) {
+        useProvenance = false;
+        log$1.warning(`Provenance attestation is only supported by ${NPM_REGISTRY}; disabling it because publishable packages target: ${customRegistries.join(', ')}.`);
+    }
     log$1.info(`Auth mode: ${isTokenMode ? 'token' : 'OIDC'}`);
-    log$1.info(`Provenance: ${provenance ? 'enabled' : 'disabled'}`);
+    log$1.info(`Provenance: ${useProvenance ? 'enabled' : 'disabled'}`);
+    if (customRegistries.length > 0) {
+        log$1.info(`Custom publish registries: ${customRegistries.join(', ')}`);
+    }
     log$1.info(`Publishing packages...`);
     const publishEnv = { ...process$1.env };
     if (isTokenMode) {
-        publishEnv.NODE_AUTH_TOKEN = npmToken;
+        publishEnv.NODE_AUTH_TOKEN = registryToken;
     }
     else {
         // setup-node can leave token-based auth wiring in place; blank it so npm can use OIDC exchange
@@ -47655,7 +47431,7 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
         publishEnv.NPM_TOKEN = '';
         log$1.info('OIDC mode: clearing NODE_AUTH_TOKEN/NPM_TOKEN to avoid token auth fallback');
     }
-    if (provenance) {
+    if (useProvenance) {
         publishEnv.NPM_CONFIG_PROVENANCE = 'true';
     }
     let publishOutput = '';
@@ -47669,7 +47445,7 @@ async function publishPackages(branchConfig, npmToken, provenance = false) {
     catch (error) {
         const details = getPublishErrorDetails(error);
         if (isTokenMode) {
-            throw new Error(`Publishing failed in token mode. Verify NPM_TOKEN has publish access. Details: ${details}`);
+            throw new Error(`Publishing failed in token mode. Verify REGISTRY_TOKEN has publish access to the target registry. Details: ${details}`);
         }
         throw new Error(`Publishing failed in OIDC trusted publisher mode. Ensure workflow has permissions.id-token: write, npm trusted publisher fields exactly match (owner/repo/workflow/environment), and token auth env is cleared. Details: ${details}`);
     }
@@ -54677,6 +54453,23 @@ function getDefaultBranches() {
         return getFallbackBranches();
     }
 }
+/**
+ * Resolves the registry auth token, accepting the legacy `NPM_TOKEN` name.
+ * The token is not npm-specific: it authenticates whichever registry a package
+ * pins through `publishConfig.registry`, e.g. GitHub Packages.
+ */
+function getRegistryToken() {
+    const registryToken = log$1.getInput('REGISTRY_TOKEN');
+    if (registryToken.length > 0) {
+        return registryToken;
+    }
+    const legacyToken = log$1.getInput('NPM_TOKEN');
+    if (legacyToken.length > 0) {
+        log$1.warning('NPM_TOKEN is deprecated because it also authenticates non-npm registries. Rename the input to REGISTRY_TOKEN.');
+        return legacyToken;
+    }
+    return undefined;
+}
 function getActionInputs() {
     const branchesInput = log$1.getInput('BRANCHES');
     let branches;
@@ -54707,7 +54500,7 @@ function getActionInputs() {
     const autoChangeset = shouldAutoChangesetInput.toLowerCase() === 'true';
     return {
         githubToken: log$1.getInput('GITHUB_TOKEN', { required: true }),
-        npmToken: log$1.getInput('NPM_TOKEN') || undefined,
+        registryToken: getRegistryToken(),
         botName: log$1.getInput('BOT_NAME') || 'changesets-autopilot',
         branches,
         createRelease: shouldCreateRelease,
@@ -74736,8 +74529,6 @@ function requireConstants$1 () {
 	const WIN_SLASH = '\\\\/';
 	const WIN_NO_SLASH = `[^${WIN_SLASH}]`;
 
-	const DEFAULT_MAX_EXTGLOB_RECURSION = 0;
-
 	/**
 	 * Posix glob regex
 	 */
@@ -74801,7 +74592,6 @@ function requireConstants$1 () {
 	 */
 
 	const POSIX_REGEX_SOURCE = {
-	  __proto__: null,
 	  alnum: 'a-zA-Z0-9',
 	  alpha: 'a-zA-Z',
 	  ascii: '\\x00-\\x7F',
@@ -74819,7 +74609,6 @@ function requireConstants$1 () {
 	};
 
 	constants$1 = {
-	  DEFAULT_MAX_EXTGLOB_RECURSION,
 	  MAX_LENGTH: 1024 * 64,
 	  POSIX_REGEX_SOURCE,
 
@@ -74833,7 +74622,6 @@ function requireConstants$1 () {
 
 	  // Replace globs with equivalent patterns to reduce parsing time.
 	  REPLACEMENTS: {
-	    __proto__: null,
 	    '***': '*',
 	    '**/**': '**',
 	    '**/**/**': '**'
@@ -75441,277 +75229,6 @@ function requireParse () {
 	  return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
 	};
 
-	const splitTopLevel = input => {
-	  const parts = [];
-	  let bracket = 0;
-	  let paren = 0;
-	  let quote = 0;
-	  let value = '';
-	  let escaped = false;
-
-	  for (const ch of input) {
-	    if (escaped === true) {
-	      value += ch;
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      value += ch;
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (ch === '"') {
-	      quote = quote === 1 ? 0 : 1;
-	      value += ch;
-	      continue;
-	    }
-
-	    if (quote === 0) {
-	      if (ch === '[') {
-	        bracket++;
-	      } else if (ch === ']' && bracket > 0) {
-	        bracket--;
-	      } else if (bracket === 0) {
-	        if (ch === '(') {
-	          paren++;
-	        } else if (ch === ')' && paren > 0) {
-	          paren--;
-	        } else if (ch === '|' && paren === 0) {
-	          parts.push(value);
-	          value = '';
-	          continue;
-	        }
-	      }
-	    }
-
-	    value += ch;
-	  }
-
-	  parts.push(value);
-	  return parts;
-	};
-
-	const isPlainBranch = branch => {
-	  let escaped = false;
-
-	  for (const ch of branch) {
-	    if (escaped === true) {
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (/[?*+@!()[\]{}]/.test(ch)) {
-	      return false;
-	    }
-	  }
-
-	  return true;
-	};
-
-	const normalizeSimpleBranch = branch => {
-	  let value = branch.trim();
-	  let changed = true;
-
-	  while (changed === true) {
-	    changed = false;
-
-	    if (/^@\([^\\()[\]{}|]+\)$/.test(value)) {
-	      value = value.slice(2, -1);
-	      changed = true;
-	    }
-	  }
-
-	  if (!isPlainBranch(value)) {
-	    return;
-	  }
-
-	  return value.replace(/\\(.)/g, '$1');
-	};
-
-	const hasRepeatedCharPrefixOverlap = branches => {
-	  const values = branches.map(normalizeSimpleBranch).filter(Boolean);
-
-	  for (let i = 0; i < values.length; i++) {
-	    for (let j = i + 1; j < values.length; j++) {
-	      const a = values[i];
-	      const b = values[j];
-	      const char = a[0];
-
-	      if (!char || a !== char.repeat(a.length) || b !== char.repeat(b.length)) {
-	        continue;
-	      }
-
-	      if (a === b || a.startsWith(b) || b.startsWith(a)) {
-	        return true;
-	      }
-	    }
-	  }
-
-	  return false;
-	};
-
-	const parseRepeatedExtglob = (pattern, requireEnd = true) => {
-	  if ((pattern[0] !== '+' && pattern[0] !== '*') || pattern[1] !== '(') {
-	    return;
-	  }
-
-	  let bracket = 0;
-	  let paren = 0;
-	  let quote = 0;
-	  let escaped = false;
-
-	  for (let i = 1; i < pattern.length; i++) {
-	    const ch = pattern[i];
-
-	    if (escaped === true) {
-	      escaped = false;
-	      continue;
-	    }
-
-	    if (ch === '\\') {
-	      escaped = true;
-	      continue;
-	    }
-
-	    if (ch === '"') {
-	      quote = quote === 1 ? 0 : 1;
-	      continue;
-	    }
-
-	    if (quote === 1) {
-	      continue;
-	    }
-
-	    if (ch === '[') {
-	      bracket++;
-	      continue;
-	    }
-
-	    if (ch === ']' && bracket > 0) {
-	      bracket--;
-	      continue;
-	    }
-
-	    if (bracket > 0) {
-	      continue;
-	    }
-
-	    if (ch === '(') {
-	      paren++;
-	      continue;
-	    }
-
-	    if (ch === ')') {
-	      paren--;
-
-	      if (paren === 0) {
-	        if (requireEnd === true && i !== pattern.length - 1) {
-	          return;
-	        }
-
-	        return {
-	          type: pattern[0],
-	          body: pattern.slice(2, i),
-	          end: i
-	        };
-	      }
-	    }
-	  }
-	};
-
-	const getStarExtglobSequenceOutput = pattern => {
-	  let index = 0;
-	  const chars = [];
-
-	  while (index < pattern.length) {
-	    const match = parseRepeatedExtglob(pattern.slice(index), false);
-
-	    if (!match || match.type !== '*') {
-	      return;
-	    }
-
-	    const branches = splitTopLevel(match.body).map(branch => branch.trim());
-	    if (branches.length !== 1) {
-	      return;
-	    }
-
-	    const branch = normalizeSimpleBranch(branches[0]);
-	    if (!branch || branch.length !== 1) {
-	      return;
-	    }
-
-	    chars.push(branch);
-	    index += match.end + 1;
-	  }
-
-	  if (chars.length < 1) {
-	    return;
-	  }
-
-	  const source = chars.length === 1
-	    ? utils.escapeRegex(chars[0])
-	    : `[${chars.map(ch => utils.escapeRegex(ch)).join('')}]`;
-
-	  return `${source}*`;
-	};
-
-	const repeatedExtglobRecursion = pattern => {
-	  let depth = 0;
-	  let value = pattern.trim();
-	  let match = parseRepeatedExtglob(value);
-
-	  while (match) {
-	    depth++;
-	    value = match.body.trim();
-	    match = parseRepeatedExtglob(value);
-	  }
-
-	  return depth;
-	};
-
-	const analyzeRepeatedExtglob = (body, options) => {
-	  if (options.maxExtglobRecursion === false) {
-	    return { risky: false };
-	  }
-
-	  const max =
-	    typeof options.maxExtglobRecursion === 'number'
-	      ? options.maxExtglobRecursion
-	      : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
-
-	  const branches = splitTopLevel(body).map(branch => branch.trim());
-
-	  if (branches.length > 1) {
-	    if (
-	      branches.some(branch => branch === '') ||
-	      branches.some(branch => /^[*?]+$/.test(branch)) ||
-	      hasRepeatedCharPrefixOverlap(branches)
-	    ) {
-	      return { risky: true };
-	    }
-	  }
-
-	  for (const branch of branches) {
-	    const safeOutput = getStarExtglobSequenceOutput(branch);
-	    if (safeOutput) {
-	      return { risky: true, safeOutput };
-	    }
-
-	    if (repeatedExtglobRecursion(branch) > max) {
-	      return { risky: true };
-	    }
-	  }
-
-	  return { risky: false };
-	};
-
 	/**
 	 * Parse the given input string.
 	 * @param {String} input
@@ -75893,8 +75410,6 @@ function requireParse () {
 	    token.prev = prev;
 	    token.parens = state.parens;
 	    token.output = state.output;
-	    token.startIndex = state.index;
-	    token.tokensIndex = tokens.length;
 	    const output = (opts.capture ? '(' : '') + token.open;
 
 	    increment('parens');
@@ -75904,34 +75419,6 @@ function requireParse () {
 	  };
 
 	  const extglobClose = token => {
-	    const literal = input.slice(token.startIndex, state.index + 1);
-	    const body = input.slice(token.startIndex + 2, state.index);
-	    const analysis = analyzeRepeatedExtglob(body, opts);
-
-	    if ((token.type === 'plus' || token.type === 'star') && analysis.risky) {
-	      const safeOutput = analysis.safeOutput
-	        ? (token.output ? '' : ONE_CHAR) + (opts.capture ? `(${analysis.safeOutput})` : analysis.safeOutput)
-	        : undefined;
-	      const open = tokens[token.tokensIndex];
-
-	      open.type = 'text';
-	      open.value = literal;
-	      open.output = safeOutput || utils.escapeRegex(literal);
-
-	      for (let i = token.tokensIndex + 1; i < tokens.length; i++) {
-	        tokens[i].value = '';
-	        tokens[i].output = '';
-	        delete tokens[i].suffix;
-	      }
-
-	      state.output = token.output + open.output;
-	      state.backtrack = true;
-
-	      push({ type: 'paren', extglob: true, value, output: '' });
-	      decrement('parens');
-	      return;
-	    }
-
 	    let output = token.close + (opts.capture ? ')' : '');
 	    let rest;
 
@@ -88047,7 +87534,7 @@ async function run() {
         // Ensure changesets is available
         ensureChangesetsAvailable();
         // Initialize inputs and configuration
-        const { githubToken, npmToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, } = getActionInputs();
+        const { githubToken, registryToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
         // Validate branch configuration
         if (!validateBranchConfiguration(branchConfig)) {
@@ -88064,8 +87551,12 @@ async function run() {
         const hasChangesetReleaseFiles = hasChangesetFiles();
         // Version and push changes if we have changesets
         if (hasChangesetReleaseFiles) {
-            const hasNpmToken = typeof npmToken === 'string' && npmToken.length > 0;
-            if (!hasNpmToken) {
+            const hasRegistryToken = typeof registryToken === 'string' && registryToken.length > 0;
+            if (!hasRegistryToken) {
+                // Validate before versioning/pushing so an unpublishable auth setup
+                // does not leave a release commit behind.
+                const customRegistries = await getCustomPublishRegistries();
+                validatePublishAuth(hasRegistryToken, customRegistries);
                 validateOidcNodeRuntime();
             }
             log$1.info('Processing versioning and git operations...');
@@ -88074,14 +87565,14 @@ async function run() {
             const packagesToRelease = await getPackagesToRelease();
             runChangesetVersion(githubToken);
             await commitAndPush(git, githubToken, packagesToRelease);
-            if (hasNpmToken) {
+            if (hasRegistryToken) {
                 log$1.info('Using npm authentication mode: token mode');
             }
             else {
                 log$1.info('Using npm authentication mode: OIDC trusted publisher mode');
             }
             const provenance = log$1.getInput('provenance') === 'true';
-            const releasedPackages = await publishPackages(branchConfig, npmToken, provenance);
+            const releasedPackages = await publishPackages(branchConfig, registryToken, provenance);
             if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
                 throw new Error(`Publishing failed: expected to publish ${packagesToRelease.length} package(s), but none were published.`);
             }

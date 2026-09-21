@@ -62,7 +62,8 @@ jobs:
 | Input            | Description                                                                          | Required | Default                   |
 | ---------------- | ------------------------------------------------------------------------------------ | -------- | ------------------------- |
 | `GITHUB_TOKEN`   | GitHub token for authentication                                                      | ✅       | -                         |
-| `NPM_TOKEN`      | NPM token for publishing (optional when using npm Trusted Publisher / OIDC)          | ❌       | -                         |
+| `REGISTRY_TOKEN` | Registry auth token (optional when using npm Trusted Publisher / OIDC)               | ❌       | -                         |
+| `NPM_TOKEN`      | **Deprecated** alias for `REGISTRY_TOKEN`                                            | ❌       | -                         |
 | `provenance`     | Enable npm provenance attestation                                                    | ❌       | `false`                   |
 | `BOT_NAME`       | Bot name for commits                                                                 | ❌       | `changesets-autopilot`    |
 | `BRANCHES`       | Branch configuration (YAML array)                                                    | ❌       | Auto-detected (see below) |
@@ -99,7 +100,7 @@ jobs:
   uses: pixpilot/changeset-autopilot@v1
   with:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    REGISTRY_TOKEN: ${{ secrets.NPM_TOKEN }}
     BRANCHES: |
       - main
       - name: next
@@ -118,7 +119,7 @@ This configuration will:
 
 ### npm Trusted Publisher (OIDC) (Recommended)
 
-You can publish to npm without storing `NPM_TOKEN` by using npm Trusted Publisher with GitHub OIDC.
+You can publish to npm without storing a `REGISTRY_TOKEN` by using npm Trusted Publisher with GitHub OIDC.
 
 Required workflow permissions:
 
@@ -128,7 +129,7 @@ permissions:
   id-token: write
 ```
 
-OIDC workflow example (no `NPM_TOKEN`):
+OIDC workflow example (no `REGISTRY_TOKEN`):
 
 ```yaml
 name: Release
@@ -187,9 +188,16 @@ jobs:
         uses: pixpilot/changesets-autopilot@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REGISTRY_TOKEN: ${{ secrets.NPM_TOKEN }}
           provenance: 'true'
 ```
+
+### `REGISTRY_TOKEN` (formerly `NPM_TOKEN`)
+
+`REGISTRY_TOKEN` authenticates whichever registry each package targets through
+`publishConfig.registry`, not just npmjs. `NPM_TOKEN` still works as a deprecated
+alias — if you pass it, the action uses it and logs a warning. `REGISTRY_TOKEN`
+wins when both are set.
 
 ### npm Provenance Attestation
 
@@ -197,7 +205,7 @@ The `provenance` input is an explicit feature flag. It is independent from how y
 
 - `provenance: 'true'` enables npm provenance attestation
 - `provenance: 'false'` disables provenance attestation
-- You can combine it with either `NPM_TOKEN` or npm Trusted Publisher (OIDC)
+- You can combine it with either `REGISTRY_TOKEN` or npm Trusted Publisher (OIDC)
 
 If you want npm provenance in your release workflow, set:
 
@@ -209,17 +217,88 @@ with:
 
 If you are using OIDC Trusted Publisher, keep the required permissions from the OIDC section and add `provenance: 'true'` in the action inputs.
 
-### Migration from `NPM_TOKEN` to OIDC
+### Publishing to GitHub Packages (or any custom registry)
+
+The action delegates publishing to `changeset publish`, which resolves the registry
+**per package** from `publishConfig["<scope>:registry"]`, then `publishConfig.registry`,
+falling back to npmjs. So a package pinned like this is published to GitHub Packages
+without any extra action input:
+
+```json
+{
+  "name": "@your-org/your-package",
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  }
+}
+```
+
+Two constraints apply to custom registries, and the action enforces both:
+
+- **`REGISTRY_TOKEN` is required.** npm Trusted Publisher (OIDC) exists only on
+  `https://registry.npmjs.org`. For GitHub Packages, pass `secrets.GITHUB_TOKEN`
+  (or an app token) as `REGISTRY_TOKEN`. If you omit it, the action fails **before**
+  versioning and pushing, so no orphaned release commit is left behind.
+- **`provenance` is ignored.** npm attestation is npmjs-only. If any publishable
+  package targets a custom registry, the action logs a warning and publishes
+  without provenance instead of letting npm hard-fail.
+
+> GitHub Packages requires the package scope to match the GitHub user/org that owns
+> it — `@your-org/pkg` must be published under the `your-org` account, and the token
+> needs `write:packages` on it.
+
+```yaml
+name: Release
+on:
+  push:
+    branches: [main, next]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://npm.pkg.github.com'
+          # Defaults to the repository owner; set it explicitly when your
+          # packages use a different scope than the repo owner.
+          scope: '@your-org'
+
+      - run: npm ci
+
+      - name: Release
+        uses: pixpilot/changesets-autopilot@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          provenance: 'false'
+```
+
+`registry-url` on `actions/setup-node` is what writes
+`//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` into the runner `.npmrc`;
+without it the token never reaches npm.
+
+### Migration from `REGISTRY_TOKEN` to OIDC
 
 1. Configure npm Trusted Publisher for your package/repository in npm settings.
 2. Add `permissions.id-token: write` to your release workflow.
-3. Remove `NPM_TOKEN` from workflow inputs and secrets.
+3. Remove `REGISTRY_TOKEN` from workflow inputs and secrets.
 4. Keep `GITHUB_TOKEN` as-is.
 
 The action will automatically choose auth mode:
 
-- With `NPM_TOKEN`: token mode
-- Without `NPM_TOKEN`: OIDC trusted publisher mode
+- With `REGISTRY_TOKEN`: token mode
+- Without `REGISTRY_TOKEN`: OIDC trusted publisher mode
 
 The action will only enable provenance when you explicitly set `provenance: 'true'`.
 
@@ -264,7 +343,10 @@ This action uses [Conventional Commits](https://www.conventionalcommits.org/) to
   npm install --save-dev @changesets/cli
   ```
 - Changesets initialized in your repository (`npx @changesets/cli init`)
-- NPM registry access for publishing (via `NPM_TOKEN` or npm Trusted Publisher)
+- Registry access for publishing (via `REGISTRY_TOKEN` or npm Trusted Publisher). Non-npmjs
+  registries such as GitHub Packages are supported through each package's
+  `publishConfig.registry` and require `REGISTRY_TOKEN` — see
+  [Publishing to GitHub Packages](#publishing-to-github-packages-or-any-custom-registry).
 
 ## Troubleshooting
 
