@@ -15,8 +15,8 @@ inputs:
   REGISTRY_TOKEN:
     description: >-
       Token used to authenticate against the registry each package publishes to.
-      For npmjs use an npm automation token; for GitHub Packages use
-      ${{ secrets.GITHUB_TOKEN }} (needs permissions.packages: write). Leave
+      For npmjs use an npm automation token; for GitHub Packages use the
+      built-in secrets.GITHUB_TOKEN (needs permissions.packages: write). Leave
       empty to use npm Trusted Publisher (OIDC), which npmjs supports only.
     required: false
   NPM_TOKEN:
