@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.6.0...v1.6.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **release:** add notification step for release failure ([e4a96d4](https://github.com/pixpilot/changesets-autopilot/commit/e4a96d45b2dc74d5e8da876db50d2fac3a770a93))
+
 # [1.6.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.5.5...v1.6.0) (2026-09-21)
 
 
