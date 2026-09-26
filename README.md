@@ -71,6 +71,17 @@ jobs:
 | `PUSH_TAGS`      | Enable or disable pushing tags to GitHub (disabling this will also prevent releases) | ❌       | `true`                    |
 | `AUTO_CHANGESET` | Enable or disable automatic changeset generation and versioning                      | ❌       | `true`                    |
 
+### Outputs
+
+| Output               | Description                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `published`          | `true` when packages were published                                                                  |
+| `published-packages` | JSON array of published packages, e.g. `[{"name":"@scope/pkg","version":"1.2.0"}]`                   |
+| `published-versions` | Comma-separated `name@version` list, e.g. `@scope/a@1.2.0, @scope/b@2.0.0`                           |
+| `release-summary`    | Plain-text outcome for notifications: what was published, why nothing was, or why the release failed |
+
+Every run also writes a job summary with the published packages, or the reason nothing was published.
+
 **Default branch behavior:**
 
 - If `BRANCHES` is provided, that value is used as-is.

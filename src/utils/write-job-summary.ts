@@ -1,17 +1,9 @@
 import type { Package } from '../github/create-release';
 import type { ReleasePackage } from './get-release-plan';
+import type { ReleaseResult } from './release-result';
 import { log } from './log';
 
 type SummaryTableRow = Parameters<typeof log.summary.addTable>[0][number];
-
-export interface JobSummaryInput {
-  status: 'published' | 'skipped' | 'failed';
-  reason?: string;
-  branch?: string;
-  distTag?: string;
-  releasedPackages?: Package[];
-  plannedPackages?: ReleasePackage[];
-}
 
 const HEADING_LEVEL = 2;
 
@@ -55,7 +47,7 @@ function buildPackagesTable(
  * Writes a job summary describing what was published, or why nothing was.
  * Never throws: a summary failure must not fail the release.
  */
-export async function writeJobSummary(input: JobSummaryInput): Promise<void> {
+export async function writeJobSummary(input: ReleaseResult): Promise<void> {
   const {
     status,
     reason,

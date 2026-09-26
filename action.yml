@@ -51,6 +51,18 @@ inputs:
 outputs:
   published:
     description: Whether packages were published
+  published-packages:
+    description: >-
+      JSON array of the published packages, e.g.
+      [{"name":"@scope/pkg","version":"1.2.0"}]. "[]" when nothing was published.
+  published-versions:
+    description: >-
+      Comma-separated name@version of the published packages, e.g.
+      "@scope/a@1.2.0, @scope/b@2.0.0". Empty when nothing was published.
+  release-summary:
+    description: >-
+      Plain-text outcome for notifications: the published packages, why nothing
+      was published, or why the release failed.
 
 runs:
   using: node24

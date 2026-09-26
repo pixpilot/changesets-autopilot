@@ -18,9 +18,9 @@ import { pushChangesetTags } from './github/push-changeset-tags';
 import { getPackagesToRelease } from './utils/get-release-plan';
 import { log } from './utils/log';
 import { getCustomPublishRegistries } from './utils/publish-registry';
+import { reportReleaseResult } from './utils/release-result';
 import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
 import { validatePublishAuth } from './utils/validate-publish-auth';
-import { writeJobSummary } from './utils/write-job-summary';
 
 function getDistTag(branchConfig: ResolvedBranchConfig): string {
   // Prerelease mode publishes under the pre tag; otherwise the channel or npm's default.
@@ -60,7 +60,7 @@ export async function run(): Promise<void> {
 
     // Validate branch configuration
     if (!validateBranchConfiguration(branchConfig)) {
-      await writeJobSummary({
+      await reportReleaseResult({
         status: 'skipped',
         reason: `Branch '${branchConfig.name}' is not configured for releases.`,
       });
@@ -142,14 +142,14 @@ export async function run(): Promise<void> {
       }
 
       await (wasPublished
-        ? writeJobSummary({
+        ? reportReleaseResult({
             status: 'published',
             branch: branchConfig.name,
             distTag: getDistTag(branchConfig),
             releasedPackages,
             plannedPackages: packagesToRelease,
           })
-        : writeJobSummary({
+        : reportReleaseResult({
             status: 'skipped',
             reason:
               'Changesets were versioned, but no public package had a new version to publish.',
@@ -157,7 +157,7 @@ export async function run(): Promise<void> {
     } else {
       log.info('No changesets to process. Action completed.');
       log.setOutput('published', 'false');
-      await writeJobSummary({
+      await reportReleaseResult({
         status: 'skipped',
         reason: autoChangeset
           ? `No changesets found on '${branchConfig.name}': no releasable commits since the last release.`
@@ -168,7 +168,7 @@ export async function run(): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.setOutput('published', 'false');
     log.setFailed(`Action failed: ${errorMessage}`);
-    await writeJobSummary({
+    await reportReleaseResult({
       status: 'failed',
       reason: errorMessage,
       branch: branchName,

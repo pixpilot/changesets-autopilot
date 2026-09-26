@@ -30,7 +30,7 @@ vi.mock('../src/github/create-releases-for-packages');
 vi.mock('../src/github/push-changeset-tags');
 vi.mock('../src/utils/get-release-plan');
 vi.mock('../src/utils/validate-oidc-node-runtime');
-vi.mock('../src/utils/write-job-summary');
+vi.mock('../src/utils/release-result');
 
 describe('main.js', () => {
   let mockGetActionInputs: MockedFunction<any>;
@@ -48,7 +48,7 @@ describe('main.js', () => {
   let mockPushChangesetTags: MockedFunction<any>;
   let mockGetPackagesToRelease: MockedFunction<any>;
   let mockValidateOidcNodeRuntime: MockedFunction<any>;
-  let mockWriteJobSummary: MockedFunction<any>;
+  let mockReportReleaseResult: MockedFunction<any>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -77,7 +77,7 @@ describe('main.js', () => {
     const getReleasePlanModule = await import('../src/utils/get-release-plan');
     const validateOidcNodeRuntimeModule =
       await import('../src/utils/validate-oidc-node-runtime');
-    const writeJobSummaryModule = await import('../src/utils/write-job-summary');
+    const releaseResultModule = await import('../src/utils/release-result');
 
     mockGetActionInputs = vi.mocked(getActionInputsModule.getActionInputs);
     mockGetBranchConfig = vi.mocked(getBranchConfigModule.getBranchConfig);
@@ -106,7 +106,7 @@ describe('main.js', () => {
     mockValidateOidcNodeRuntime = vi.mocked(
       validateOidcNodeRuntimeModule.validateOidcNodeRuntime,
     );
-    mockWriteJobSummary = vi.mocked(writeJobSummaryModule.writeJobSummary);
+    mockReportReleaseResult = vi.mocked(releaseResultModule.reportReleaseResult);
 
     // Default return values
     mockGetActionInputs.mockReturnValue({
@@ -132,7 +132,7 @@ describe('main.js', () => {
     mockPushChangesetTags.mockResolvedValue(undefined);
     mockGetPackagesToRelease.mockResolvedValue([]);
     mockValidateOidcNodeRuntime.mockReturnValue(undefined);
-    mockWriteJobSummary.mockResolvedValue(undefined);
+    mockReportReleaseResult.mockResolvedValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
     process.env.GITHUB_REPOSITORY = 'owner/repo';
@@ -550,7 +550,7 @@ describe('main.js', () => {
     });
   });
 
-  describe('job summary', () => {
+  describe('release result', () => {
     const publishedPackage = {
       dir: '/path/to/package',
       packageJson: { name: 'test-package', version: '1.1.0', private: false },
@@ -571,7 +571,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'published',
         branch: 'next',
         distTag: 'rc',
@@ -591,7 +591,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith(
+      expect(mockReportReleaseResult).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'published', distTag: 'beta' }),
       );
     });
@@ -602,7 +602,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith(
+      expect(mockReportReleaseResult).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'published', distTag: 'latest' }),
       );
     });
@@ -614,7 +614,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'skipped',
         reason: "Branch 'feature' is not configured for releases.",
       });
@@ -633,7 +633,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'skipped',
         reason:
           "No changesets found on 'main': no releasable commits since the last release.",
@@ -646,7 +646,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'skipped',
         reason: "No changesets found on 'main' (AUTO_CHANGESET is disabled).",
       });
@@ -658,7 +658,7 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'skipped',
         reason:
           'Changesets were versioned, but no public package had a new version to publish.',
@@ -679,8 +679,8 @@ describe('main.js', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockWriteJobSummary).toHaveBeenCalledTimes(1);
-      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+      expect(mockReportReleaseResult).toHaveBeenCalledTimes(1);
+      expect(mockReportReleaseResult).toHaveBeenCalledWith({
         status: 'failed',
         reason: 'tag error',
         branch: 'main',
