@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/pixpilot/changesets-autopilot/compare/v1.6.1...v1.7.0) (2026-09-26)
+
+
+### Features
+
+* add job summary functionality for release process ([b1d71d5](https://github.com/pixpilot/changesets-autopilot/commit/b1d71d5b68c84803ebc8d386abcc586cfdf29e49))
+* **release:** add release result reporting and summary outputs ([488e86e](https://github.com/pixpilot/changesets-autopilot/commit/488e86e076c00fa7ebd510e36b19ebda947197fd))
+
 ## [1.6.1](https://github.com/pixpilot/changesets-autopilot/compare/v1.6.0...v1.6.1) (2026-09-23)
 
 

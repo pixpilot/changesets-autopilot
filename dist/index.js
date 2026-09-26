@@ -88096,6 +88096,121 @@ async function pushChangesetTags(git, githubToken, repo) {
     log$1.info('Tags pushed successfully');
 }
 
+const HEADING_LEVEL = 2;
+const HTML_ESCAPES = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+};
+function escapeHtml(value) {
+    return value.replace(/[&<>"']/gu, (char) => HTML_ESCAPES[char] ?? char);
+}
+function code(value) {
+    return `<code>${escapeHtml(value)}</code>`;
+}
+function buildPackagesTable(releasedPackages, plannedPackages) {
+    const bumpByName = new Map(plannedPackages.map((pkg) => [pkg.name, pkg.type]));
+    return [
+        [
+            { data: 'Package', header: true },
+            { data: 'Version', header: true },
+            { data: 'Bump', header: true },
+        ],
+        ...releasedPackages.map(({ packageJson }) => [
+            code(packageJson.name),
+            code(packageJson.version),
+            bumpByName.get(packageJson.name) ?? '-',
+        ]),
+    ];
+}
+/**
+ * Writes a job summary describing what was published, or why nothing was.
+ * Never throws: a summary failure must not fail the release.
+ */
+async function writeJobSummary(input) {
+    const { status, reason, branch, distTag, releasedPackages = [], plannedPackages = [], } = input;
+    try {
+        const { summary } = log$1;
+        summary.addHeading('🦋 Changesets Autopilot', HEADING_LEVEL);
+        const onBranch = branch === undefined ? '' : ` on ${code(branch)}`;
+        if (status === 'published') {
+            const branchText = branch === undefined ? '' : ` from ${code(branch)}`;
+            const tagText = distTag === undefined ? '' : ` with dist-tag ${code(distTag)}`;
+            summary
+                .addRaw(`<p>✅ Published ${releasedPackages.length} package(s)${branchText}${tagText}.</p>`, true)
+                .addTable(buildPackagesTable(releasedPackages, plannedPackages));
+        }
+        else if (status === 'skipped') {
+            summary
+                .addRaw('<p>⏭️ Nothing was published.</p>', true)
+                .addRaw(`<p><strong>Reason:</strong> ${escapeHtml(reason ?? 'Unknown')}</p>`, true);
+        }
+        else {
+            summary
+                .addRaw(`<p>❌ Release failed${onBranch}.</p>`, true)
+                .addCodeBlock(escapeHtml(reason ?? 'Unknown error'));
+            if (releasedPackages.length > 0) {
+                summary
+                    .addRaw('<p>Packages published before the failure:</p>', true)
+                    .addTable(buildPackagesTable(releasedPackages, plannedPackages));
+            }
+        }
+        await summary.write();
+    }
+    catch (error) {
+        log$1.warning(`Failed to write job summary: ${String(error)}`);
+    }
+}
+
+function formatPackageLines(releasedPackages, plannedPackages) {
+    const bumpByName = new Map(plannedPackages.map((pkg) => [pkg.name, pkg.type]));
+    return releasedPackages.map(({ packageJson }) => {
+        const bump = bumpByName.get(packageJson.name);
+        const bumpText = bump === undefined ? '' : ` (${bump})`;
+        return `- ${packageJson.name}@${packageJson.version}${bumpText}`;
+    });
+}
+/**
+ * Formats the release outcome as plain text for notifications: the published
+ * packages, why nothing was published, or why the release failed.
+ */
+function formatReleaseSummary(result) {
+    const { status, reason, distTag, releasedPackages = [], plannedPackages = [] } = result;
+    const packageLines = formatPackageLines(releasedPackages, plannedPackages);
+    if (status === 'published') {
+        const tagText = distTag === undefined ? '' : ` (dist-tag: ${distTag})`;
+        return [
+            `Published ${releasedPackages.length} package(s)${tagText}:`,
+            ...packageLines,
+        ].join('\n');
+    }
+    if (status === 'skipped') {
+        return `Nothing published: ${reason ?? 'Unknown'}`;
+    }
+    // Publish errors carry the full command output; the first line is the cause.
+    const firstLine = (reason ?? '').split('\n')[0] ?? '';
+    const lines = [`Release failed: ${firstLine.length > 0 ? firstLine : 'Unknown error'}`];
+    if (packageLines.length > 0) {
+        lines.push('Published before the failure:', ...packageLines);
+    }
+    return lines.join('\n');
+}
+/**
+ * Exposes the release outcome as action outputs and writes the job summary.
+ */
+async function reportReleaseResult(result) {
+    const released = (result.releasedPackages ?? []).map(({ packageJson }) => ({
+        name: packageJson.name,
+        version: packageJson.version,
+    }));
+    log$1.setOutput('published-packages', JSON.stringify(released));
+    log$1.setOutput('published-versions', released.map(({ name, version }) => `${name}@${version}`).join(', '));
+    log$1.setOutput('release-summary', formatReleaseSummary(result));
+    await writeJobSummary(result);
+}
+
 const MIN_OIDC_NODE_VERSION = '24.0.0';
 function parseVersion(version) {
     const match = /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)/u.exec(version.trim());
@@ -88136,18 +88251,36 @@ function validateOidcNodeRuntime(nodeVersion = process$1.versions.node, minimumV
     throw new Error(`OIDC trusted publisher mode requires Node.js ${minimumVersion}+ (npm 11.5.1+). Current Node.js: ${nodeVersion}. Reason: npm trusted publishing OIDC token exchange is not supported reliably on older Node/npm runtimes and can fail with ENEEDAUTH/404. Fix: use actions/setup-node@v6 with node-version: 24 or higher. If your workflow already sets Node 24+ but this still reports Node 20.x, update to an action version that runs with node24 in action.yml (or pin to the latest commit that includes it).`);
 }
 
+function getDistTag(branchConfig) {
+    // Prerelease mode publishes under the pre tag; otherwise the channel or npm's default.
+    if (typeof branchConfig.prerelease === 'string' && branchConfig.prerelease.length > 0) {
+        return branchConfig.prerelease;
+    }
+    if (typeof branchConfig.channel === 'string' && branchConfig.channel.length > 0) {
+        return branchConfig.channel;
+    }
+    return 'latest';
+}
 /**
  * The main function for the action.
  */
 async function run() {
+    let branchName;
+    let packagesToRelease = [];
+    let releasedPackages = [];
     try {
         // Ensure changesets is available
         ensureChangesetsAvailable();
         // Initialize inputs and configuration
         const { githubToken, registryToken, botName, branches, createRelease: shouldCreateRelease, pushTags, autoChangeset, } = getActionInputs();
         const branchConfig = getBranchConfig(branches);
+        branchName = branchConfig.name;
         // Validate branch configuration
         if (!validateBranchConfiguration(branchConfig)) {
+            await reportReleaseResult({
+                status: 'skipped',
+                reason: `Branch '${branchConfig.name}' is not configured for releases.`,
+            });
             return;
         }
         // Configure Git user
@@ -88172,7 +88305,7 @@ async function run() {
             log$1.info('Processing versioning and git operations...');
             // Get packages that will be released BEFORE running changeset version
             // because changeset version consumes the changeset files
-            const packagesToRelease = await getPackagesToRelease();
+            packagesToRelease = await getPackagesToRelease();
             runChangesetVersion(githubToken);
             await commitAndPush(git, githubToken, packagesToRelease);
             if (hasRegistryToken) {
@@ -88182,7 +88315,7 @@ async function run() {
                 log$1.info('Using npm authentication mode: OIDC trusted publisher mode');
             }
             const provenance = log$1.getInput('provenance') === 'true';
-            const releasedPackages = await publishPackages(branchConfig, registryToken, provenance);
+            releasedPackages = await publishPackages(branchConfig, registryToken, provenance);
             if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
                 throw new Error(`Publishing failed: expected to publish ${packagesToRelease.length} package(s), but none were published.`);
             }
@@ -88207,16 +88340,41 @@ async function run() {
                     }
                 }
             }
+            await (wasPublished
+                ? reportReleaseResult({
+                    status: 'published',
+                    branch: branchConfig.name,
+                    distTag: getDistTag(branchConfig),
+                    releasedPackages,
+                    plannedPackages: packagesToRelease,
+                })
+                : reportReleaseResult({
+                    status: 'skipped',
+                    reason: 'Changesets were versioned, but no public package had a new version to publish.',
+                }));
         }
         else {
             log$1.info('No changesets to process. Action completed.');
             log$1.setOutput('published', 'false');
+            await reportReleaseResult({
+                status: 'skipped',
+                reason: autoChangeset
+                    ? `No changesets found on '${branchConfig.name}': no releasable commits since the last release.`
+                    : `No changesets found on '${branchConfig.name}' (AUTO_CHANGESET is disabled).`,
+            });
         }
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         log$1.setOutput('published', 'false');
         log$1.setFailed(`Action failed: ${errorMessage}`);
+        await reportReleaseResult({
+            status: 'failed',
+            reason: errorMessage,
+            branch: branchName,
+            releasedPackages,
+            plannedPackages: packagesToRelease,
+        });
     }
 }
 
