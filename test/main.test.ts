@@ -30,6 +30,7 @@ vi.mock('../src/github/create-releases-for-packages');
 vi.mock('../src/github/push-changeset-tags');
 vi.mock('../src/utils/get-release-plan');
 vi.mock('../src/utils/validate-oidc-node-runtime');
+vi.mock('../src/utils/write-job-summary');
 
 describe('main.js', () => {
   let mockGetActionInputs: MockedFunction<any>;
@@ -47,6 +48,7 @@ describe('main.js', () => {
   let mockPushChangesetTags: MockedFunction<any>;
   let mockGetPackagesToRelease: MockedFunction<any>;
   let mockValidateOidcNodeRuntime: MockedFunction<any>;
+  let mockWriteJobSummary: MockedFunction<any>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -75,6 +77,7 @@ describe('main.js', () => {
     const getReleasePlanModule = await import('../src/utils/get-release-plan');
     const validateOidcNodeRuntimeModule =
       await import('../src/utils/validate-oidc-node-runtime');
+    const writeJobSummaryModule = await import('../src/utils/write-job-summary');
 
     mockGetActionInputs = vi.mocked(getActionInputsModule.getActionInputs);
     mockGetBranchConfig = vi.mocked(getBranchConfigModule.getBranchConfig);
@@ -103,6 +106,7 @@ describe('main.js', () => {
     mockValidateOidcNodeRuntime = vi.mocked(
       validateOidcNodeRuntimeModule.validateOidcNodeRuntime,
     );
+    mockWriteJobSummary = vi.mocked(writeJobSummaryModule.writeJobSummary);
 
     // Default return values
     mockGetActionInputs.mockReturnValue({
@@ -128,6 +132,7 @@ describe('main.js', () => {
     mockPushChangesetTags.mockResolvedValue(undefined);
     mockGetPackagesToRelease.mockResolvedValue([]);
     mockValidateOidcNodeRuntime.mockReturnValue(undefined);
+    mockWriteJobSummary.mockResolvedValue(undefined);
 
     process.env.GITHUB_REF_NAME = 'main';
     process.env.GITHUB_REPOSITORY = 'owner/repo';
@@ -542,6 +547,146 @@ describe('main.js', () => {
       await run();
 
       expect(mockSetOutput).toHaveBeenCalledWith('published', 'false');
+    });
+  });
+
+  describe('job summary', () => {
+    const publishedPackage = {
+      dir: '/path/to/package',
+      packageJson: { name: 'test-package', version: '1.1.0', private: false },
+    };
+
+    it('should summarize published packages with branch and dist-tag', async () => {
+      mockGetBranchConfig.mockReturnValue({
+        name: 'next',
+        prerelease: 'rc',
+        channel: 'next',
+        isMatch: true,
+      });
+      mockGetPackagesToRelease.mockResolvedValue([
+        { name: 'test-package', version: '1.1.0', type: 'minor' },
+      ]);
+      mockPublishPackages.mockResolvedValue([publishedPackage]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'published',
+        branch: 'next',
+        distTag: 'rc',
+        releasedPackages: [publishedPackage],
+        plannedPackages: [{ name: 'test-package', version: '1.1.0', type: 'minor' }],
+      });
+    });
+
+    it('should use the channel as dist-tag when not a prerelease branch', async () => {
+      mockGetBranchConfig.mockReturnValue({
+        name: 'beta',
+        channel: 'beta',
+        isMatch: true,
+      });
+      mockPublishPackages.mockResolvedValue([publishedPackage]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'published', distTag: 'beta' }),
+      );
+    });
+
+    it('should use "latest" as dist-tag by default', async () => {
+      mockPublishPackages.mockResolvedValue([publishedPackage]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'published', distTag: 'latest' }),
+      );
+    });
+
+    it('should explain skip for an unconfigured branch', async () => {
+      mockGetBranchConfig.mockReturnValue({ name: 'feature', isMatch: false });
+      mockValidateBranchConfiguration.mockReturnValue(false);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'skipped',
+        reason: "Branch 'feature' is not configured for releases.",
+      });
+    });
+
+    it('should explain skip when there are no changesets', async () => {
+      mockHasChangesetFiles.mockReturnValue(false);
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        registryToken: 'test-npm-token',
+        botName: 'test-bot',
+        branches: ['main'],
+        autoChangeset: true,
+      });
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'skipped',
+        reason:
+          "No changesets found on 'main': no releasable commits since the last release.",
+      });
+    });
+
+    it('should mention AUTO_CHANGESET when it is disabled and there are no changesets', async () => {
+      mockHasChangesetFiles.mockReturnValue(false);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'skipped',
+        reason: "No changesets found on 'main' (AUTO_CHANGESET is disabled).",
+      });
+    });
+
+    it('should explain skip when versioning produced nothing to publish', async () => {
+      mockPublishPackages.mockResolvedValue([]);
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'skipped',
+        reason:
+          'Changesets were versioned, but no public package had a new version to publish.',
+      });
+    });
+
+    it('should report failure with packages published before the error', async () => {
+      mockGetActionInputs.mockReturnValue({
+        githubToken: 'test-token',
+        registryToken: 'test-npm-token',
+        botName: 'test-bot',
+        branches: ['main'],
+        pushTags: true,
+      });
+      mockPublishPackages.mockResolvedValue([publishedPackage]);
+      mockPushChangesetTags.mockRejectedValue(new Error('tag error'));
+
+      const { run } = await import('../src/main');
+      await run();
+
+      expect(mockWriteJobSummary).toHaveBeenCalledTimes(1);
+      expect(mockWriteJobSummary).toHaveBeenCalledWith({
+        status: 'failed',
+        reason: 'tag error',
+        branch: 'main',
+        releasedPackages: [publishedPackage],
+        plannedPackages: [],
+      });
     });
   });
 });

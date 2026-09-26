@@ -1,5 +1,8 @@
-import process from 'node:process';
+import type { ResolvedBranchConfig } from './config/get-branch-config';
 
+import type { Package } from './github/create-release';
+import type { ReleasePackage } from './utils/get-release-plan';
+import process from 'node:process';
 import {
   configureRereleaseMode,
   createChangesetsForRecentCommits,
@@ -17,11 +20,27 @@ import { log } from './utils/log';
 import { getCustomPublishRegistries } from './utils/publish-registry';
 import { validateOidcNodeRuntime } from './utils/validate-oidc-node-runtime';
 import { validatePublishAuth } from './utils/validate-publish-auth';
+import { writeJobSummary } from './utils/write-job-summary';
+
+function getDistTag(branchConfig: ResolvedBranchConfig): string {
+  // Prerelease mode publishes under the pre tag; otherwise the channel or npm's default.
+  if (typeof branchConfig.prerelease === 'string' && branchConfig.prerelease.length > 0) {
+    return branchConfig.prerelease;
+  }
+  if (typeof branchConfig.channel === 'string' && branchConfig.channel.length > 0) {
+    return branchConfig.channel;
+  }
+  return 'latest';
+}
 
 /**
  * The main function for the action.
  */
 export async function run(): Promise<void> {
+  let branchName: string | undefined;
+  let packagesToRelease: ReleasePackage[] = [];
+  let releasedPackages: Package[] = [];
+
   try {
     // Ensure changesets is available
     ensureChangesetsAvailable();
@@ -37,9 +56,14 @@ export async function run(): Promise<void> {
       autoChangeset,
     } = getActionInputs();
     const branchConfig = getBranchConfig(branches);
+    branchName = branchConfig.name;
 
     // Validate branch configuration
     if (!validateBranchConfiguration(branchConfig)) {
+      await writeJobSummary({
+        status: 'skipped',
+        reason: `Branch '${branchConfig.name}' is not configured for releases.`,
+      });
       return;
     }
 
@@ -72,7 +96,7 @@ export async function run(): Promise<void> {
 
       // Get packages that will be released BEFORE running changeset version
       // because changeset version consumes the changeset files
-      const packagesToRelease = await getPackagesToRelease();
+      packagesToRelease = await getPackagesToRelease();
 
       runChangesetVersion(githubToken);
 
@@ -85,11 +109,7 @@ export async function run(): Promise<void> {
       }
 
       const provenance = log.getInput('provenance') === 'true';
-      const releasedPackages = await publishPackages(
-        branchConfig,
-        registryToken,
-        provenance,
-      );
+      releasedPackages = await publishPackages(branchConfig, registryToken, provenance);
 
       if (packagesToRelease.length > 0 && releasedPackages.length === 0) {
         throw new Error(
@@ -120,13 +140,40 @@ export async function run(): Promise<void> {
           }
         }
       }
+
+      await (wasPublished
+        ? writeJobSummary({
+            status: 'published',
+            branch: branchConfig.name,
+            distTag: getDistTag(branchConfig),
+            releasedPackages,
+            plannedPackages: packagesToRelease,
+          })
+        : writeJobSummary({
+            status: 'skipped',
+            reason:
+              'Changesets were versioned, but no public package had a new version to publish.',
+          }));
     } else {
       log.info('No changesets to process. Action completed.');
       log.setOutput('published', 'false');
+      await writeJobSummary({
+        status: 'skipped',
+        reason: autoChangeset
+          ? `No changesets found on '${branchConfig.name}': no releasable commits since the last release.`
+          : `No changesets found on '${branchConfig.name}' (AUTO_CHANGESET is disabled).`,
+      });
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.setOutput('published', 'false');
     log.setFailed(`Action failed: ${errorMessage}`);
+    await writeJobSummary({
+      status: 'failed',
+      reason: errorMessage,
+      branch: branchName,
+      releasedPackages,
+      plannedPackages: packagesToRelease,
+    });
   }
 }
